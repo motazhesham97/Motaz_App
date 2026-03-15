@@ -1,0 +1,160 @@
+# ============================================================
+# Motaz_App .gitignore
+# Stack: Flutter + Serverpod (Dart) + Drift + Riverpod
+# ============================================================
+
+# ======================== Dart / Flutter =====================
+
+# Dart/Flutter generated files
+*.dart_tool/
+.packages
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Dart code generation (Drift, Riverpod, Serverpod protocol classes, freezed, json_serializable)
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Flutter local config
+.metadata
+.dart_tool/
+
+# ======================== Serverpod ========================
+
+# Serverpod generated protocol and endpoint files
+# (These are re-generated from YAML/model definitions)
+**/generated/**
+
+# Serverpod passwords and secret configs
+config/passwords.yaml
+config/staging.yaml
+config/production.yaml
+
+# ======================== IDE / Editor =====================
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ======================== OS Files =========================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# ======================== Android ==========================
+
+# Android build artifacts
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+*.jks
+*.keystore
+
+# ======================== Windows ==========================
+
+# Flutter Windows build artifacts
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/generated_plugins.cmake
+
+# ======================== iOS (future-proofing) ============
+
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Pods/
+**/ios/.symlinks/
+
+# ======================== Testing / Coverage ===============
+
+coverage/
+.test_coverage/
+*.lcov
+
+# ======================== Environments / Secrets ===========
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Secrets and credentials
+*.pem
+*.p12
+*.key
+*.cert
+
+# ======================== Database / Local Data ============
+
+# SQLite databases (local dev/test artifacts)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+
+# ======================== Logs / Temp ======================
+
+*.log
+logs/
+tmp/
+temp/
+
+# ======================== Dependencies =====================
+
+# Pub dependencies (restored via `flutter pub get`)
+.dart_tool/
+.packages
+pubspec.lock
+
+# Node (if any tooling uses it)
+node_modules/
+
+# ======================== Build Artifacts ==================
+
+# Release builds
+*.apk
+*.aab
+*.exe
+*.msix
+*.appbundle
+
+# ======================== Miscellaneous ====================
+
+# Cloudinary upload temp files
+*.upload_temp
+
+# Crash reports
+crash_log.*
