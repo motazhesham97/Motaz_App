@@ -1,0 +1,44 @@
+services:
+  # Development services
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "8090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: motaz_app
+      POSTGRES_PASSWORD: "b55ZSCqjrbxFz448wNrs3-W-5yHx28Iw"
+    volumes:
+      - motaz_app_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:6.2.6
+    ports:
+      - "8091:6379"
+    command: redis-server --requirepass "1hDO88xmFwpLU_myLLQkygNpLk1447To"
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+  # Test services
+  postgres_test:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "9090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: motaz_app_test
+      POSTGRES_PASSWORD: "v-y1fEnncE76TMeecnS1DfCYCAtVoyUh"
+    volumes:
+      - motaz_app_test_data:/var/lib/postgresql/data
+
+  redis_test:
+    image: redis:6.2.6
+    ports:
+      - "9091:6379"
+    command: redis-server --requirepass "brovKHFg9kTeBkRMCzuCacbSnoL-Fxe8"
+    environment:
+      - REDIS_REPLICATION_MODE=master
+
+volumes:
+  motaz_app_data:
+  motaz_app_test_data:
