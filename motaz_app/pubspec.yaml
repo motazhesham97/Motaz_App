@@ -1,0 +1,14 @@
+name: _
+publish_to: none
+
+environment:
+  sdk: '^3.8.0'
+
+workspace:
+  - motaz_app_client
+  - motaz_app_server
+  - motaz_app_flutter
+
+dependency_overrides:
+  flutter_secure_storage: ^10.0.0
+
