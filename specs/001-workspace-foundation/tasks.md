@@ -35,17 +35,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Configure Neon PostgreSQL connection in `motaz_app_server/config/development.yaml` and create `motaz_app_server/config/passwords.yaml` (gitignored)
-- [ ] T007 Create Drift database class at `motaz_app/motaz_app_flutter/lib/core/database/app_database.dart` with initial empty schema and database open/close logic
-- [ ] T008 [P] Create Device table definition at `motaz_app/motaz_app_flutter/lib/core/database/tables/devices.dart` with fields: id (text PK), device_name (text), platform (text), created_at (integer), last_active_at (integer)
-- [ ] T009 [P] Create SyncOutbox table definition at `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_outbox.dart` with fields: id (integer PK autoincrement), entity_type (text), entity_id (text), operation (text), payload (text), row_version (integer), device_id (text FK), retry_count (integer), status (text), created_at (integer)
-- [ ] T010 [P] Create SyncCursor table definition at `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_cursor.dart` with fields: entity_type (text PK), last_pulled_at (integer), last_row_version (integer)
-- [ ] T011 Register all tables in `motaz_app/motaz_app_flutter/lib/core/database/app_database.dart` and run `dart run build_runner build` to generate Drift code
-- [ ] T012 Create Riverpod provider for AppDatabase at `motaz_app/motaz_app_flutter/lib/core/database/database_provider.dart` — singleton instance, initialized on app start
-- [ ] T013 [P] Create app theme with Arabic RTL support at `motaz_app/motaz_app_flutter/lib/core/theme/app_theme.dart` — dark/light theme, Arabic font (e.g., Cairo or Noto Sans Arabic), RTL text direction
-- [ ] T014 [P] Create Arabic localization ARB file at `motaz_app/motaz_app_flutter/lib/core/l10n/app_ar.arb` with base strings: app name, sign in, register, sign out, dashboard, products, clients, invoices, receipts, expenses, returns, reports, party balances, settings, connectivity status labels, error messages
-- [ ] T015 Configure localization in `motaz_app/motaz_app_flutter/lib/app.dart` — set Arabic as default and only locale, enable flutter_localizations, set text direction RTL
-- [ ] T016 Create Riverpod ProviderScope and app entry point at `motaz_app/motaz_app_flutter/lib/main.dart` — initialize database, wrap app in ProviderScope
+- [X] T006 Configure Neon PostgreSQL connection in `motaz_app_server/config/development.yaml` and create `motaz_app_server/config/passwords.yaml` (gitignored)
+- [X] T007 Create Drift database class at `motaz_app/motaz_app_flutter/lib/core/database/app_database.dart` with initial empty schema and database open/close logic
+- [X] T008 [P] Create Device table definition at `motaz_app/motaz_app_flutter/lib/core/database/tables/devices.dart` with fields: id (text PK), device_name (text), platform (text), created_at (integer), last_active_at (integer)
+- [X] T009 [P] Create SyncOutbox table definition at `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_outbox.dart` with fields: id (integer PK autoincrement), entity_type (text), entity_id (text), operation (text), payload (text), row_version (integer), device_id (text FK), retry_count (integer), status (text), created_at (integer)
+- [X] T010 [P] Create SyncCursor table definition at `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_cursor.dart` with fields: entity_type (text PK), last_pulled_at (integer), last_row_version (integer)
+- [X] T011 Register all tables in `motaz_app/motaz_app_flutter/lib/core/database/app_database.dart` and run `dart run build_runner build` to generate Drift code
+- [X] T012 Create Riverpod provider for AppDatabase at `motaz_app/motaz_app_flutter/lib/core/database/database_provider.dart` — singleton instance, initialized on app start
+- [X] T013 [P] Create app theme with Arabic RTL support at `motaz_app/motaz_app_flutter/lib/core/theme/app_theme.dart` — dark/light theme, Arabic font (e.g., Cairo or Noto Sans Arabic), RTL text direction
+- [X] T014 [P] Create Arabic localization ARB file at `motaz_app/motaz_app_flutter/lib/core/l10n/app_ar.arb` with base strings: app name, sign in, register, sign out, dashboard, products, clients, invoices, receipts, expenses, returns, reports, party balances, settings, connectivity status labels, error messages
+- [X] T015 Configure localization in `motaz_app/motaz_app_flutter/lib/app.dart` — set Arabic as default and only locale, enable flutter_localizations, set text direction RTL
+- [X] T016 Create Riverpod ProviderScope and app entry point at `motaz_app/motaz_app_flutter/lib/main.dart` — initialize database, wrap app in ProviderScope
 
 **Checkpoint**: Foundation ready — local database opens, theme renders Arabic RTL, localization works, Riverpod initialized. No screens yet.
 
