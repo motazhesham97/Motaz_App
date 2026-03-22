@@ -27,14 +27,15 @@ webServer:
   publicPort: 8082
   publicScheme: http
 
-# This is the database setup for your server (Neon PostgreSQL).
+# This is the database setup for your server.
 database:
-  host: <neon-host-placeholder>.neon.tech
-  port: 5432
-  name: motaz_app_dev
-  user: <neon-user-placeholder>
-  requireSsl: true
-  maxConnectionCount: 10
+  host: localhost
+  port: 8090
+  name: motaz_app
+  user: postgres
+  #requireSsl: true # defaults to false
+  #isUnixSocket: true # defaults to false
+  #maxConnectionCount: 10 # Defaults to 10, a negative or null value removes the limit
 
 # This is the setup for Redis.
 redis:
