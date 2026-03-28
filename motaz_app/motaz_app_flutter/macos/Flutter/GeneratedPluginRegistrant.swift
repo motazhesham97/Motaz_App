@@ -15,7 +15,8 @@ import sqlite3_flutter_libs
 
 /// Registers the generated Flutter macOS plugins with the given plugin registry.
 /// - Parameters:
-///   - registry: The `FlutterPluginRegistry` to register plugins with.
+/// Registers the generated Flutter macOS plugins with the provided plugin registry.
+/// - Parameter registry: The `FlutterPluginRegistry` used to obtain registrars for each plugin so they can be registered with the Flutter engine.
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   ConnectivityPlusPlugin.register(with: registry.registrar(forPlugin: "ConnectivityPlusPlugin"))
   FilePickerPlugin.register(with: registry.registrar(forPlugin: "FilePickerPlugin"))
