@@ -13,6 +13,9 @@ import shared_preferences_foundation
 import sqflite_darwin
 import sqlite3_flutter_libs
 
+/// Registers the generated Flutter macOS plugins with the given plugin registry.
+/// - Parameters:
+///   - registry: The `FlutterPluginRegistry` to register plugins with.
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   ConnectivityPlusPlugin.register(with: registry.registrar(forPlugin: "ConnectivityPlusPlugin"))
   FilePickerPlugin.register(with: registry.registrar(forPlugin: "FilePickerPlugin"))

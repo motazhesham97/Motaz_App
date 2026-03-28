@@ -10,6 +10,16 @@
 #include <flutter_secure_storage_linux/flutter_secure_storage_linux_plugin.h>
 #include <sqlite3_flutter_libs/sqlite3_flutter_libs_plugin.h>
 
+/**
+ * @brief Registers bundled Linux Flutter plugins with the given plugin registry.
+ *
+ * This function registers the following plugins into the provided FlPluginRegistry:
+ * - FileSelectorPlugin
+ * - FlutterSecureStorageLinuxPlugin
+ * - Sqlite3FlutterLibsPlugin
+ *
+ * @param registry The plugin registry to register the plugins with.
+ */
 void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) file_selector_linux_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "FileSelectorPlugin");
