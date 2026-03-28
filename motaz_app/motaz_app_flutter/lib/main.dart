@@ -11,6 +11,7 @@ import 'core/database/app_database.dart';
 import 'core/database/database_provider.dart';
 import 'core/database/device_service.dart';
 import 'core/logging/app_logger.dart';
+import 'core/database/device_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,7 @@ void main() async {
           actionLabel: 'إعادة تعيين البيانات المحلية',
           onAction: () async {
             await resetDatabaseFiles();
+            main();
           },
         ),
       );
@@ -65,6 +67,7 @@ void main() async {
           clientProvider.overrideWithValue(client),
           serverServiceProvider.overrideWithValue(serverService),
           appDatabaseProvider.overrideWithValue(database),
+          deviceServiceProvider.overrideWithValue(deviceService),
         ],
         child: const MotazApp(),
       ),

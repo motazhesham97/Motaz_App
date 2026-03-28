@@ -49,11 +49,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       _isLoading = false;
     });
 
-        if (!success) {
-          setState(() {
-            _errorMessage = 'فشل في إنشاء الحساب. قد يكون الحساب موجوداً بالفعل أو هناك مشكلة في الاتصال بالخادم.';
-          });
-        }
+    if (!success) {
+      setState(() {
+        _errorMessage = 'فشل في إنشاء الحساب. قد يكون الحساب موجوداً بالفعل أو هناك مشكلة في الاتصال بالخادم.';
+      });
+    }
   }
 
   @override

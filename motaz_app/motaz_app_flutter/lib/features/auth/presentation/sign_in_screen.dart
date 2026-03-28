@@ -45,11 +45,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       _isLoading = false;
     });
 
-        if (!success) {
-          setState(() {
-            _errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة، أو هناك مشكلة في الاتصال بالخادم';
-          });
-        }
+    if (!success) {
+      setState(() {
+        _errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة، أو هناك مشكلة في الاتصال بالخادم';
+      });
+    }
   }
 
   @override

@@ -63,11 +63,9 @@ class DeviceService {
   Future<String> _getDeviceName(String platform) async {
     try {
       if (platform == 'android') {
-        final model =
-            Platform.environment['PRODUCT'] ??
-            Platform.environment['MODEL'] ??
-            'Android';
-        return 'Android - $model';
+        // TODO: Use device_info_plus for proper model name when added as dependency.
+        final hostname = Platform.localHostname;
+        return hostname.isNotEmpty ? 'Android - $hostname' : 'Android';
       } else if (platform == 'windows') {
         final hostname =
             Platform.environment['COMPUTERNAME'] ?? Platform.localHostname;

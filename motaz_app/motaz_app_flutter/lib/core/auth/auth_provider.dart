@@ -14,6 +14,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final Client client;
   final ServerService serverService;
   late final void Function() _authListener;
+  bool? _cachedHasAccount;
 
   AuthNotifier(this.client, this.serverService) : super(const AuthInitial()) {
     _authListener = () {
@@ -24,9 +25,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> _init() async {
-    AppLog.auth('Initializing cached auth session');
-    await client.auth.initialize();
-    await _syncAuthState();
+    try {
+      AppLog.auth('Initializing cached auth session');
+      await client.auth.initialize();
+      await _syncAuthState();
+    } catch (e, stackTrace) {
+      AppLog.error('Failed to initialize auth session', e, stackTrace);
+      state = Unauthenticated(hasAccount: _cachedHasAccount ?? true);
+    }
   }
 
   Future<void> _syncAuthState() async {
@@ -55,9 +61,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> _loadHasAccount() async {
     try {
-      return await client.emailIdp.hasAccount();
+      final result = await client.emailIdp.hasAccount();
+      _cachedHasAccount = result;
+      return result;
     } catch (_) {
-      return true;
+      return _cachedHasAccount ?? true;
     }
   }
 
@@ -66,11 +74,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
   }) async {
     try {
-      AppLog.auth('Attempting registration for $email');
+      AppLog.auth('Attempting registration');
       final connection = await serverService.checkConnection();
       if (!connection.isConnected) {
         AppLog.warning('Registration blocked because server is unavailable');
-        state = Unauthenticated(hasAccount: await _loadHasAccount());
+        state = Unauthenticated(hasAccount: _cachedHasAccount ?? false);
         return false;
       }
 
@@ -79,12 +87,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
       await client.auth.updateSignedInUser(authSuccess);
-      AppLog.auth('Registration succeeded for $email');
+      AppLog.auth('Registration succeeded');
+      _cachedHasAccount = true;
       state = Authenticated(email: email);
       return true;
     } catch (e, stackTrace) {
-      AppLog.error('Registration failed for $email', e, stackTrace);
-      state = Unauthenticated(hasAccount: await _loadHasAccount());
+      AppLog.error('Registration failed', e, stackTrace);
+      state = Unauthenticated(hasAccount: _cachedHasAccount ?? false);
       return false;
     }
   }
@@ -94,7 +103,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
   }) async {
     try {
-      AppLog.auth('Attempting sign-in for $email');
+      AppLog.auth('Attempting sign-in');
       final connection = await serverService.checkConnection();
       if (!connection.isConnected) {
         AppLog.warning('Sign-in blocked because server is unavailable');
@@ -106,17 +115,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: email,
         password: password,
       );
-      if ((authSuccess.token.isNotEmpty) ||
-          (authSuccess.refreshToken?.isNotEmpty ?? false)) {
+      if (authSuccess.token.isNotEmpty) {
         await client.auth.updateSignedInUser(authSuccess);
-        AppLog.auth('Sign-in succeeded for $email');
+        AppLog.auth('Sign-in succeeded');
         state = Authenticated(email: email);
         return true;
       }
-      AppLog.warning('Sign-in returned empty auth tokens for $email');
+      AppLog.warning('Sign-in returned empty auth tokens');
       return false;
     } catch (e, stackTrace) {
-      AppLog.error('Sign-in failed for $email', e, stackTrace);
+      AppLog.error('Sign-in failed', e, stackTrace);
       state = const Unauthenticated(hasAccount: true);
       return false;
     }

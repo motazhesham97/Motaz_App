@@ -17,18 +17,28 @@ class EmailIdpEndpoint extends EmailIdpBaseEndpoint {
 
     final authUser = await AuthServices.instance.authUsers.create(session);
 
-    await emailIdp.admin.createEmailAuthentication(
-      session,
-      authUserId: authUser.id,
-      email: email,
-      password: password,
-    );
+    try {
+      await emailIdp.admin.createEmailAuthentication(
+        session,
+        authUserId: authUser.id,
+        email: email,
+        password: password,
+      );
 
-    await AuthServices.instance.userProfiles.createUserProfile(
-      session,
-      authUser.id,
-      UserProfileData(email: email),
-    );
+      await AuthServices.instance.userProfiles.createUserProfile(
+        session,
+        authUser.id,
+        UserProfileData(email: email),
+      );
+    } catch (e) {
+      // Compensating cleanup: remove the orphaned auth user.
+      try {
+        await AuthServices.instance.authUsers.delete(session, authUser.id);
+      } catch (_) {
+        // Best-effort cleanup; log but don't mask the original error.
+      }
+      rethrow;
+    }
 
     return AuthServices.instance.tokenManager.issueToken(
       session,

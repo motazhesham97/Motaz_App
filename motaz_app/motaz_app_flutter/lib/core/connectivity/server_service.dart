@@ -53,7 +53,9 @@ class ServerService {
   Future<ServerConnectionState> checkConnection() async {
     try {
       AppLog.server('Checking server connection with health.ping()');
-      final result = await _client.health.ping();
+      final result = await _client.health
+          .ping()
+          .timeout(const Duration(seconds: 5));
       if (result == 'pong') {
         AppLog.server('Server health check succeeded');
         return ServerConnectionState.connected();
