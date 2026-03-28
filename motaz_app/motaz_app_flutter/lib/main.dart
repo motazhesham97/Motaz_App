@@ -1,79 +1,135 @@
-import 'package:motaz_app_client/motaz_app_client.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
-import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
-import 'screens/greetings_screen.dart';
-
-/// Sets up a global client object that can be used to talk to the server from
-/// anywhere in our app. The client is generated from your server code
-/// and is set up to connect to a Serverpod running on a local server on
-/// the default port. You will need to modify this to connect to staging or
-/// production servers.
-/// In a larger app, you may want to use the dependency injection of your choice
-/// instead of using a global client object. This is just a simple example.
-late final Client client;
-
-late String serverUrl;
+import 'app.dart';
+import 'core/auth/auth_provider.dart';
+import 'core/connectivity/server_service.dart';
+import 'core/database/app_database.dart';
+import 'core/database/database_provider.dart';
+import 'core/database/device_service.dart';
+import 'core/logging/app_logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // When you are running the app on a physical device, you need to set the
-  // server URL to the IP address of your computer. You can find the IP
-  // address by running `ipconfig` on Windows or `ifconfig` on Mac/Linux.
-  //
-  // You can set the variable when running or building your app like this:
-  // E.g. `flutter run --dart-define=SERVER_URL=https://api.example.com/`.
-  //
-  // Otherwise, the server URL is fetched from the assets/config.json file or
-  // defaults to http://$localhost:8080/ if not found.
-  final serverUrl = await getServerUrl();
+  initLogging();
+  AppLog.info('Application starting...');
 
-  client = Client(serverUrl)
-    ..connectivityMonitor = FlutterConnectivityMonitor()
-    ..authSessionManager = FlutterAuthSessionManager();
+  try {
+    final serverUrl = await getServerUrl();
+    final client = buildClient(serverUrl);
+    final serverService = ServerService(client);
 
-  client.auth.initialize();
+    AppDatabase database;
+    try {
+      database = await AppDatabase.createWithCorruptionDetection();
+    } on DatabaseCorruptedException catch (e) {
+      AppLog.error('Database corruption detected', e);
+      runApp(
+        _DatabaseErrorApp(
+          message:
+              '${e.message}\n\nتحذير: إعادة التعيين ستحذف أي بيانات محلية غير متزامنة.',
+          actionLabel: 'إعادة تعيين البيانات المحلية',
+          onAction: () async {
+            await resetDatabaseFiles();
+          },
+        ),
+      );
+      return;
+    } on FileSystemException catch (e, stackTrace) {
+      AppLog.error(
+        'Storage permission or filesystem access error',
+        e,
+        stackTrace,
+      );
+      runApp(
+        const _DatabaseErrorApp(
+          message:
+              'تعذر الوصول إلى ملفات التطبيق المحلية. يرجى التأكد من منح صلاحيات التخزين أو تشغيل التطبيق من مجلد قابل للكتابة ثم إعادة المحاولة.',
+        ),
+      );
+      return;
+    }
 
-  runApp(const MyApp());
-}
+    final deviceService = DeviceService(database);
+    await deviceService.getOrCreateDevice();
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+    AppLog.info('Application initialized successfully');
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Serverpod Demo',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MyHomePage(title: 'Serverpod Example'),
+    runApp(
+      ProviderScope(
+        overrides: [
+          clientProvider.overrideWithValue(client),
+          serverServiceProvider.overrideWithValue(serverService),
+          appDatabaseProvider.overrideWithValue(database),
+        ],
+        child: const MotazApp(),
+      ),
+    );
+  } catch (e, stackTrace) {
+    AppLog.error('Failed to initialize application', e, stackTrace);
+    runApp(
+      _DatabaseErrorApp(
+        message: 'حدث خطأ أثناء تشغيل التطبيق. يرجى إعادة تشغيل التطبيق.',
+      ),
     );
   }
 }
 
-class MyHomePage extends StatelessWidget {
-  const MyHomePage({super.key, required this.title});
+class _DatabaseErrorApp extends StatelessWidget {
+  const _DatabaseErrorApp({
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
 
-  final String title;
+  final String message;
+  final String? actionLabel;
+  final Future<void> Function()? onAction;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const GreetingsScreen(),
-      // To test authentication in this example app, uncomment the line below
-      // and comment out the line above. This wraps the GreetingsScreen with a
-      // SignInScreen, which automatically shows a sign-in UI when the user is
-      // not authenticated and displays the GreetingsScreen once they sign in.
-      //
-      // body: SignInScreen(
-      //   child: GreetingsScreen(
-      //     onSignOut: () async {
-      //       await client.auth.signOutDevice();
-      //     },
-      //   ),
-      // ),
+    return MaterialApp(
+      locale: const Locale('ar'),
+      debugShowCheckedModeBanner: false,
+      home: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  if (onAction != null && actionLabel != null) ...[
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await onAction!.call();
+                      },
+                      child: Text(actionLabel!),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

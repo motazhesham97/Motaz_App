@@ -1,0 +1,22 @@
+{
+  "@@locale": "ar",
+  "appName": "تطبيق معتز",
+  "signIn": "تسجيل الدخول",
+  "register": "إنشاء الحساب",
+  "signOut": "تسجيل الخروج",
+  "dashboard": "لوحة التحكم",
+  "products": "المنتجات",
+  "clients": "العملاء",
+  "invoices": "الفواتير",
+  "receipts": "الإيصالات",
+  "expenses": "المصروفات",
+  "returns": "المرتجعات",
+  "reports": "التقارير",
+  "partyBalances": "أرصدة الأطراف",
+  "settings": "الإعدادات",
+  "connectivityOnline": "متصل",
+  "connectivityOffline": "غير متصل",
+  "errorGeneric": "حدث خطأ غير متوقع",
+  "errorInvalidCredentials": "بيانات الدخول غير صحيحة",
+  "errorRequiredField": "هذا الحقل مطلوب"
+}
