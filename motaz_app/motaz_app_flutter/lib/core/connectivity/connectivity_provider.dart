@@ -29,12 +29,16 @@ final connectivityProvider = StreamProvider<ConnectivityStatus>((ref) {
     subscription = connectivity.onConnectivityChanged.listen(emit);
   }
 
-  initialize();
+  initialize().catchError((error, stackTrace) {
+    AppLogger.connectivity.warning(
+      'Failed to initialize connectivity provider: $error',
+    );
+  });
 
-  ref.onDispose(() async {
+  ref.onDispose(() {
     debounce?.cancel();
-    await subscription?.cancel();
-    await controller.close();
+    subscription?.cancel();
+    controller.close();
   });
 
   return controller.stream;

@@ -82,15 +82,31 @@ class AuthController extends ChangeNotifier {
         email: email,
         password: password,
       );
+      final userInfo = authSuccess.userInfo;
+      final keyId = authSuccess.keyId;
+      final key = authSuccess.key;
+
+      if (userInfo == null || keyId == null || key == null) {
+        AppLogger.auth.warning(
+          'Sign-in response missing required session data.',
+        );
+        _state = const AuthUnauthenticated(
+          hasAccount: true,
+          errorMessage: 'استجابة تسجيل الدخول غير مكتملة',
+        );
+        notifyListeners();
+        return false;
+      }
+
       await _sessionManager.registerSignedInUser(
-        authSuccess.userInfo!,
-        authSuccess.keyId!,
-        authSuccess.key!,
+        userInfo,
+        keyId,
+        key,
       );
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_hasAccountKey, true);
-      _state = AuthAuthenticated(authSuccess.userInfo!.email ?? email);
+      _state = AuthAuthenticated(userInfo.email ?? email);
       notifyListeners();
       return true;
     } catch (error) {

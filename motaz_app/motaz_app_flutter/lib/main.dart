@@ -12,6 +12,7 @@ import 'core/database/app_database.dart';
 import 'core/database/database_provider.dart';
 import 'core/database/device_service.dart';
 import 'core/logging/app_logger.dart';
+import 'core/server/app_config.dart';
 import 'core/server/server_client_provider.dart';
 
 void main() async {
@@ -20,15 +21,19 @@ void main() async {
   AppLogger.initialize();
 
   try {
-    final configJson = jsonDecode(await rootBundle.loadString('assets/config.json')) as Map<String, dynamic>;
-    final apiUrl = configJson['apiUrl'] as String? ?? 'http://localhost:8080';
+    final configJson =
+        jsonDecode(await rootBundle.loadString('assets/config.json'))
+            as Map<String, dynamic>;
+    final config = AppConfig.fromJson(configJson);
 
     final database = AppDatabase.connect();
     await database.customSelect('SELECT 1').get();
     await DeviceService(database).ensureCurrentDevice();
 
-    final client = api.Client(apiUrl);
-    client.authKeyProvider = FlutterAuthenticationKeyManager(runMode: 'development');
+    final client = api.Client(config.apiUrl);
+    client.authKeyProvider = FlutterAuthenticationKeyManager(
+      runMode: config.runMode,
+    );
     final sessionManager = SessionManager(caller: auth.Caller(client));
     await sessionManager.initialize();
 

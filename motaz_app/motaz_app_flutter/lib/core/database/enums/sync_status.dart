@@ -14,7 +14,12 @@ class SyncStatusConverter extends TypeConverter<SyncStatus, int> {
 
   @override
   SyncStatus fromSql(int fromDb) {
-    return SyncStatus.values[fromDb];
+    if (fromDb >= 0 && fromDb < SyncStatus.values.length) {
+      return SyncStatus.values[fromDb];
+    }
+
+    assert(false, 'Unknown SyncStatus database value: $fromDb');
+    return SyncStatus.PENDING;
   }
 
   @override

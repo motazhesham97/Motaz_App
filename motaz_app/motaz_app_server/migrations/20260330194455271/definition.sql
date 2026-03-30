@@ -113,9 +113,9 @@ CREATE INDEX "conflict_status_idx" ON "conflict_log" USING btree ("resolutionSta
 --
 CREATE TABLE "device" (
     "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    "deviceName" text NOT NULL,
+    "deviceName" text NOT NULL CHECK (char_length("deviceName") BETWEEN 1 AND 255),
     "platform" text NOT NULL,
-    "deviceCode" text NOT NULL,
+    "deviceCode" text NOT NULL CHECK (char_length("deviceCode") = 4),
     "nextInvoiceSequence" bigint NOT NULL DEFAULT 1,
     "createdAt" timestamp without time zone NOT NULL,
     "lastActiveAt" timestamp without time zone NOT NULL
@@ -259,8 +259,8 @@ CREATE TABLE "sales_invoice_line" (
     "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     "invoiceId" uuid NOT NULL,
     "productId" uuid NOT NULL,
-    "quantity" bigint NOT NULL,
-    "unitPrice" bigint NOT NULL,
+    "quantity" bigint NOT NULL CHECK ("quantity" > 0),
+    "unitPrice" bigint NOT NULL CHECK ("unitPrice" > 0),
     "lineTotal" bigint NOT NULL,
     "createdAt" timestamp without time zone NOT NULL,
     "updatedAt" timestamp without time zone NOT NULL
@@ -299,8 +299,8 @@ CREATE TABLE "sales_return_line" (
     "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     "returnId" uuid NOT NULL,
     "invoiceLineId" uuid NOT NULL,
-    "returnedQuantity" bigint NOT NULL,
-    "returnedAmount" bigint NOT NULL,
+    "returnedQuantity" bigint NOT NULL CHECK ("returnedQuantity" >= 0),
+    "returnedAmount" bigint NOT NULL CHECK ("returnedAmount" >= 0),
     "createdAt" timestamp without time zone NOT NULL,
     "updatedAt" timestamp without time zone NOT NULL
 );

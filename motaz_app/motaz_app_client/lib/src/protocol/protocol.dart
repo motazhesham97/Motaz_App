@@ -28,19 +28,20 @@ import 'enums/sync_status.dart' as _i15;
 import 'expense.dart' as _i16;
 import 'greetings/greeting.dart' as _i17;
 import 'local_attachment_staging.dart' as _i18;
-import 'product.dart' as _i19;
-import 'receipt.dart' as _i20;
-import 'receipt_allocation.dart' as _i21;
-import 'sales_invoice.dart' as _i22;
-import 'sales_invoice_line.dart' as _i23;
-import 'sales_return.dart' as _i24;
-import 'sales_return_line.dart' as _i25;
-import 'sync_cursor.dart' as _i26;
-import 'sync_outbox.dart' as _i27;
+import 'owner_account.dart' as _i19;
+import 'product.dart' as _i20;
+import 'receipt.dart' as _i21;
+import 'receipt_allocation.dart' as _i22;
+import 'sales_invoice.dart' as _i23;
+import 'sales_invoice_line.dart' as _i24;
+import 'sales_return.dart' as _i25;
+import 'sales_return_line.dart' as _i26;
+import 'sync_cursor.dart' as _i27;
+import 'sync_outbox.dart' as _i28;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i28;
-import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _i29;
+import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
+    as _i30;
 export 'attachment_metadata.dart';
 export 'audit_event.dart';
 export 'client_record.dart';
@@ -58,6 +59,7 @@ export 'enums/sync_status.dart';
 export 'expense.dart';
 export 'greetings/greeting.dart';
 export 'local_attachment_staging.dart';
+export 'owner_account.dart';
 export 'product.dart';
 export 'receipt.dart';
 export 'receipt_allocation.dart';
@@ -154,32 +156,35 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i18.LocalAttachmentStaging) {
       return _i18.LocalAttachmentStaging.fromJson(data) as T;
     }
-    if (t == _i19.Product) {
-      return _i19.Product.fromJson(data) as T;
+    if (t == _i19.OwnerAccount) {
+      return _i19.OwnerAccount.fromJson(data) as T;
     }
-    if (t == _i20.Receipt) {
-      return _i20.Receipt.fromJson(data) as T;
+    if (t == _i20.Product) {
+      return _i20.Product.fromJson(data) as T;
     }
-    if (t == _i21.ReceiptAllocation) {
-      return _i21.ReceiptAllocation.fromJson(data) as T;
+    if (t == _i21.Receipt) {
+      return _i21.Receipt.fromJson(data) as T;
     }
-    if (t == _i22.SalesInvoice) {
-      return _i22.SalesInvoice.fromJson(data) as T;
+    if (t == _i22.ReceiptAllocation) {
+      return _i22.ReceiptAllocation.fromJson(data) as T;
     }
-    if (t == _i23.SalesInvoiceLine) {
-      return _i23.SalesInvoiceLine.fromJson(data) as T;
+    if (t == _i23.SalesInvoice) {
+      return _i23.SalesInvoice.fromJson(data) as T;
     }
-    if (t == _i24.SalesReturn) {
-      return _i24.SalesReturn.fromJson(data) as T;
+    if (t == _i24.SalesInvoiceLine) {
+      return _i24.SalesInvoiceLine.fromJson(data) as T;
     }
-    if (t == _i25.SalesReturnLine) {
-      return _i25.SalesReturnLine.fromJson(data) as T;
+    if (t == _i25.SalesReturn) {
+      return _i25.SalesReturn.fromJson(data) as T;
     }
-    if (t == _i26.SyncCursor) {
-      return _i26.SyncCursor.fromJson(data) as T;
+    if (t == _i26.SalesReturnLine) {
+      return _i26.SalesReturnLine.fromJson(data) as T;
     }
-    if (t == _i27.SyncOutbox) {
-      return _i27.SyncOutbox.fromJson(data) as T;
+    if (t == _i27.SyncCursor) {
+      return _i27.SyncCursor.fromJson(data) as T;
+    }
+    if (t == _i28.SyncOutbox) {
+      return _i28.SyncOutbox.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.AttachmentMetadata?>()) {
       return (data != null ? _i2.AttachmentMetadata.fromJson(data) : null) as T;
@@ -233,50 +238,53 @@ class Protocol extends _i1.SerializationManager {
       return (data != null ? _i18.LocalAttachmentStaging.fromJson(data) : null)
           as T;
     }
-    if (t == _i1.getType<_i19.Product?>()) {
-      return (data != null ? _i19.Product.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i19.OwnerAccount?>()) {
+      return (data != null ? _i19.OwnerAccount.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i20.Receipt?>()) {
-      return (data != null ? _i20.Receipt.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i20.Product?>()) {
+      return (data != null ? _i20.Product.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i21.ReceiptAllocation?>()) {
-      return (data != null ? _i21.ReceiptAllocation.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i21.Receipt?>()) {
+      return (data != null ? _i21.Receipt.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i22.SalesInvoice?>()) {
-      return (data != null ? _i22.SalesInvoice.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i22.ReceiptAllocation?>()) {
+      return (data != null ? _i22.ReceiptAllocation.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i23.SalesInvoiceLine?>()) {
-      return (data != null ? _i23.SalesInvoiceLine.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i23.SalesInvoice?>()) {
+      return (data != null ? _i23.SalesInvoice.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i24.SalesReturn?>()) {
-      return (data != null ? _i24.SalesReturn.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i24.SalesInvoiceLine?>()) {
+      return (data != null ? _i24.SalesInvoiceLine.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i25.SalesReturnLine?>()) {
-      return (data != null ? _i25.SalesReturnLine.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i25.SalesReturn?>()) {
+      return (data != null ? _i25.SalesReturn.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i26.SyncCursor?>()) {
-      return (data != null ? _i26.SyncCursor.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i26.SalesReturnLine?>()) {
+      return (data != null ? _i26.SalesReturnLine.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i27.SyncOutbox?>()) {
-      return (data != null ? _i27.SyncOutbox.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i27.SyncCursor?>()) {
+      return (data != null ? _i27.SyncCursor.fromJson(data) : null) as T;
     }
-    if (t == List<_i27.SyncOutbox>) {
-      return (data as List).map((e) => deserialize<_i27.SyncOutbox>(e)).toList()
+    if (t == _i1.getType<_i28.SyncOutbox?>()) {
+      return (data != null ? _i28.SyncOutbox.fromJson(data) : null) as T;
+    }
+    if (t == List<_i28.SyncOutbox>) {
+      return (data as List).map((e) => deserialize<_i28.SyncOutbox>(e)).toList()
           as T;
     }
-    if (t == _i1.getType<List<_i27.SyncOutbox>?>()) {
+    if (t == _i1.getType<List<_i28.SyncOutbox>?>()) {
       return (data != null
               ? (data as List)
-                    .map((e) => deserialize<_i27.SyncOutbox>(e))
+                    .map((e) => deserialize<_i28.SyncOutbox>(e))
                     .toList()
               : null)
           as T;
     }
     try {
-      return _i28.Protocol().deserialize<T>(data, t);
+      return _i29.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i29.Protocol().deserialize<T>(data, t);
+      return _i30.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
@@ -300,15 +308,16 @@ class Protocol extends _i1.SerializationManager {
       _i16.Expense => 'Expense',
       _i17.Greeting => 'Greeting',
       _i18.LocalAttachmentStaging => 'LocalAttachmentStaging',
-      _i19.Product => 'Product',
-      _i20.Receipt => 'Receipt',
-      _i21.ReceiptAllocation => 'ReceiptAllocation',
-      _i22.SalesInvoice => 'SalesInvoice',
-      _i23.SalesInvoiceLine => 'SalesInvoiceLine',
-      _i24.SalesReturn => 'SalesReturn',
-      _i25.SalesReturnLine => 'SalesReturnLine',
-      _i26.SyncCursor => 'SyncCursor',
-      _i27.SyncOutbox => 'SyncOutbox',
+      _i19.OwnerAccount => 'OwnerAccount',
+      _i20.Product => 'Product',
+      _i21.Receipt => 'Receipt',
+      _i22.ReceiptAllocation => 'ReceiptAllocation',
+      _i23.SalesInvoice => 'SalesInvoice',
+      _i24.SalesInvoiceLine => 'SalesInvoiceLine',
+      _i25.SalesReturn => 'SalesReturn',
+      _i26.SalesReturnLine => 'SalesReturnLine',
+      _i27.SyncCursor => 'SyncCursor',
+      _i28.SyncOutbox => 'SyncOutbox',
       _ => null,
     };
   }
@@ -357,30 +366,32 @@ class Protocol extends _i1.SerializationManager {
         return 'Greeting';
       case _i18.LocalAttachmentStaging():
         return 'LocalAttachmentStaging';
-      case _i19.Product():
+      case _i19.OwnerAccount():
+        return 'OwnerAccount';
+      case _i20.Product():
         return 'Product';
-      case _i20.Receipt():
+      case _i21.Receipt():
         return 'Receipt';
-      case _i21.ReceiptAllocation():
+      case _i22.ReceiptAllocation():
         return 'ReceiptAllocation';
-      case _i22.SalesInvoice():
+      case _i23.SalesInvoice():
         return 'SalesInvoice';
-      case _i23.SalesInvoiceLine():
+      case _i24.SalesInvoiceLine():
         return 'SalesInvoiceLine';
-      case _i24.SalesReturn():
+      case _i25.SalesReturn():
         return 'SalesReturn';
-      case _i25.SalesReturnLine():
+      case _i26.SalesReturnLine():
         return 'SalesReturnLine';
-      case _i26.SyncCursor():
+      case _i27.SyncCursor():
         return 'SyncCursor';
-      case _i27.SyncOutbox():
+      case _i28.SyncOutbox():
         return 'SyncOutbox';
     }
-    className = _i28.Protocol().getClassNameForObject(data);
+    className = _i29.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_core.$className';
     }
-    className = _i29.Protocol().getClassNameForObject(data);
+    className = _i30.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_idp.$className';
     }
@@ -444,40 +455,43 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'LocalAttachmentStaging') {
       return deserialize<_i18.LocalAttachmentStaging>(data['data']);
     }
+    if (dataClassName == 'OwnerAccount') {
+      return deserialize<_i19.OwnerAccount>(data['data']);
+    }
     if (dataClassName == 'Product') {
-      return deserialize<_i19.Product>(data['data']);
+      return deserialize<_i20.Product>(data['data']);
     }
     if (dataClassName == 'Receipt') {
-      return deserialize<_i20.Receipt>(data['data']);
+      return deserialize<_i21.Receipt>(data['data']);
     }
     if (dataClassName == 'ReceiptAllocation') {
-      return deserialize<_i21.ReceiptAllocation>(data['data']);
+      return deserialize<_i22.ReceiptAllocation>(data['data']);
     }
     if (dataClassName == 'SalesInvoice') {
-      return deserialize<_i22.SalesInvoice>(data['data']);
+      return deserialize<_i23.SalesInvoice>(data['data']);
     }
     if (dataClassName == 'SalesInvoiceLine') {
-      return deserialize<_i23.SalesInvoiceLine>(data['data']);
+      return deserialize<_i24.SalesInvoiceLine>(data['data']);
     }
     if (dataClassName == 'SalesReturn') {
-      return deserialize<_i24.SalesReturn>(data['data']);
+      return deserialize<_i25.SalesReturn>(data['data']);
     }
     if (dataClassName == 'SalesReturnLine') {
-      return deserialize<_i25.SalesReturnLine>(data['data']);
+      return deserialize<_i26.SalesReturnLine>(data['data']);
     }
     if (dataClassName == 'SyncCursor') {
-      return deserialize<_i26.SyncCursor>(data['data']);
+      return deserialize<_i27.SyncCursor>(data['data']);
     }
     if (dataClassName == 'SyncOutbox') {
-      return deserialize<_i27.SyncOutbox>(data['data']);
+      return deserialize<_i28.SyncOutbox>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
-      return _i28.Protocol().deserializeByClassName(data);
+      return _i29.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
-      return _i29.Protocol().deserializeByClassName(data);
+      return _i30.Protocol().deserializeByClassName(data);
     }
     return super.deserializeByClassName(data);
   }
@@ -492,10 +506,10 @@ class Protocol extends _i1.SerializationManager {
       return null;
     }
     try {
-      return _i28.Protocol().mapRecordToJson(record);
+      return _i29.Protocol().mapRecordToJson(record);
     } catch (_) {}
     try {
-      return _i29.Protocol().mapRecordToJson(record);
+      return _i30.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

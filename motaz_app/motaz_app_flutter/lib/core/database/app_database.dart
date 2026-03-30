@@ -66,9 +66,13 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(receipts);
           await m.createTable(receiptAllocations);
           await m.createTable(expenses);
+          await m.createIndex(idxExpenseDate);
+          await m.createIndex(idxExpenseCategory);
+          await m.createIndex(idxExpenseStatus);
           await m.createTable(salesReturns);
           await m.createTable(salesReturnLines);
           await m.createTable(attachmentMetadata);
+          await m.createIndex(idxAttachmentParent);
           await m.createTable(localAttachmentStaging);
           await m.createTable(auditEvents);
           await m.createTable(conflictLogs);

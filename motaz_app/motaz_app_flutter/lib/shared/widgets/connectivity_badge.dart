@@ -9,7 +9,9 @@ class ConnectivityBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final connectivity = ref.watch(connectivityProvider);
-    final isOnline = connectivity.asData?.value != ConnectivityStatus.offline;
+    final status = connectivity.asData?.value;
+    final isOnline =
+        status != null && status == ConnectivityStatus.online;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
