@@ -1,0 +1,6 @@
+enum: SyncOutboxStatus
+values:
+  - PENDING
+  - IN_PROGRESS
+  - COMPLETED
+  - FAILED

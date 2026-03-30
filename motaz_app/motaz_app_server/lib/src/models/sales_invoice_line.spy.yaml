@@ -1,0 +1,16 @@
+class: SalesInvoiceLine
+table: sales_invoice_line
+fields:
+  id: UuidValue?, defaultPersist=random
+  invoiceId: UuidValue
+  invoice: SalesInvoice?, relation(field=invoiceId)
+  productId: UuidValue
+  product: Product?, relation(field=productId)
+  quantity: int
+  unitPrice: int
+  lineTotal: int
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  invoice_line_invoice_idx:
+    fields: invoiceId

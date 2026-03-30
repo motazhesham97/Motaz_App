@@ -1,0 +1,5 @@
+enum: AuditOperation
+values:
+  - CREATE
+  - UPDATE
+  - VOID

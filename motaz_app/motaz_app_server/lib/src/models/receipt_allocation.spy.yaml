@@ -1,0 +1,16 @@
+class: ReceiptAllocation
+table: receipt_allocation
+fields:
+  id: UuidValue?, defaultPersist=random
+  receiptId: UuidValue
+  receipt: Receipt?, relation(field=receiptId)
+  invoiceId: UuidValue
+  invoice: SalesInvoice?, relation(field=invoiceId)
+  allocatedAmount: int
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  allocation_receipt_idx:
+    fields: receiptId
+  allocation_invoice_idx:
+    fields: invoiceId

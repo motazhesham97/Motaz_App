@@ -1,0 +1,6 @@
+enum: SyncStatus
+values:
+  - PENDING
+  - SYNCED
+  - CONFLICT
+  - FAILED

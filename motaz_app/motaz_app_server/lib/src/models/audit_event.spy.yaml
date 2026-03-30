@@ -1,0 +1,16 @@
+class: AuditEvent
+table: audit_event
+fields:
+  id: UuidValue?, defaultPersist=random
+  entityType: ParentEntityType
+  entityId: UuidValue
+  operation: AuditOperation
+  diffData: String
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  createdAt: DateTime
+indexes:
+  audit_entity_idx:
+    fields: entityType, entityId
+  audit_created_idx:
+    fields: createdAt

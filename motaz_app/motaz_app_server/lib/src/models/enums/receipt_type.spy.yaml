@@ -1,0 +1,4 @@
+enum: ReceiptType
+values:
+  - INVOICE_LINKED
+  - GENERAL

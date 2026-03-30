@@ -1,0 +1,18 @@
+class: Product
+table: product
+fields:
+  id: UuidValue?, defaultPersist=random
+  name: String
+  description: String?
+  defaultSalePrice: int
+  isActive: bool, default=true
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  product_name_idx:
+    fields: name
+    unique: true

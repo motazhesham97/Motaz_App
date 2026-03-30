@@ -1,0 +1,4 @@
+enum: RecordStatus
+values:
+  - ACTIVE
+  - VOIDED

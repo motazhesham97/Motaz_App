@@ -1,0 +1,30 @@
+class: SalesInvoice
+table: sales_invoice
+fields:
+  id: UuidValue?, defaultPersist=random
+  localRef: String
+  officialNo: String?
+  clientId: UuidValue
+  client: ClientRecord?, relation(field=clientId)
+  invoiceDate: DateTime
+  discount: int, default=0
+  total: int
+  note: String?
+  status: RecordStatus, default=ACTIVE
+  voidReason: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  invoice_local_ref_idx:
+    fields: localRef
+    unique: true
+  invoice_date_idx:
+    fields: invoiceDate
+  invoice_client_idx:
+    fields: clientId
+  invoice_status_idx:
+    fields: status

@@ -29,10 +29,10 @@ webServer:
 
 # This is the database setup for your server (Neon PostgreSQL).
 database:
-  host: <neon-host-placeholder>.neon.tech
+  host: ep-round-shadow-abpm7n8k-pooler.eu-west-2.aws.neon.tech
   port: 5432
-  name: motaz_app_dev
-  user: <neon-user-placeholder>
+  name: neondb
+  user: neondb_owner
   requireSsl: true
   maxConnectionCount: 10
 

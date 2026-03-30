@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const String _fontFamily = 'Cairo';
-
   static ThemeData get lightTheme {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      fontFamily: _fontFamily,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF1976D2),
@@ -36,12 +34,16 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
+
+    return base.copyWith(
+      textTheme: GoogleFonts.cairoTextTheme(base.textTheme),
+      primaryTextTheme: GoogleFonts.cairoTextTheme(base.primaryTextTheme),
+    );
   }
 
   static ThemeData get darkTheme {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
-      fontFamily: _fontFamily,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF1976D2),
@@ -70,6 +72,11 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
+    );
+
+    return base.copyWith(
+      textTheme: GoogleFonts.cairoTextTheme(base.textTheme),
+      primaryTextTheme: GoogleFonts.cairoTextTheme(base.primaryTextTheme),
     );
   }
 

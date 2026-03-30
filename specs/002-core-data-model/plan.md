@@ -1,50 +1,47 @@
 # Implementation Plan: Core Data Model
 
-**Branch**: `002-core-data-model` | **Date**: 2026-03-22 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `specs/002-core-data-model/spec.md`
+**Branch**: `002-core-data-model` | **Date**: 2026-03-30 | **Spec**: [spec.md](file:///d:/Motaz_App2/specs/002-core-data-model/spec.md)
+**Input**: Feature specification from `/specs/002-core-data-model/spec.md`
 
 ## Summary
 
-Build the canonical local (Drift/SQLite) and cloud (Serverpod ORM/Neon PostgreSQL) database schemas for all 17 core entities defined in the constitution and implementation plan. This phase creates no business logic or UI — it delivers schema definitions, constraints, indexes, and migration support that all subsequent phases build upon.
+Build the complete local (SQLite/Drift) and cloud (PostgreSQL/Serverpod ORM) schemas for all 16 core entities defined in the spec. Phase 1 already created Device, SyncOutbox, and SyncCursor Drift tables locally. This phase extends those entities to the cloud schema and adds the remaining 13 entities to both local and cloud databases. All monetary fields use minor-unit integers, all financial records use void semantics (no hard delete), and all entities include audit/sync fields.
 
 ## Technical Context
 
-**Language/Version**: Dart 3.x (Flutter SDK 3.32.0)
-**Primary Dependencies**: Drift (local SQLite ORM), Serverpod ORM (cloud PostgreSQL ORM), drift_dev (code generation)
-**Storage**: SQLite (local, via Drift), PostgreSQL on Neon (cloud, via Serverpod ORM)
-**Testing**: `flutter test` for Drift unit tests, `serverpod generate` for model validation, `dart run build_runner build` for Drift code generation
+**Language/Version**: Dart 3.x (Flutter 3.32+)
+**Primary Dependencies**: Drift 2.x (local SQLite), Serverpod ORM (cloud PostgreSQL), flutter_riverpod
+**Storage**: SQLite (local via Drift), PostgreSQL on Neon (cloud via Serverpod ORM)
+**Testing**: `flutter test` for Drift smoke tests, Serverpod generate for cloud model validation
 **Target Platform**: Android + Windows (Flutter)
-**Project Type**: Mobile + Desktop app with backend
-**Performance Goals**: Schema migration < 5 seconds, CRUD operations < 50ms on local DB
-**Constraints**: Offline-first, no floating-point in money path, no hard delete for financial records
-**Scale/Scope**: ~2 devices, ~500 products, ~1000 clients, ~10,000 invoices (MVP scale)
+**Project Type**: Mobile + Desktop offline-first application
+**Performance Goals**: Schema migrations complete in <5 seconds on device
+**Constraints**: Offline-capable, no floating-point in money path, no hard delete for financial records
+**Scale/Scope**: 16 entities total (13 new + 3 extended from Phase 1), 9 enums
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-| Gate | Status | Evidence |
-|------|--------|----------|
-| Offline-first mandatory | ✅ Pass | All entities defined in local SQLite schema (Drift) |
-| No hard delete for financial records | ✅ Pass | All financial entities use `status` + `void_reason` fields |
-| Financial conflicts never silently merged | ✅ Pass | ConflictLog entity with explicit payloads and resolution status |
-| Void wins over edit | ✅ Pass | Schema supports `status` field for void state; business logic in Phase 3 |
-| Minor-unit integers for money | ✅ Pass | All monetary columns use INTEGER type, no REAL/DOUBLE |
-| Attachments only for invoices and receipts | ✅ Pass | AttachmentMetadata has `parent_entity_type` constrained to invoice/receipt |
-| Attachments: no binary in DB | ✅ Pass | AttachmentMetadata stores only references, file type, size |
-| Attachment preservation on void | ✅ Pass | No cascade delete on attachment FK; attachments survive void |
-| Single-owner auth via Serverpod | ✅ Pass | Device entity tracks owner; auth handled in Phase 1 |
-| Product names unique | ✅ Pass | UNIQUE constraint on `name` column |
-| Client names NOT unique | ✅ Pass | No UNIQUE constraint on `display_name`; additional identifying fields present |
-| Invoice numbering: UUID + local_ref | ✅ Pass | UUID PK + `local_ref` text field with format `INV-<deviceCode>-<seq>` |
-| 5 expense categories only | ✅ Pass | Enum constraint: OWNER_DRAW, PARTNER_DRAW, MARGIN_DRAW, OPERATIONAL, PRODUCTION |
-| Invoice discount at invoice level only | ✅ Pass | `discount` on SalesInvoice, not on SalesInvoiceLine |
-| Receipts: two types | ✅ Pass | `receipt_type` enum: INVOICE_LINKED, GENERAL |
-| FIFO allocation records explicit | ✅ Pass | ReceiptAllocation as separate entity |
-| Audit fields on all financial records | ✅ Pass | `created_at`, `updated_at`, `device_id`, `row_version`, `sync_status` on all |
-| Immutable audit events | ✅ Pass | AuditEvent has no update/void capability by design |
+| Constitution Rule | Status | Evidence |
+|---|---|---|
+| IV. Products, clients, invoices, receipts, expenses, returns, attachments, conflicts, audit — all stored | ✅ PASS | All 16 entities defined in data-model.md |
+| IV. Product names must be unique | ✅ PASS | Product.name has UNIQUE constraint |
+| IV. Client names NOT unique, extra identifying field required | ✅ PASS | Client.display_name NOT unique; phone, note, client_code fields present |
+| IV. Invoice discounts at invoice level only | ✅ PASS | SalesInvoice.discount field; no discount on SalesInvoiceLine |
+| IV. Five expense categories only | ✅ PASS | ExpenseCategory enum: OWNER_DRAW, PARTNER_DRAW, MARGIN_DRAW, OPERATIONAL, PRODUCTION |
+| IV. Partial returns are financial, not note-only | ✅ PASS | SalesReturn has total_returned_amount; SalesReturnLine has returned_quantity + returned_amount |
+| IV. FIFO allocations stored explicitly | ✅ PASS | ReceiptAllocation entity with receipt_id, invoice_id, allocated_amount |
+| II. No hard delete for financial records | ✅ PASS | RecordStatus enum (ACTIVE/VOIDED) + void_reason on all financial entities |
+| II. Attachments only for invoices and receipts | ✅ PASS | AttachmentMetadata.parent_entity_type constrained to SALES_INVOICE or RECEIPT |
+| II. Attachment binary not in DB | ✅ PASS | AttachmentMetadata stores only storage_reference, secure_url, file_type, file_size |
+| II. Offline-first: local save first | ✅ PASS | All entities defined in both local Drift and cloud Serverpod schemas |
+| III. SQLite local, PostgreSQL cloud | ✅ PASS | Drift tables for local, Serverpod .spy.yaml for cloud |
+| I. Money as minor-unit integers | ✅ PASS | All monetary fields use `integer` type — no real/double anywhere |
+| IV. Financial rows: timestamps, device_id, row_version, sync_status | ✅ PASS | All financial entities include these 5 audit fields |
+| VI. Devices identifiable for sync origin | ✅ PASS | Device entity with UUID, device_code, platform; device_id FK on all entities |
 
-**No violations. All gates pass.**
+**Result**: All constitution gates pass ✅. No violations.
 
 ## Project Structure
 
@@ -53,10 +50,12 @@ Build the canonical local (Drift/SQLite) and cloud (Serverpod ORM/Neon PostgreSQ
 ```text
 specs/002-core-data-model/
 ├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output (entity definitions)
-├── quickstart.md        # Phase 1 output (dev setup guide)
-└── tasks.md             # Phase 2 output (created by /speckit.tasks)
+├── research.md          # Phase 0 output (complete)
+├── data-model.md        # Phase 1 output (complete — 16 entities, 9 enums)
+├── quickstart.md        # Phase 1 output (complete)
+├── checklists/
+│   └── requirements.md  # Spec quality checklist (all passing)
+└── tasks.md             # Phase 2 output (generated by /speckit.tasks)
 ```
 
 ### Source Code (repository root)
@@ -67,116 +66,145 @@ motaz_app/
 │   └── lib/
 │       └── core/
 │           └── database/
-│               ├── app_database.dart          # Drift database class
-│               ├── app_database.g.dart        # Generated
+│               ├── app_database.dart        # [MODIFY] Add new tables to @DriftDatabase
+│               ├── app_database.g.dart      # [AUTO-GENERATED] by build_runner
+│               ├── database_provider.dart   # [NO CHANGE] Riverpod provider
 │               └── tables/
-│                   ├── product_table.dart
-│                   ├── client_table.dart
-│                   ├── sales_invoice_table.dart
-│                   ├── sales_invoice_line_table.dart
-│                   ├── receipt_table.dart
-│                   ├── receipt_allocation_table.dart
-│                   ├── expense_table.dart
-│                   ├── sales_return_table.dart
-│                   ├── sales_return_line_table.dart
-│                   ├── attachment_metadata_table.dart
-│                   ├── local_attachment_staging_table.dart
-│                   ├── device_table.dart
-│                   ├── audit_event_table.dart
-│                   ├── conflict_log_table.dart
-│                   ├── sync_outbox_table.dart
-│                   └── sync_cursor_table.dart
+│                   ├── devices.dart          # [MODIFY] Extend with device_code, next_invoice_sequence
+│                   ├── sync_cursor.dart      # [MODIFY] Align with spec (add last_row_version if missing)
+│                   ├── sync_outbox.dart      # [MODIFY] Align with spec (verify all fields present)
+│                   ├── products.dart         # [NEW] Product table
+│                   ├── clients.dart          # [NEW] Client table
+│                   ├── sales_invoices.dart   # [NEW] SalesInvoice table
+│                   ├── sales_invoice_lines.dart  # [NEW] SalesInvoiceLine table
+│                   ├── receipts.dart         # [NEW] Receipt table
+│                   ├── receipt_allocations.dart   # [NEW] ReceiptAllocation table
+│                   ├── expenses.dart         # [NEW] Expense table
+│                   ├── sales_returns.dart    # [NEW] SalesReturn table
+│                   ├── sales_return_lines.dart    # [NEW] SalesReturnLine table
+│                   ├── attachment_metadata.dart   # [NEW] AttachmentMetadata table
+│                   ├── local_attachment_staging.dart  # [NEW] LocalAttachmentStaging table
+│                   ├── audit_events.dart     # [NEW] AuditEvent table
+│                   └── conflict_logs.dart    # [NEW] ConflictLog table
 │
 ├── motaz_app_server/
 │   └── lib/
 │       └── src/
 │           └── models/
-│               ├── product.spy.yaml
-│               ├── client.spy.yaml
-│               ├── sales_invoice.spy.yaml
-│               ├── sales_invoice_line.spy.yaml
-│               ├── receipt.spy.yaml
-│               ├── receipt_allocation.spy.yaml
-│               ├── expense.spy.yaml
-│               ├── sales_return.spy.yaml
-│               ├── sales_return_line.spy.yaml
-│               ├── attachment_metadata.spy.yaml
-│               ├── local_attachment_staging.spy.yaml
-│               ├── device.spy.yaml
-│               ├── audit_event.spy.yaml
-│               ├── conflict_log.spy.yaml
-│               ├── sync_outbox.spy.yaml
-│               └── sync_cursor.spy.yaml
+│               ├── enums/
+│               │   ├── sync_status.spy.yaml         # [NEW]
+│               │   ├── record_status.spy.yaml       # [NEW]
+│               │   ├── expense_category.spy.yaml    # [NEW]
+│               │   ├── receipt_type.spy.yaml         # [NEW]
+│               │   ├── audit_operation.spy.yaml     # [NEW]
+│               │   ├── conflict_status.spy.yaml     # [NEW]
+│               │   ├── sync_outbox_status.spy.yaml  # [NEW]
+│               │   ├── parent_entity_type.spy.yaml  # [NEW]
+│               │   └── device_platform.spy.yaml     # [NEW]
+│               ├── device.spy.yaml                  # [NEW]
+│               ├── product.spy.yaml                 # [NEW]
+│               ├── client.spy.yaml                  # [NEW]
+│               ├── sales_invoice.spy.yaml           # [NEW]
+│               ├── sales_invoice_line.spy.yaml      # [NEW]
+│               ├── receipt.spy.yaml                 # [NEW]
+│               ├── receipt_allocation.spy.yaml      # [NEW]
+│               ├── expense.spy.yaml                 # [NEW]
+│               ├── sales_return.spy.yaml            # [NEW]
+│               ├── sales_return_line.spy.yaml       # [NEW]
+│               ├── attachment_metadata.spy.yaml     # [NEW]
+│               ├── local_attachment_staging.spy.yaml # [NEW]
+│               ├── audit_event.spy.yaml             # [NEW]
+│               ├── conflict_log.spy.yaml            # [NEW]
+│               ├── sync_outbox.spy.yaml             # [NEW]
+│               └── sync_cursor.spy.yaml             # [NEW]
 │
-└── motaz_app_client/
-    └── lib/
-        └── src/
-            └── protocol/       # Auto-generated by serverpod generate
+└── motaz_app_flutter/
+    └── test/
+        └── core/
+            └── database/
+                ├── drift_smoke_test.dart            # [NEW] Verify all tables CRUD
+                └── money_integer_test.dart           # [NEW] Verify minor-unit storage
 ```
 
-**Structure Decision**: Feature-First Modular Monolith — all Drift tables live under `lib/core/database/tables/` and the Drift database class at `lib/core/database/app_database.dart`. Server models use Serverpod's `.spy.yaml` convention placed in `lib/src/models/`.
+**Structure Decision**: Feature-First Modular Monolith. Database tables live under `core/database/tables/`. Serverpod models live under `models/` with enums in a `models/enums/` subdirectory. This follows the Phase 1 pattern and the project structure defined in the implementation plan §7.
 
-## Implementation Phases
+## Phase 0: Research Summary
 
-### Phase A — Local Schema (Drift Tables)
+All research completed in [research.md](file:///d:/Motaz_App2/specs/002-core-data-model/research.md). Six research items resolved:
 
-Create all 16 Drift table definitions in `motaz_app_flutter/lib/core/database/tables/` and the main `AppDatabase` class. Each table file defines a single Drift `Table` class.
+| # | Topic | Decision |
+|---|-------|----------|
+| R1 | Drift table patterns | Dart table classes with typed columns; UUID as text, money as integer, enums via intEnum/textEnum |
+| R2 | Serverpod model format | .spy.yaml files with `table:` key; generate produces Dart classes + SQL migrations |
+| R3 | Polymorphic FKs | `parent_entity_type` + `parent_entity_id` columns (no DB-level FK enforcement for these) |
+| R4 | Drift migration strategy | Schema versioning with `schemaVersion` and `MigrationStrategy`; never drop-and-recreate |
+| R5 | Audit event diff storage | JSON text column for flexible, variable-length diffs |
+| R6 | Enum definitions | 9 enums defined for both local and cloud schemas |
 
-**Order** (dependencies first):
-1. `device_table.dart` — no FKs
-2. `product_table.dart` — no FKs
-3. `client_table.dart` — no FKs
-4. `sales_invoice_table.dart` — FK to clients, devices
-5. `sales_invoice_line_table.dart` — FK to sales_invoices, products
-6. `receipt_table.dart` — FK to clients, optional FK to sales_invoices
-7. `receipt_allocation_table.dart` — FK to receipts, sales_invoices
-8. `expense_table.dart` — FK to devices
-9. `sales_return_table.dart` — FK to sales_invoices
-10. `sales_return_line_table.dart` — FK to sales_returns, sales_invoice_lines
-11. `attachment_metadata_table.dart` — polymorphic FK (entity type + entity ID)
-12. `local_attachment_staging_table.dart` — polymorphic FK (entity type + entity ID)
-13. `audit_event_table.dart` — polymorphic FK (entity type + entity ID)
-14. `conflict_log_table.dart` — polymorphic FK (entity type + entity ID)
-15. `sync_outbox_table.dart` — polymorphic FK (entity type + entity ID)
-16. `sync_cursor_table.dart` — no FKs
-17. `app_database.dart` — Drift database class, includes all tables
+**No NEEDS CLARIFICATION items remain.**
 
-### Phase B — Cloud Schema (Serverpod Models)
+## Phase 1: Design Summary
 
-Create all 16 `.spy.yaml` model definitions in `motaz_app_server/lib/src/models/`. Each file defines a single Serverpod model class with `table:` to connect to the database.
+All design artifacts completed:
 
-Run `serverpod generate` to produce the generated Dart classes and migration files.
+- **[data-model.md](file:///d:/Motaz_App2/specs/002-core-data-model/data-model.md)**: 16 entities with complete field definitions, types, constraints, indexes, and an ER relationship diagram
+- **[quickstart.md](file:///d:/Motaz_App2/specs/002-core-data-model/quickstart.md)**: Developer setup guide with build commands, test commands, and key conventions
+- **No contracts directory**: This phase is schema-only with no external API interfaces. Contracts will be created in Phase 3 (Sync Foundation) when the sync API is defined
 
-### Phase C — Verification
+## Implementation Approach
 
-Run code generation for both:
-- `dart run build_runner build --delete-conflicting-outputs` in `motaz_app_flutter/`
-- `serverpod generate` in `motaz_app_server/`
+### Track A — Local Schema (Drift)
 
-Write a simple smoke test to verify Drift database opens and tables are accessible.
+1. **Extend existing tables**: Update `devices.dart` to add `device_code` and `next_invoice_sequence` fields. Verify `sync_cursor.dart` and `sync_outbox.dart` match the spec.
+2. **Create 13 new table files**: One Dart class per entity in `tables/` directory.
+3. **Define enums**: Create Dart enum classes for Drift usage (intEnum/textEnum).
+4. **Register tables**: Update `app_database.dart` to include all new tables in the `@DriftDatabase(tables: [...])` annotation.
+5. **Increment schema version**: Bump `schemaVersion` and add migration for existing devices.
+6. **Run code generation**: `dart run build_runner build --delete-conflicting-outputs`.
+
+### Track B — Cloud Schema (Serverpod ORM)
+
+1. **Create 9 enum files**: One `.spy.yaml` per enum in `models/enums/`.
+2. **Create 16 model files**: One `.spy.yaml` per entity in `models/`.
+3. **Define relations**: Use Serverpod's `relation` syntax for FKs.
+4. **Run code generation**: `serverpod generate` to produce Dart classes and SQL migrations.
+5. **Verify migrations**: Check that generated SQL matches expected schema.
+
+### Track C — Verification
+
+1. **Drift smoke tests**: Insert/retrieve/void for each entity type.
+2. **Money integer tests**: Verify no precision loss across 1,000 sample calculations.
+3. **Constraint tests**: Verify product name uniqueness, mandatory client FK on invoices, audit event immutability.
 
 ## Verification Plan
 
 ### Automated Tests
 
-1. **Drift code generation**: Run `dart run build_runner build --delete-conflicting-outputs` in `motaz_app_flutter/` — must complete with exit code 0 and no errors.
+1. **Drift smoke tests** — `flutter test test/core/database/drift_smoke_test.dart`
+   - CRUD for each of the 16 entities
+   - Verify all fields persist and retrieve correctly
+   - Verify void semantics (status change, void_reason saved, no data deleted)
 
-2. **Serverpod code generation**: Run `serverpod generate` in `motaz_app_server/` — must complete with exit code 0 and generate protocol classes.
+2. **Minor-unit integer tests** — `flutter test test/core/database/money_integer_test.dart`
+   - Insert monetary values as minor-unit integers
+   - Retrieve and verify zero precision loss
+   - Test boundary values (0, max int)
 
-3. **Drift smoke test**: Create a Flutter test at `motaz_app_flutter/test/core/database/app_database_test.dart` that:
-   - Opens an in-memory Drift database
-   - Inserts a product record
-   - Retrieves it and verifies fields
-   - Verifies unique name constraint rejects duplicates
-   - Inserts a device record with device_code and next_invoice_sequence
-   - Command: `cd motaz_app_flutter && flutter test test/core/database/app_database_test.dart`
+3. **Constraint tests** (within smoke tests)
+   - Duplicate product name → rejected
+   - Invoice without client_id → rejected
+   - Enum validation (invalid category → rejected)
+
+4. **Code generation verification**
+   - `dart run build_runner build --delete-conflicting-outputs` — must complete without errors
+   - `serverpod generate` — must complete without errors
 
 ### Manual Verification
 
-1. Verify all 16 `.spy.yaml` files exist in `motaz_app_server/lib/src/models/` with correct table names, field types, and relationships.
-2. Verify all 16 Drift table files exist in `motaz_app_flutter/lib/core/database/tables/` with correct column types and constraints.
-3. Verify no REAL or DOUBLE types are used for monetary columns (grep for `real()` or `double` in table files).
+1. **Schema inspection**: After code generation, verify `app_database.g.dart` includes all 16 tables
+2. **Migration check**: Ensure Serverpod generates correct SQL migration files in `motaz_app_server/migrations/`
+3. **Flutter analyze**: Run `flutter analyze` to verify no type errors or warnings
 
 ## Complexity Tracking
 
-No constitution violations — this section is intentionally empty.
+> No constitution check violations. No complexity justifications needed.

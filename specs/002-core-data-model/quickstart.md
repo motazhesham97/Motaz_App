@@ -59,7 +59,7 @@ flutter test test/core/database/
 - **One table per file**: Each Drift table class lives in its own file under `lib/core/database/tables/`
 - **One model per file**: Each Serverpod model lives in its own `.spy.yaml` file under `lib/src/models/`
 - **Money = integers**: All monetary columns use `integer()` in Drift, `int` in Serverpod. Never `real()` or `double`.
-- **UUID = text**: UUIDs stored as text strings in both SQLite and PostgreSQL
+- **UUID storage**: UUIDs are stored as text in SQLite and as native `uuid` columns in PostgreSQL
 - **Enums**: Drift uses `intEnum()` or `textEnum()`. Serverpod defines enums in separate `.spy.yaml` files
 - **No hard delete**: Financial records use `status` + `void_reason` pattern
 

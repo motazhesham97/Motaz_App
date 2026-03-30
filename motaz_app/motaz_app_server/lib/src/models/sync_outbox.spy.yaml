@@ -1,0 +1,19 @@
+class: SyncOutbox
+table: sync_outbox
+fields:
+  id: UuidValue?, defaultPersist=random
+  entityType: ParentEntityType
+  entityId: UuidValue
+  operation: AuditOperation
+  payload: String
+  rowVersion: int
+  deviceId: UuidValue
+  device: Device?, relation(name=device_sync_outbox, field=deviceId)
+  retryCount: int, default=0
+  status: SyncOutboxStatus, default=PENDING
+  createdAt: DateTime
+indexes:
+  outbox_status_idx:
+    fields: status
+  outbox_created_idx:
+    fields: createdAt

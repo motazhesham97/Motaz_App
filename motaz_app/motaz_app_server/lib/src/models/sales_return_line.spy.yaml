@@ -1,0 +1,15 @@
+class: SalesReturnLine
+table: sales_return_line
+fields:
+  id: UuidValue?, defaultPersist=random
+  returnId: UuidValue
+  salesReturn: SalesReturn?, relation(field=returnId)
+  invoiceLineId: UuidValue
+  invoiceLine: SalesInvoiceLine?, relation(field=invoiceLineId)
+  returnedQuantity: int
+  returnedAmount: int
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  return_line_return_idx:
+    fields: returnId
