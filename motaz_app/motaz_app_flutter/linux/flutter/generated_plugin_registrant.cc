@@ -9,6 +9,13 @@
 #include <file_selector_linux/file_selector_plugin.h>
 #include <sqlite3_flutter_libs/sqlite3_flutter_libs_plugin.h>
 
+/**
+ * @brief Registers generated platform plugins with the given Flutter plugin registry.
+ *
+ * Registers the FileSelectorPlugin and Sqlite3FlutterLibsPlugin with the provided registry.
+ *
+ * @param registry The FlPluginRegistry to register plugins with.
+ */
 void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) file_selector_linux_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "FileSelectorPlugin");
