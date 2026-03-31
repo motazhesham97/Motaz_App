@@ -1,0 +1,15 @@
+class: LocalAttachmentStaging
+table: local_attachment_staging
+fields:
+  id: UuidValue?, defaultPersist=random
+  parentEntityType: ParentEntityType
+  parentEntityId: UuidValue
+  localFilePath: String
+  fileType: String
+  fileSize: int?
+  uploadStatus: String, default='PENDING'
+  createdAt: DateTime
+  updatedAt: DateTime
+indexes:
+  staging_upload_status_idx:
+    fields: uploadStatus

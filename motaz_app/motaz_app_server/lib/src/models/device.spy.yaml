@@ -1,0 +1,15 @@
+class: Device
+table: device
+fields:
+  id: UuidValue?, defaultPersist=random
+  deviceName: String
+  platform: DevicePlatform
+  deviceCode: String
+  nextInvoiceSequence: int, default=1
+  createdAt: DateTime
+  lastActiveAt: DateTime
+  syncOutboxItems: List<SyncOutbox>?, relation(name=device_sync_outbox)
+indexes:
+  device_code_idx:
+    fields: deviceCode
+    unique: true

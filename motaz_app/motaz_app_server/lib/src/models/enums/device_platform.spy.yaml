@@ -1,0 +1,4 @@
+enum: DevicePlatform
+values:
+  - ANDROID
+  - WINDOWS

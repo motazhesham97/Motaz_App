@@ -1,0 +1,19 @@
+class: AttachmentMetadata
+table: attachment_metadata
+fields:
+  id: UuidValue?, defaultPersist=random
+  parentEntityType: ParentEntityType
+  parentEntityId: UuidValue
+  storageReference: String
+  secureUrl: String?
+  fileType: String
+  fileSize: int?
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  attachment_parent_idx:
+    fields: parentEntityType, parentEntityId

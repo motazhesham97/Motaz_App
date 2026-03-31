@@ -1,0 +1,7 @@
+enum: ExpenseCategory
+values:
+  - OWNER_DRAW
+  - PARTNER_DRAW
+  - MARGIN_DRAW
+  - OPERATIONAL
+  - PRODUCTION

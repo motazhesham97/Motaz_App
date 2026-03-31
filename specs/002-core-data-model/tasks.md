@@ -1,199 +1,248 @@
 # Tasks: Core Data Model
 
-**Input**: Design documents from `specs/002-core-data-model/`
-**Prerequisites**: plan.md, spec.md, data-model.md, research.md, quickstart.md
+**Input**: Design documents from `/specs/002-core-data-model/`
+**Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, quickstart.md
 
-**Organization**: Tasks are grouped by user story. Since this is a schema-only phase, user stories map to entity groups rather than features. All Drift tables (local) and Serverpod models (cloud) for each entity group are co-located within the same story phase.
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
-- Include exact file paths in descriptions
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2)
+- All file paths are relative to repository root `d:\Motaz_App2\`
 
 ---
 
-## Phase 1: Setup
+## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Create the database infrastructure and directory structure
+**Purpose**: Create shared Dart enum definitions and utility files needed by all entities.
 
-- [ ] T001 Create Drift database directory at `motaz_app/motaz_app_flutter/lib/core/database/tables/`
-- [ ] T002 Create Serverpod models directory at `motaz_app/motaz_app_server/lib/src/models/`
-- [ ] T003 [P] Create Drift enum definitions for all 9 enums (SyncStatus, RecordStatus, ExpenseCategory, ReceiptType, AuditOperation, ConflictStatus, SyncOutboxStatus, ParentEntityType, DevicePlatform) at `motaz_app/motaz_app_flutter/lib/core/database/enums.dart`
-- [ ] T004 [P] Create Serverpod enum model definitions — one `.spy.yaml` per enum: `motaz_app/motaz_app_server/lib/src/models/sync_status.spy.yaml`, `record_status.spy.yaml`, `expense_category.spy.yaml`, `receipt_type.spy.yaml`, `audit_operation.spy.yaml`, `conflict_status.spy.yaml`, `sync_outbox_status.spy.yaml`, `parent_entity_type.spy.yaml`, `device_platform.spy.yaml`
-
-**Checkpoint**: Directory structure and enum definitions ready for entity creation
+- [X] T001 [P] Create Drift enum file for SyncStatus (PENDING, SYNCED, CONFLICT, FAILED) in `motaz_app/motaz_app_flutter/lib/core/database/enums/sync_status.dart`
+- [X] T002 [P] Create Drift enum file for RecordStatus (ACTIVE, VOIDED) in `motaz_app/motaz_app_flutter/lib/core/database/enums/record_status.dart`
+- [X] T003 [P] Create Drift enum file for ExpenseCategory (OWNER_DRAW, PARTNER_DRAW, MARGIN_DRAW, OPERATIONAL, PRODUCTION) in `motaz_app/motaz_app_flutter/lib/core/database/enums/expense_category.dart`
+- [X] T004 [P] Create Drift enum file for ReceiptType (INVOICE_LINKED, GENERAL) in `motaz_app/motaz_app_flutter/lib/core/database/enums/receipt_type.dart`
+- [X] T005 [P] Create Drift enum file for AuditOperation (CREATE, UPDATE, VOID) in `motaz_app/motaz_app_flutter/lib/core/database/enums/audit_operation.dart`
+- [X] T006 [P] Create Drift enum file for ConflictStatus (PENDING, RESOLVED) in `motaz_app/motaz_app_flutter/lib/core/database/enums/conflict_status.dart`
+- [X] T007 [P] Create Drift enum file for SyncOutboxStatus (PENDING, IN_PROGRESS, COMPLETED, FAILED) in `motaz_app/motaz_app_flutter/lib/core/database/enums/sync_outbox_status.dart`
+- [X] T008 [P] Create Drift enum file for ParentEntityType (SALES_INVOICE, RECEIPT, PRODUCT, CLIENT, EXPENSE, SALES_RETURN) in `motaz_app/motaz_app_flutter/lib/core/database/enums/parent_entity_type.dart`
+- [X] T009 [P] Create Drift enum file for DevicePlatform (ANDROID, WINDOWS) in `motaz_app/motaz_app_flutter/lib/core/database/enums/device_platform.dart`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Base entities with no foreign key dependencies — all other entities depend on these
+**Purpose**: Extend existing Phase 1 tables to match the spec and create Serverpod enum models. All user story tables depend on these being correct first.
 
-**⚠️ CRITICAL**: No user story entity work can begin until Device, Product, and Client tables exist
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 [P] Create Drift table for Device at `motaz_app/motaz_app_flutter/lib/core/database/tables/device_table.dart` — fields: id (text PK), device_name (text NOT NULL), platform (DevicePlatform enum NOT NULL), device_code (text NOT NULL UNIQUE), next_invoice_sequence (integer NOT NULL DEFAULT 1), created_at (datetime NOT NULL), last_active_at (datetime NOT NULL)
-- [ ] T006 [P] Create Serverpod model for Device at `motaz_app/motaz_app_server/lib/src/models/device.spy.yaml` — table: device, matching fields with UNIQUE index on device_code
-- [ ] T007 [P] Create Drift table for Product at `motaz_app/motaz_app_flutter/lib/core/database/tables/product_table.dart` — fields: id (text PK), name (text NOT NULL UNIQUE), description (text NULLABLE), default_sale_price (integer NOT NULL), is_active (boolean NOT NULL DEFAULT true), created_at, updated_at, device_id (text NOT NULL FK→Device), row_version (integer NOT NULL DEFAULT 1), sync_status (SyncStatus enum NOT NULL DEFAULT PENDING). Index on name
-- [ ] T008 [P] Create Serverpod model for Product at `motaz_app/motaz_app_server/lib/src/models/product.spy.yaml` — table: product, matching fields with UNIQUE index on name
-- [ ] T009 [P] Create Drift table for Client at `motaz_app/motaz_app_flutter/lib/core/database/tables/client_table.dart` — fields: id (text PK), display_name (text NOT NULL, no UNIQUE), phone (text NULLABLE), note (text NULLABLE), client_code (text NULLABLE), is_active (boolean NOT NULL DEFAULT true), created_at, updated_at, device_id (text NOT NULL FK→Device), row_version (integer NOT NULL DEFAULT 1), sync_status (SyncStatus enum NOT NULL DEFAULT PENDING). Index on display_name
-- [ ] T010 [P] Create Serverpod model for Client at `motaz_app/motaz_app_server/lib/src/models/client.spy.yaml` — table: client, matching fields with index on display_name
+### Extend Phase 1 Drift Tables
 
-**Checkpoint**: Device, Product, and Client tables exist in both local and cloud schemas. All subsequent entities can reference these via FKs.
+- [X] T010 Extend Devices table to add `device_code` (text, NOT NULL, UNIQUE), `next_invoice_sequence` (integer, NOT NULL, DEFAULT 1), and convert `platform` to use DevicePlatform intEnum, convert timestamps to `dateTime()` in `motaz_app/motaz_app_flutter/lib/core/database/tables/devices.dart`
+- [X] T011 Extend SyncOutbox table to use UUID text PK instead of autoIncrement int, convert `entityType` to ParentEntityType intEnum, `operation` to AuditOperation intEnum, `status` to SyncOutboxStatus intEnum, convert `createdAt` to `dateTime()` in `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_outbox.dart`
+- [X] T012 Extend SyncCursor table to add UUID text `id` PK (replacing entityType-as-PK), convert `entityType` to ParentEntityType intEnum with UNIQUE, add `updatedAt` as `dateTime()`, convert `lastPulledAt` to nullable `dateTime()` in `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_cursor.dart`
+
+### Create Serverpod Enum Models
+
+- [X] T013 [P] Create Serverpod enum model for SyncStatus in `motaz_app/motaz_app_server/lib/src/models/enums/sync_status.spy.yaml`
+- [X] T014 [P] Create Serverpod enum model for RecordStatus in `motaz_app/motaz_app_server/lib/src/models/enums/record_status.spy.yaml`
+- [X] T015 [P] Create Serverpod enum model for ExpenseCategory in `motaz_app/motaz_app_server/lib/src/models/enums/expense_category.spy.yaml`
+- [X] T016 [P] Create Serverpod enum model for ReceiptType in `motaz_app/motaz_app_server/lib/src/models/enums/receipt_type.spy.yaml`
+- [X] T017 [P] Create Serverpod enum model for AuditOperation in `motaz_app/motaz_app_server/lib/src/models/enums/audit_operation.spy.yaml`
+- [X] T018 [P] Create Serverpod enum model for ConflictStatus in `motaz_app/motaz_app_server/lib/src/models/enums/conflict_status.spy.yaml`
+- [X] T019 [P] Create Serverpod enum model for SyncOutboxStatus in `motaz_app/motaz_app_server/lib/src/models/enums/sync_outbox_status.spy.yaml`
+- [X] T020 [P] Create Serverpod enum model for ParentEntityType in `motaz_app/motaz_app_server/lib/src/models/enums/parent_entity_type.spy.yaml`
+- [X] T021 [P] Create Serverpod enum model for DevicePlatform in `motaz_app/motaz_app_server/lib/src/models/enums/device_platform.spy.yaml`
+
+### Create Serverpod Foundational Models
+
+- [X] T022 Create Serverpod model for Device with all fields, relation to other entities, indexes in `motaz_app/motaz_app_server/lib/src/models/device.spy.yaml`
+- [X] T023 [P] Create Serverpod model for SyncOutbox with relations, indexes in `motaz_app/motaz_app_server/lib/src/models/sync_outbox.spy.yaml`
+- [X] T024 [P] Create Serverpod model for SyncCursor with UNIQUE on entity_type, indexes in `motaz_app/motaz_app_server/lib/src/models/sync_cursor.spy.yaml`
+
+**Checkpoint**: Foundation ready — all enums defined, Phase 1 tables extended, foundational Serverpod models created.
 
 ---
 
-## Phase 3: User Story 3 — Invoice & Invoice Line Schema (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 — Product Data (Priority: P1) 🎯 MVP
 
-**Goal**: Define the SalesInvoice and SalesInvoiceLine schema in both local and cloud databases
+**Goal**: Products are stored with unique name, optional description, default sale price as minor-unit integer, active/disabled status, and all audit/sync fields.
 
-**Independent Test**: Insert an invoice with lines into local DB, compute total, verify minor-unit integer precision and client FK enforcement
+**Independent Test**: Insert a product, retrieve it, confirm all fields persist. Attempt duplicate name — rejected.
+
+### Implementation for User Story 1
+
+- [X] T025 [P] [US1] Create Drift table for Products with text UUID PK, name (NOT NULL, UNIQUE), description (nullable), default_sale_price (integer), is_active (boolean, DEFAULT true), created_at, updated_at, device_id FK, row_version, sync_status intEnum in `motaz_app/motaz_app_flutter/lib/core/database/tables/products.dart`
+- [X] T026 [P] [US1] Create Serverpod model for Product with all fields, relation to Device, unique index on name in `motaz_app/motaz_app_server/lib/src/models/product.spy.yaml`
+
+**Checkpoint**: Product entity defined in both local and cloud schemas.
+
+---
+
+## Phase 4: User Story 2 — Client Data (Priority: P1)
+
+**Goal**: Clients are stored with display name (NOT unique), phone, note, client_code as identifying fields, and all audit/sync fields.
+
+**Independent Test**: Insert two clients with the same display name but different phones. Retrieve both — they coexist and are distinguishable.
+
+### Implementation for User Story 2
+
+- [X] T027 [P] [US2] Create Drift table for Clients with text UUID PK, display_name (NOT NULL, no unique constraint), phone (nullable), note (nullable), client_code (nullable), is_active, created_at, updated_at, device_id FK, row_version, sync_status; index on display_name in `motaz_app/motaz_app_flutter/lib/core/database/tables/clients.dart`
+- [X] T028 [P] [US2] Create Serverpod model for Client with all fields, relation to Device, index on display_name in `motaz_app/motaz_app_server/lib/src/models/client_record.spy.yaml`
+
+**Checkpoint**: Client entity defined in both schemas.
+
+---
+
+## Phase 5: User Story 3 — Invoice & Invoice Line Data (Priority: P1)
+
+**Goal**: SalesInvoice with UUID PK, local_ref (`INV-<deviceCode>-<seq>`), mandatory client FK, invoice-level discount, total, status/void_reason, and all audit fields. SalesInvoiceLine with invoice FK, product FK, quantity, unit_price, line_total — all minor-unit integers.
+
+**Independent Test**: Insert an invoice with lines, compute total, verify stored values match expected minor-unit integer calculations.
 
 ### Implementation for User Story 3
 
-- [ ] T011 [P] [US3] Create Drift table for SalesInvoice at `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_invoice_table.dart` — fields: id (text PK), local_ref (text NOT NULL UNIQUE), official_no (text NULLABLE), client_id (text NOT NULL FK→Client), invoice_date (datetime NOT NULL), discount (integer NOT NULL DEFAULT 0), total (integer NOT NULL), note (text NULLABLE), status (RecordStatus enum NOT NULL DEFAULT ACTIVE), void_reason (text NULLABLE), created_at, updated_at, device_id (text NOT NULL FK→Device), row_version (integer NOT NULL DEFAULT 1), sync_status (SyncStatus enum NOT NULL DEFAULT PENDING). Indexes on invoice_date, client_id, status
-- [ ] T012 [P] [US3] Create Serverpod model for SalesInvoice at `motaz_app/motaz_app_server/lib/src/models/sales_invoice.spy.yaml` — table: sales_invoice, matching fields with UNIQUE on local_ref, indexes on invoice_date, client_id, status
-- [ ] T013 [P] [US3] Create Drift table for SalesInvoiceLine at `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_invoice_line_table.dart` — fields: id (text PK), invoice_id (text NOT NULL FK→SalesInvoice), product_id (text NOT NULL FK→Product), quantity (integer NOT NULL), unit_price (integer NOT NULL), line_total (integer NOT NULL), created_at, updated_at. Index on invoice_id
-- [ ] T014 [P] [US3] Create Serverpod model for SalesInvoiceLine at `motaz_app/motaz_app_server/lib/src/models/sales_invoice_line.spy.yaml` — table: sales_invoice_line, matching fields with index on invoice_id
+- [X] T029 [P] [US3] Create Drift table for SalesInvoices with text UUID PK, local_ref (text, UNIQUE), official_no (nullable), client_id FK → Clients, invoice_date, discount (integer, DEFAULT 0), total (integer), note (nullable), status (RecordStatus), void_reason (nullable), created_at, updated_at, device_id FK, row_version, sync_status; indexes on invoice_date, client_id, status in `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_invoices.dart`
+- [X] T030 [P] [US3] Create Drift table for SalesInvoiceLines with text UUID PK, invoice_id FK → SalesInvoices, product_id FK → Products, quantity (integer), unit_price (integer), line_total (integer), created_at, updated_at; index on invoice_id in `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_invoice_lines.dart`
+- [X] T031 [P] [US3] Create Serverpod model for SalesInvoice with all fields, relations to Client and Device, unique index on local_ref in `motaz_app/motaz_app_server/lib/src/models/sales_invoice.spy.yaml`
+- [X] T032 [P] [US3] Create Serverpod model for SalesInvoiceLine with all fields, relations to SalesInvoice and Product in `motaz_app/motaz_app_server/lib/src/models/sales_invoice_line.spy.yaml`
 
-**Checkpoint**: Invoice and invoice line schema complete in both databases. Can verify client FK, local_ref uniqueness, and minor-unit integer storage.
+**Checkpoint**: Invoice and InvoiceLine entities defined in both schemas.
 
 ---
 
-## Phase 4: User Story 4 — Receipt & Allocation Schema (Priority: P1)
+## Phase 6: User Story 4 — Receipt & Allocation Data (Priority: P1)
 
-**Goal**: Define the Receipt and ReceiptAllocation schema in both local and cloud databases
+**Goal**: Receipt with type (INVOICE_LINKED/GENERAL), client FK, optional invoice FK, amount as minor-unit integer, status/void fields. ReceiptAllocation with receipt FK, invoice FK, allocated_amount.
 
-**Independent Test**: Insert a receipt with allocation records, verify both types (INVOICE_LINKED, GENERAL), verify allocated amounts stored as minor-unit integers
+**Independent Test**: Insert a receipt with allocation records, retrieve and verify allocated amounts sum correctly.
 
 ### Implementation for User Story 4
 
-- [ ] T015 [P] [US4] Create Drift table for Receipt at `motaz_app/motaz_app_flutter/lib/core/database/tables/receipt_table.dart` — fields: id (text PK), receipt_type (ReceiptType enum NOT NULL), client_id (text NOT NULL FK→Client), invoice_id (text NULLABLE FK→SalesInvoice), amount (integer NOT NULL), receipt_date (datetime NOT NULL), note (text NULLABLE), status (RecordStatus enum NOT NULL DEFAULT ACTIVE), void_reason (text NULLABLE), created_at, updated_at, device_id (text NOT NULL FK→Device), row_version (integer NOT NULL DEFAULT 1), sync_status (SyncStatus enum NOT NULL DEFAULT PENDING). Indexes on client_id, receipt_date, status
-- [ ] T016 [P] [US4] Create Serverpod model for Receipt at `motaz_app/motaz_app_server/lib/src/models/receipt.spy.yaml` — table: receipt, matching fields
-- [ ] T017 [P] [US4] Create Drift table for ReceiptAllocation at `motaz_app/motaz_app_flutter/lib/core/database/tables/receipt_allocation_table.dart` — fields: id (text PK), receipt_id (text NOT NULL FK→Receipt), invoice_id (text NOT NULL FK→SalesInvoice), allocated_amount (integer NOT NULL), created_at, updated_at. Indexes on receipt_id, invoice_id
-- [ ] T018 [P] [US4] Create Serverpod model for ReceiptAllocation at `motaz_app/motaz_app_server/lib/src/models/receipt_allocation.spy.yaml` — table: receipt_allocation, matching fields
+- [X] T033 [P] [US4] Create Drift table for Receipts with text UUID PK, receipt_type (ReceiptType intEnum), client_id FK → Clients, invoice_id FK nullable → SalesInvoices, amount (integer), receipt_date, note (nullable), status (RecordStatus), void_reason (nullable), created_at, updated_at, device_id FK, row_version, sync_status; indexes on client_id, receipt_date, status in `motaz_app/motaz_app_flutter/lib/core/database/tables/receipts.dart`
+- [X] T034 [P] [US4] Create Drift table for ReceiptAllocations with text UUID PK, receipt_id FK → Receipts, invoice_id FK → SalesInvoices, allocated_amount (integer), created_at, updated_at; indexes on receipt_id, invoice_id in `motaz_app/motaz_app_flutter/lib/core/database/tables/receipt_allocations.dart`
+- [X] T035 [P] [US4] Create Serverpod model for Receipt with all fields, relations to Client, SalesInvoice (optional), Device in `motaz_app/motaz_app_server/lib/src/models/receipt.spy.yaml`
+- [X] T036 [P] [US4] Create Serverpod model for ReceiptAllocation with all fields, relations to Receipt and SalesInvoice in `motaz_app/motaz_app_server/lib/src/models/receipt_allocation.spy.yaml`
 
-**Checkpoint**: Receipt and allocation schema complete. Can verify dual receipt types and explicit allocation records.
+**Checkpoint**: Receipt and ReceiptAllocation entities defined in both schemas.
 
 ---
 
-## Phase 5: User Story 5 — Expense Schema (Priority: P1)
+## Phase 7: User Story 5 — Expense Data (Priority: P1)
 
-**Goal**: Define the Expense schema with 5 category types in both local and cloud databases
+**Goal**: Expense with one of 5 categories (ExpenseCategory enum), amount as minor-unit integer, date, note, status/void fields, and all audit/sync fields.
 
-**Independent Test**: Insert expenses of each category type, verify enum constraint rejects invalid categories
+**Independent Test**: Insert expenses of each category type, verify they persist. Verify invalid category is rejected by enum typing.
 
 ### Implementation for User Story 5
 
-- [ ] T019 [P] [US5] Create Drift table for Expense at `motaz_app/motaz_app_flutter/lib/core/database/tables/expense_table.dart` — fields: id (text PK), category (ExpenseCategory enum NOT NULL), amount (integer NOT NULL), expense_date (datetime NOT NULL), note (text NULLABLE), status (RecordStatus enum NOT NULL DEFAULT ACTIVE), void_reason (text NULLABLE), created_at, updated_at, device_id (text NOT NULL FK→Device), row_version (integer NOT NULL DEFAULT 1), sync_status (SyncStatus enum NOT NULL DEFAULT PENDING). Indexes on expense_date, category, status
-- [ ] T020 [P] [US5] Create Serverpod model for Expense at `motaz_app/motaz_app_server/lib/src/models/expense.spy.yaml` — table: expense, matching fields
+- [X] T037 [P] [US5] Create Drift table for Expenses with text UUID PK, category (ExpenseCategory intEnum), amount (integer), expense_date, note (nullable), status (RecordStatus), void_reason (nullable), created_at, updated_at, device_id FK, row_version, sync_status; indexes on expense_date, category, status in `motaz_app/motaz_app_flutter/lib/core/database/tables/expenses.dart`
+- [X] T038 [P] [US5] Create Serverpod model for Expense with all fields, relation to Device in `motaz_app/motaz_app_server/lib/src/models/expense.spy.yaml`
 
-**Checkpoint**: Expense schema complete with all 5 categories enforced.
+**Checkpoint**: Expense entity defined in both schemas.
 
 ---
 
-## Phase 6: User Story 6 — Return & Return Line Schema (Priority: P2)
+## Phase 8: User Story 6 — Return & Return Line Data (Priority: P2)
 
-**Goal**: Define the SalesReturn and SalesReturnLine schema in both local and cloud databases
+**Goal**: SalesReturn linked to an invoice with return lines referencing original invoice lines. Return lines have returned_quantity and returned_amount as minor-unit integers.
 
-**Independent Test**: Insert a return against an invoice with return lines, verify invoice FK and invoice_line FK
+**Independent Test**: Insert a return against an existing invoice with return lines, verify all fields persist correctly.
 
 ### Implementation for User Story 6
 
-- [ ] T021 [P] [US6] Create Drift table for SalesReturn at `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_return_table.dart` — fields: id (text PK), invoice_id (text NOT NULL FK→SalesInvoice), return_date (datetime NOT NULL), total_returned_amount (integer NOT NULL), note (text NULLABLE), status (RecordStatus enum NOT NULL DEFAULT ACTIVE), void_reason (text NULLABLE), created_at, updated_at, device_id (text NOT NULL FK→Device), row_version (integer NOT NULL DEFAULT 1), sync_status (SyncStatus enum NOT NULL DEFAULT PENDING). Indexes on invoice_id, return_date, status
-- [ ] T022 [P] [US6] Create Serverpod model for SalesReturn at `motaz_app/motaz_app_server/lib/src/models/sales_return.spy.yaml` — table: sales_return, matching fields
-- [ ] T023 [P] [US6] Create Drift table for SalesReturnLine at `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_return_line_table.dart` — fields: id (text PK), return_id (text NOT NULL FK→SalesReturn), invoice_line_id (text NOT NULL FK→SalesInvoiceLine), returned_quantity (integer NOT NULL), returned_amount (integer NOT NULL), created_at, updated_at. Index on return_id
-- [ ] T024 [P] [US6] Create Serverpod model for SalesReturnLine at `motaz_app/motaz_app_server/lib/src/models/sales_return_line.spy.yaml` — table: sales_return_line, matching fields
+- [X] T039 [P] [US6] Create Drift table for SalesReturns with text UUID PK, invoice_id FK → SalesInvoices, return_date, total_returned_amount (integer), note (nullable), status (RecordStatus), void_reason (nullable), created_at, updated_at, device_id FK, row_version, sync_status; indexes on invoice_id, return_date, status in `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_returns.dart`
+- [X] T040 [P] [US6] Create Drift table for SalesReturnLines with text UUID PK, return_id FK → SalesReturns, invoice_line_id FK → SalesInvoiceLines, returned_quantity (integer), returned_amount (integer), created_at, updated_at; index on return_id in `motaz_app/motaz_app_flutter/lib/core/database/tables/sales_return_lines.dart`
+- [X] T041 [P] [US6] Create Serverpod model for SalesReturn with all fields, relations to SalesInvoice and Device in `motaz_app/motaz_app_server/lib/src/models/sales_return.spy.yaml`
+- [X] T042 [P] [US6] Create Serverpod model for SalesReturnLine with all fields, relations to SalesReturn and SalesInvoiceLine in `motaz_app/motaz_app_server/lib/src/models/sales_return_line.spy.yaml`
 
-**Checkpoint**: Return and return line schema complete. Can verify invoice/line FK relationships.
+**Checkpoint**: Return and ReturnLine entities defined in both schemas.
 
 ---
 
-## Phase 7: User Story 7 — Attachment Schema (Priority: P2)
+## Phase 9: User Story 7 — Attachment Metadata (Priority: P2)
 
-**Goal**: Define AttachmentMetadata and LocalAttachmentStaging schema in both local and cloud databases
+**Goal**: AttachmentMetadata stores file references (no binary) linked to invoices or receipts. LocalAttachmentStaging queues offline-captured files for later upload.
 
-**Independent Test**: Insert attachment metadata linked to an invoice, verify no binary content stored, verify parent entity link
+**Independent Test**: Insert attachment metadata linked to an invoice, retrieve it, verify storage reference and parent link are correct. No binary content stored.
 
 ### Implementation for User Story 7
 
-- [ ] T025 [P] [US7] Create Drift table for AttachmentMetadata at `motaz_app/motaz_app_flutter/lib/core/database/tables/attachment_metadata_table.dart` — fields: id (text PK), parent_entity_type (ParentEntityType enum NOT NULL), parent_entity_id (text NOT NULL), storage_reference (text NOT NULL), secure_url (text NULLABLE), file_type (text NOT NULL), file_size (integer NULLABLE), created_at, updated_at, device_id (text NOT NULL FK→Device), row_version (integer NOT NULL DEFAULT 1), sync_status (SyncStatus enum NOT NULL DEFAULT PENDING). Composite index on (parent_entity_type, parent_entity_id)
-- [ ] T026 [P] [US7] Create Serverpod model for AttachmentMetadata at `motaz_app/motaz_app_server/lib/src/models/attachment_metadata.spy.yaml` — table: attachment_metadata, matching fields
-- [ ] T027 [P] [US7] Create Drift table for LocalAttachmentStaging at `motaz_app/motaz_app_flutter/lib/core/database/tables/local_attachment_staging_table.dart` — fields: id (text PK), parent_entity_type (ParentEntityType enum NOT NULL), parent_entity_id (text NOT NULL), local_file_path (text NOT NULL), file_type (text NOT NULL), file_size (integer NULLABLE), upload_status (text NOT NULL DEFAULT 'PENDING'), created_at, updated_at. Index on upload_status
-- [ ] T028 [P] [US7] Create Serverpod model for LocalAttachmentStaging at `motaz_app/motaz_app_server/lib/src/models/local_attachment_staging.spy.yaml` — table: local_attachment_staging, matching fields
+- [X] T043 [P] [US7] Create Drift table for AttachmentMetadata with text UUID PK, parent_entity_type (ParentEntityType intEnum), parent_entity_id (text), storage_reference (text), secure_url (nullable), file_type (text), file_size (nullable integer), created_at, updated_at, device_id FK, row_version, sync_status; composite index on (parent_entity_type, parent_entity_id) in `motaz_app/motaz_app_flutter/lib/core/database/tables/attachment_metadata.dart`
+- [X] T044 [P] [US7] Create Drift table for LocalAttachmentStaging with text UUID PK, parent_entity_type (ParentEntityType intEnum), parent_entity_id (text), local_file_path (text), file_type (text), file_size (nullable integer), upload_status (text, DEFAULT 'PENDING'), created_at, updated_at; index on upload_status in `motaz_app/motaz_app_flutter/lib/core/database/tables/local_attachment_staging.dart`
+- [X] T045 [P] [US7] Create Serverpod model for AttachmentMetadata with all fields, relation to Device in `motaz_app/motaz_app_server/lib/src/models/attachment_metadata.spy.yaml`
+- [X] T046 [P] [US7] Create Serverpod model for LocalAttachmentStaging with all fields in `motaz_app/motaz_app_server/lib/src/models/local_attachment_staging.spy.yaml`
 
-**Checkpoint**: Attachment metadata and staging schema complete. No binary content in DB.
+**Checkpoint**: Attachment entities defined in both schemas.
 
 ---
 
-## Phase 8: User Story 8 — Audit Event Schema (Priority: P2)
+## Phase 10: User Story 8 — Audit Events (Priority: P2)
 
-**Goal**: Define the immutable AuditEvent schema in both local and cloud databases
+**Goal**: Immutable audit event log for every financial mutation. Stores entity type, entity ID, operation, changed-fields diff as JSON, device ID, timestamp. Cannot be modified or deleted.
 
-**Independent Test**: Insert an audit event, verify immutability (no update/delete), verify diff_data stores JSON
+**Independent Test**: Create an audit event, verify it persists. Attempt to modify or delete — rejected.
 
 ### Implementation for User Story 8
 
-- [ ] T029 [P] [US8] Create Drift table for AuditEvent at `motaz_app/motaz_app_flutter/lib/core/database/tables/audit_event_table.dart` — fields: id (text PK), entity_type (ParentEntityType enum NOT NULL), entity_id (text NOT NULL), operation (AuditOperation enum NOT NULL), diff_data (text NOT NULL), device_id (text NOT NULL FK→Device), created_at (datetime NOT NULL). Indexes on (entity_type, entity_id) and on created_at. No updated_at field (immutable)
-- [ ] T030 [P] [US8] Create Serverpod model for AuditEvent at `motaz_app/motaz_app_server/lib/src/models/audit_event.spy.yaml` — table: audit_event, matching fields
+- [X] T047 [P] [US8] Create Drift table for AuditEvents with text UUID PK, entity_type (ParentEntityType intEnum), entity_id (text), operation (AuditOperation intEnum), diff_data (text — JSON), device_id FK, created_at; composite index on (entity_type, entity_id), index on created_at in `motaz_app/motaz_app_flutter/lib/core/database/tables/audit_events.dart`
+- [X] T048 [P] [US8] Create Serverpod model for AuditEvent with all fields, relation to Device in `motaz_app/motaz_app_server/lib/src/models/audit_event.spy.yaml`
 
-**Checkpoint**: Audit event schema complete. Immutability constraint documented for application-level enforcement.
+**Checkpoint**: AuditEvent entity defined in both schemas.
 
 ---
 
-## Phase 9: User Story 9 — Conflict Log Schema (Priority: P2)
+## Phase 11: User Story 9 — Conflict Records (Priority: P2)
 
-**Goal**: Define the ConflictLog schema in both local and cloud databases
+**Goal**: Explicit conflict records store payloads from both devices, conflict type, resolution status, and audit fields.
 
-**Independent Test**: Insert a conflict record with local and remote payloads, verify pending/resolved status transitions
+**Independent Test**: Insert a conflict record with two payloads, verify it persists with PENDING status. Resolve it, verify status changes to RESOLVED.
 
 ### Implementation for User Story 9
 
-- [ ] T031 [P] [US9] Create Drift table for ConflictLog at `motaz_app/motaz_app_flutter/lib/core/database/tables/conflict_log_table.dart` — fields: id (text PK), entity_type (ParentEntityType enum NOT NULL), entity_id (text NOT NULL), local_payload (text NOT NULL), remote_payload (text NOT NULL), conflict_type (text NOT NULL), resolution_status (ConflictStatus enum NOT NULL DEFAULT PENDING), resolved_at (datetime NULLABLE), resolution_data (text NULLABLE), created_at (datetime NOT NULL), device_id (text NOT NULL FK→Device). Indexes on (entity_type, entity_id) and on resolution_status
-- [ ] T032 [P] [US9] Create Serverpod model for ConflictLog at `motaz_app/motaz_app_server/lib/src/models/conflict_log.spy.yaml` — table: conflict_log, matching fields
+- [X] T049 [P] [US9] Create Drift table for ConflictLogs with text UUID PK, entity_type (ParentEntityType intEnum), entity_id (text), local_payload (text — JSON), remote_payload (text — JSON), conflict_type (text), resolution_status (ConflictStatus intEnum, DEFAULT PENDING), resolved_at (nullable dateTime), resolution_data (nullable text — JSON), created_at, device_id FK; composite index on (entity_type, entity_id), index on resolution_status in `motaz_app/motaz_app_flutter/lib/core/database/tables/conflict_logs.dart`
+- [X] T050 [P] [US9] Create Serverpod model for ConflictLog with all fields, relation to Device in `motaz_app/motaz_app_server/lib/src/models/conflict_log.spy.yaml`
 
-**Checkpoint**: Conflict log schema complete. Can verify dual payload storage and resolution status.
+**Checkpoint**: ConflictLog entity defined in both schemas.
 
 ---
 
-## Phase 10: User Story 10 — Sync Infrastructure Schema (Priority: P1)
+## Phase 12: User Story 10 — Sync Infrastructure Tables (Priority: P1)
 
-**Goal**: Define SyncOutbox and SyncCursor schema in both local and cloud databases
+**Goal**: Verify that SyncOutbox and SyncCursor tables (extended in Phase 2 foundational T011/T012) match the spec for both local and cloud schemas. Serverpod models were created in T023/T024.
 
-**Independent Test**: Insert outbox records with various statuses, verify cursor upsert with entity type
+**Independent Test**: Insert outbox and cursor records, verify all fields persist. Query by status, verify filtering works.
 
 ### Implementation for User Story 10
 
-- [ ] T033 [P] [US10] Create Drift table for SyncOutbox at `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_outbox_table.dart` — fields: id (text PK), entity_type (ParentEntityType enum NOT NULL), entity_id (text NOT NULL), operation (AuditOperation enum NOT NULL), payload (text NOT NULL), row_version (integer NOT NULL), device_id (text NOT NULL FK→Device), retry_count (integer NOT NULL DEFAULT 0), status (SyncOutboxStatus enum NOT NULL DEFAULT PENDING), created_at (datetime NOT NULL). Indexes on status and on created_at
-- [ ] T034 [P] [US10] Create Serverpod model for SyncOutbox at `motaz_app/motaz_app_server/lib/src/models/sync_outbox.spy.yaml` — table: sync_outbox, matching fields
-- [ ] T035 [P] [US10] Create Drift table for SyncCursor at `motaz_app/motaz_app_flutter/lib/core/database/tables/sync_cursor_table.dart` — fields: id (text PK), entity_type (ParentEntityType enum NOT NULL UNIQUE), last_pulled_at (datetime NULLABLE), last_row_version (integer NOT NULL DEFAULT 0), updated_at (datetime NOT NULL). UNIQUE on entity_type
-- [ ] T036 [P] [US10] Create Serverpod model for SyncCursor at `motaz_app/motaz_app_server/lib/src/models/sync_cursor.spy.yaml` — table: sync_cursor, matching fields with UNIQUE on entity_type
+> No additional tasks needed — SyncOutbox and SyncCursor are handled by foundational tasks T011, T012, T023, T024.
 
-**Checkpoint**: Sync infrastructure schema complete. Phase 3 (Sync Foundation) can now build on these tables.
+**Checkpoint**: Sync infrastructure tables verified.
 
 ---
 
-## Phase 11: Integration & Code Generation
+## Phase 13: Integration & Code Generation
 
-**Purpose**: Wire all tables into the Drift database class, run code generation for both platforms, verify everything compiles
+**Purpose**: Register all new tables, run code generation, and verify everything compiles.
 
-- [ ] T037 Create Drift AppDatabase class at `motaz_app/motaz_app_flutter/lib/core/database/app_database.dart` — import all 16 table files, declare `@DriftDatabase(tables: [...])`, set `schemaVersion = 1`, add `MigrationStrategy` with `onCreate`
-- [ ] T038 Run Drift code generation — execute `dart run build_runner build --delete-conflicting-outputs` in `motaz_app/motaz_app_flutter/`, verify exit code 0 and `app_database.g.dart` generated
-- [ ] T039 Run Serverpod code generation — execute `serverpod generate` in `motaz_app/motaz_app_server/`, verify exit code 0 and generated protocol classes created
-- [ ] T040 Verify no REAL or DOUBLE types in monetary columns — grep all table files and `.spy.yaml` files for `real()`, `double`, `REAL`, `DOUBLE` and confirm zero matches
+- [X] T051 Update `app_database.dart` to import all new table files and add all 16 tables to `@DriftDatabase(tables: [...])` annotation, bump `schemaVersion` to 2, add migration strategy for version 1→2 in `motaz_app/motaz_app_flutter/lib/core/database/app_database.dart`
+- [X] T052 Run Drift code generation: `dart run build_runner build --delete-conflicting-outputs` in `motaz_app/motaz_app_flutter/` — verify `app_database.g.dart` is regenerated with all 16 tables
+- [X] T053 Run Serverpod code generation: `serverpod generate` in `motaz_app/motaz_app_server/` — verify generated Dart classes and SQL migration files are created
+- [X] T054 Run `flutter analyze` from `motaz_app/motaz_app_flutter/` to verify no type errors or warnings
+- [X] T055 Run `dart analyze` from `motaz_app/motaz_app_server/` to verify no type errors or warnings
 
-**Checkpoint**: All code generation passes. Both local and cloud schemas are compilable.
+**Checkpoint**: All tables registered, code generated, project compiles cleanly.
 
 ---
 
-## Phase 12: Polish & Verification
+## Phase 14: Polish & Verification
 
-**Purpose**: Smoke test and final validation
+**Purpose**: Smoke tests, money integer verification, and final validation.
 
-- [ ] T041 Create Drift smoke test at `motaz_app/motaz_app_flutter/test/core/database/app_database_test.dart` — test: open in-memory DB, insert a Product, retrieve it, verify UNIQUE name constraint rejects duplicate, insert a Device with device_code and next_invoice_sequence, verify fields
-- [ ] T042 Run smoke test — execute `flutter test test/core/database/app_database_test.dart` in `motaz_app/motaz_app_flutter/`, verify pass
-- [ ] T043 Verify all 16 Drift table files exist in `motaz_app/motaz_app_flutter/lib/core/database/tables/` with correct count
-- [ ] T044 Verify all 16 Serverpod `.spy.yaml` model files exist in `motaz_app/motaz_app_server/lib/src/models/` with correct count (excluding enum files)
+- [X] T056 [P] Create Drift smoke test: insert/retrieve/void for each financial entity (Product, Client, SalesInvoice, SalesInvoiceLine, Receipt, ReceiptAllocation, Expense, SalesReturn, SalesReturnLine, AttachmentMetadata, LocalAttachmentStaging, AuditEvent, ConflictLog, SyncOutbox, SyncCursor, Device) in `motaz_app/motaz_app_flutter/test/core/database/drift_smoke_test.dart`
+- [X] T057 [P] Create money integer test: verify minor-unit integer storage and retrieval with zero precision loss across sample calculations in `motaz_app/motaz_app_flutter/test/core/database/money_integer_test.dart`
+- [X] T058 Run all tests: `flutter test test/core/database/` in `motaz_app/motaz_app_flutter/` — verify all pass
+- [X] T059 Verify Serverpod migration SQL files exist and contain correct DDL for all 16 tables in `motaz_app/motaz_app_server/migrations/`
+- [X] T060 Run quickstart.md validation — confirm all steps in `specs/002-core-data-model/quickstart.md` work end-to-end
 
 ---
 
@@ -201,83 +250,97 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: No dependencies — can start immediately
-- **Foundational (Phase 2)**: Depends on Phase 1 enums — Device, Product, Client must be created first
-- **User Stories (Phases 3–10)**: All depend on Phase 2 (Device, Product, Client)
-  - US3 (Invoice): depends on Client, Product, Device
-  - US4 (Receipt): depends on Client, SalesInvoice (→ US3)
-  - US5 (Expense): depends on Device only (can run parallel with US3)
-  - US6 (Return): depends on SalesInvoice, SalesInvoiceLine (→ US3)
-  - US7 (Attachment): depends on Device only (can run parallel with US3)
-  - US8 (AuditEvent): depends on Device only (can run parallel with US3)
-  - US9 (ConflictLog): depends on Device only (can run parallel with US3)
-  - US10 (Sync): depends on Device only (can run parallel with US3)
-- **Integration (Phase 11)**: Depends on ALL entity phases complete
-- **Polish (Phase 12)**: Depends on Phase 11
+- **Phase 1 (Setup)**: No dependencies — all 9 enum tasks can run in parallel
+- **Phase 2 (Foundational)**: Depends on Phase 1 — extends Phase 1 tables and creates foundational Serverpod models
+- **Phases 3–11 (User Stories)**: All depend on Phase 2 completion. Can then proceed in parallel or sequentially by priority
+- **Phase 12 (Integration)**: Depends on all user story phases (3–11) being complete
+- **Phase 13 (Polish)**: Depends on Phase 12 — tests run after code generation
 
 ### User Story Dependencies
 
-- **US1 (Product)** → Phase 2 Foundational (no story dependency)
-- **US2 (Client)** → Phase 2 Foundational (no story dependency)
-- **US3 (Invoice)** → Phase 2 (needs Product + Client)
-- **US4 (Receipt)** → US3 (needs SalesInvoice FK)
-- **US5 (Expense)** → Phase 2 only (independent of US3)
-- **US6 (Return)** → US3 (needs SalesInvoice + SalesInvoiceLine FK)
-- **US7 (Attachment)** → Phase 2 only (independent of US3)
-- **US8 (AuditEvent)** → Phase 2 only (independent of US3)
-- **US9 (ConflictLog)** → Phase 2 only (independent of US3)
-- **US10 (Sync)** → Phase 2 only (independent of US3)
+- **US1 (Product)**: Phase 2 only — no other story dependencies
+- **US2 (Client)**: Phase 2 only — no other story dependencies
+- **US3 (Invoice/Lines)**: Depends on US1 (Product FK) and US2 (Client FK)
+- **US4 (Receipt/Allocation)**: Depends on US2 (Client FK) and US3 (Invoice FK)
+- **US5 (Expense)**: Phase 2 only — no other story dependencies
+- **US6 (Return/Lines)**: Depends on US3 (Invoice FK, InvoiceLine FK)
+- **US7 (Attachments)**: Phase 2 only — polymorphic FK, no direct table dependency
+- **US8 (Audit Events)**: Phase 2 only — polymorphic FK, no direct table dependency
+- **US9 (Conflict Log)**: Phase 2 only — polymorphic FK, no direct table dependency
+- **US10 (Sync Infrastructure)**: Handled in Phase 2 foundational tasks
+
+### Within Each User Story
+
+- Drift table and Serverpod model tasks are parallel (different files)
+- All model tasks within a story marked [P] can run in parallel
 
 ### Parallel Opportunities
 
-After Phase 2 completes, these can all run in parallel:
-- US3 (Invoice) + US5 (Expense) + US7 (Attachment) + US8 (Audit) + US9 (Conflict) + US10 (Sync)
-
-After US3 completes, these can run in parallel:
-- US4 (Receipt) + US6 (Return)
-
-Within each user story, Drift and Serverpod tasks are marked [P] and can run in parallel.
+**Maximum parallelism after Phase 2**:
+- US1, US2, US5, US7, US8, US9 can all start simultaneously (6 parallel tracks)
+- US3 starts after US1 + US2 complete
+- US4 starts after US3 completes
+- US6 starts after US3 completes
 
 ---
 
+## Parallel Example: Phase 1 (Enums)
+
+```
+# All 9 enum tasks can run simultaneously:
+T001: SyncStatus enum
+T002: RecordStatus enum
+T003: ExpenseCategory enum
+T004: ReceiptType enum
+T005: AuditOperation enum
+T006: ConflictStatus enum
+T007: SyncOutboxStatus enum
+T008: ParentEntityType enum
+T009: DevicePlatform enum
+```
+
 ## Parallel Example: User Story 3 (Invoice)
 
-```bash
-# All 4 tasks can launch in parallel (different files):
-Task T011: "Drift SalesInvoice table"
-Task T012: "Serverpod SalesInvoice model"
-Task T013: "Drift SalesInvoiceLine table"
-Task T014: "Serverpod SalesInvoiceLine model"
+```
+# All 4 tasks can run in parallel (different files):
+T029: Drift SalesInvoices table
+T030: Drift SalesInvoiceLines table
+T031: Serverpod SalesInvoice model
+T032: Serverpod SalesInvoiceLine model
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (Foundational + Invoice Schema)
+### MVP First (US1 + US2 only)
 
-1. Complete Phase 1: Setup (enums + directories)
-2. Complete Phase 2: Foundational (Device, Product, Client)
-3. Complete Phase 3: US3 (Invoice + InvoiceLine)
-4. **STOP and VALIDATE**: Run code generation, verify schema compiles
-5. Proceed to remaining stories
+1. Complete Phase 1: Enums (9 tasks, all parallel)
+2. Complete Phase 2: Foundational (12 tasks)
+3. Complete Phase 3: US1 Product (2 tasks, parallel)
+4. Complete Phase 4: US2 Client (2 tasks, parallel)
+5. **STOP and VALIDATE**: Register just these tables, run codegen, verify
 
-### Incremental Delivery
+### Full Delivery (Recommended)
 
-1. Setup + Foundational → Base schema ready
-2. US3 (Invoice) → Core commercial entity ready
-3. US4 (Receipt) + US5 (Expense) → Payment and expense tracking ready
-4. US6 (Return) → Financial reversal schema ready
-5. US7–US10 → Supporting infrastructure ready
-6. Integration + Polish → Full schema validated
+1. Phase 1 → Phase 2 → sequentially
+2. US1 + US2 + US5 + US7 + US8 + US9 → all in parallel
+3. US3 (after US1 + US2) → US4 + US6 (after US3) → parallel
+4. Phase 12 Integration → Phase 13 Polish
+5. Total: 60 tasks
+
+### Critical Path
+
+Phase 1 → Phase 2 → US1 + US2 → US3 → US4 → Phase 12 → Phase 13
 
 ---
 
 ## Notes
 
-- [P] tasks = different files, no dependencies
+- [P] tasks = different files, no dependencies on incomplete tasks
 - [Story] label maps task to specific user story for traceability
-- Each Drift table and Serverpod model pair can be written in parallel
-- No test tasks were generated (not requested in spec)
-- Smoke test in Phase 12 validates basic CRUD + constraint enforcement
-- All monetary columns MUST use `integer()` in Drift and `int` in Serverpod — zero tolerance for `real()` or `double`
+- Commit after each phase for clean history
+- Serverpod models use `.spy.yaml` format with `table:` key for DB mapping
+- Drift tables use Dart class DSL with typed column getters
+- All monetary columns: `integer()` in Drift, `int` in Serverpod — never `real()` or `double`
+- All UUIDs stored as text strings in both SQLite and PostgreSQL

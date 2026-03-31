@@ -1,0 +1,14 @@
+class: OwnerAccount
+table: owner_account
+fields:
+  id: UuidValue?, defaultPersist=random
+  singletonKey: int, default=1
+  authUserId: UuidValue
+  createdAt: DateTime
+indexes:
+  owner_singleton_idx:
+    fields: singletonKey
+    unique: true
+  owner_auth_user_idx:
+    fields: authUserId
+    unique: true

@@ -1,0 +1,27 @@
+class: Receipt
+table: receipt
+fields:
+  id: UuidValue?, defaultPersist=random
+  receiptType: ReceiptType
+  clientId: UuidValue
+  client: ClientRecord?, relation(field=clientId)
+  invoiceId: UuidValue?
+  invoice: SalesInvoice?, relation(field=invoiceId)
+  amount: int
+  receiptDate: DateTime
+  note: String?
+  status: RecordStatus, default=ACTIVE
+  voidReason: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  receipt_client_idx:
+    fields: clientId
+  receipt_date_idx:
+    fields: receiptDate
+  receipt_status_idx:
+    fields: status

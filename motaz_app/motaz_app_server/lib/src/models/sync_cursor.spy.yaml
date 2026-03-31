@@ -1,0 +1,12 @@
+class: SyncCursor
+table: sync_cursor
+fields:
+  id: UuidValue?, defaultPersist=random
+  entityType: ParentEntityType
+  lastPulledAt: DateTime?
+  lastRowVersion: int, default=0
+  updatedAt: DateTime
+indexes:
+  cursor_entity_type_idx:
+    fields: entityType
+    unique: true

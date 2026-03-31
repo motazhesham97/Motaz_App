@@ -1,0 +1,8 @@
+enum: ParentEntityType
+values:
+  - SALES_INVOICE
+  - RECEIPT
+  - PRODUCT
+  - CLIENT
+  - EXPENSE
+  - SALES_RETURN

@@ -1,0 +1,18 @@
+class: ClientRecord
+table: client
+fields:
+  id: UuidValue?, defaultPersist=random
+  displayName: String
+  phone: String?
+  note: String?
+  clientCode: String?
+  isActive: bool, default=true
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  client_display_name_idx:
+    fields: displayName

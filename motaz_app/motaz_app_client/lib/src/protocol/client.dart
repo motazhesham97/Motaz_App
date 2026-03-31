@@ -29,6 +29,14 @@ class EndpointEmailIdp extends _i1.EndpointEmailIdpBase {
   @override
   String get name => 'emailIdp';
 
+  @override
+  _i3.Future<_i2.UuidValue> startRegistration({required String email}) =>
+      caller.callServerEndpoint<_i2.UuidValue>(
+        'emailIdp',
+        'startRegistration',
+        {'email': email},
+      );
+
   /// Logs in the user and returns a new session.
   ///
   /// Throws an [EmailAccountLoginException] in case of errors, with reason:
@@ -50,24 +58,6 @@ class EndpointEmailIdp extends _i1.EndpointEmailIdpBase {
       'password': password,
     },
   );
-
-  /// Starts the registration for a new user account with an email-based login
-  /// associated to it.
-  ///
-  /// Upon successful completion of this method, an email will have been
-  /// sent to [email] with a verification link, which the user must open to
-  /// complete the registration.
-  ///
-  /// Always returns a account request ID, which can be used to complete the
-  /// registration. If the email is already registered, the returned ID will not
-  /// be valid.
-  @override
-  _i3.Future<_i2.UuidValue> startRegistration({required String email}) =>
-      caller.callServerEndpoint<_i2.UuidValue>(
-        'emailIdp',
-        'startRegistration',
-        {'email': email},
-      );
 
   /// Verifies an account request code and returns a token
   /// that can be used to complete the account creation.
@@ -240,6 +230,52 @@ class EndpointJwtRefresh extends _i4.EndpointRefreshJwtTokens {
   );
 }
 
+/// {@category Endpoint}
+class EndpointAuth extends _i2.EndpointRef {
+  EndpointAuth(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'auth';
+
+  _i3.Future<bool> hasOwnerAccount() => caller.callServerEndpoint<bool>(
+    'auth',
+    'hasOwnerAccount',
+    {},
+  );
+
+  _i3.Future<bool> registerOwner({
+    required String email,
+    required String password,
+  }) => caller.callServerEndpoint<bool>(
+    'auth',
+    'registerOwner',
+    {
+      'email': email,
+      'password': password,
+    },
+  );
+}
+
+/// {@category Endpoint}
+class EndpointHealth extends _i2.EndpointRef {
+  EndpointHealth(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'health';
+
+  _i3.Future<String> ping() => caller.callServerEndpoint<String>(
+    'health',
+    'ping',
+    {},
+  );
+
+  _i3.Future<String> authenticatedPing() => caller.callServerEndpoint<String>(
+    'health',
+    'authenticatedPing',
+    {},
+  );
+}
+
 /// This is an example endpoint that returns a greeting message through
 /// its [hello] method.
 /// {@category Endpoint}
@@ -260,13 +296,13 @@ class EndpointGreeting extends _i2.EndpointRef {
 
 class Modules {
   Modules(Client client) {
-    serverpod_auth_idp = _i1.Caller(client);
     serverpod_auth_core = _i4.Caller(client);
+    serverpod_auth_idp = _i1.Caller(client);
   }
 
-  late final _i1.Caller serverpod_auth_idp;
-
   late final _i4.Caller serverpod_auth_core;
+
+  late final _i1.Caller serverpod_auth_idp;
 }
 
 class Client extends _i2.ServerpodClientShared {
@@ -300,6 +336,8 @@ class Client extends _i2.ServerpodClientShared {
        ) {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
+    auth = EndpointAuth(this);
+    health = EndpointHealth(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
@@ -307,6 +345,10 @@ class Client extends _i2.ServerpodClientShared {
   late final EndpointEmailIdp emailIdp;
 
   late final EndpointJwtRefresh jwtRefresh;
+
+  late final EndpointAuth auth;
+
+  late final EndpointHealth health;
 
   late final EndpointGreeting greeting;
 
@@ -316,12 +358,14 @@ class Client extends _i2.ServerpodClientShared {
   Map<String, _i2.EndpointRef> get endpointRefLookup => {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
+    'auth': auth,
+    'health': health,
     'greeting': greeting,
   };
 
   @override
   Map<String, _i2.ModuleEndpointCaller> get moduleLookup => {
-    'serverpod_auth_idp': modules.serverpod_auth_idp,
     'serverpod_auth_core': modules.serverpod_auth_core,
+    'serverpod_auth_idp': modules.serverpod_auth_idp,
   };
 }

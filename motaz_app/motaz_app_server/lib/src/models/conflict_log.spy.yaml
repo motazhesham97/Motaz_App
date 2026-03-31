@@ -1,0 +1,20 @@
+class: ConflictLog
+table: conflict_log
+fields:
+  id: UuidValue?, defaultPersist=random
+  entityType: ParentEntityType
+  entityId: UuidValue
+  localPayload: String
+  remotePayload: String
+  conflictType: String
+  resolutionStatus: ConflictStatus, default=PENDING
+  resolvedAt: DateTime?
+  resolutionData: String?
+  createdAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+indexes:
+  conflict_entity_idx:
+    fields: entityType, entityId
+  conflict_status_idx:
+    fields: resolutionStatus

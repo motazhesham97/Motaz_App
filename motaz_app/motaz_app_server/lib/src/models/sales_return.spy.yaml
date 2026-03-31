@@ -1,0 +1,24 @@
+class: SalesReturn
+table: sales_return
+fields:
+  id: UuidValue?, defaultPersist=random
+  invoiceId: UuidValue
+  invoice: SalesInvoice?, relation(field=invoiceId)
+  returnDate: DateTime
+  totalReturnedAmount: int
+  note: String?
+  status: RecordStatus, default=ACTIVE
+  voidReason: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  return_invoice_idx:
+    fields: invoiceId
+  return_date_idx:
+    fields: returnDate
+  return_status_idx:
+    fields: status
