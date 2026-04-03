@@ -7,7 +7,9 @@ import 'package:motaz_app_flutter/core/database/app_database.dart';
 import 'package:motaz_app_flutter/core/database/enums/enums.dart';
 
 AppDatabase _createInMemoryDatabase() {
-  return AppDatabase(NativeDatabase.memory());
+  return AppDatabase(NativeDatabase.memory(setup: (rawDb) {
+    rawDb.execute('PRAGMA foreign_keys = ON');
+  }));
 }
 
 const _deviceId = '10eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';

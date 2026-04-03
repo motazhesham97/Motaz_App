@@ -25,7 +25,7 @@ class DeviceService {
 
     final id = _uuid.v4();
     final now = DateTime.now();
-    final code = _uuid.v4().replaceAll('-', '').substring(0, 4).toUpperCase();
+    final code = id.replaceAll('-', '').substring(0, 4).toUpperCase();
     final platform = Platform.isWindows
         ? DevicePlatform.WINDOWS
         : DevicePlatform.ANDROID;

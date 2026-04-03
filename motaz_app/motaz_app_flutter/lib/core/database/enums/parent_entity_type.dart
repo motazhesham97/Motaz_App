@@ -16,7 +16,11 @@ class ParentEntityTypeConverter extends TypeConverter<ParentEntityType, int> {
 
   @override
   ParentEntityType fromSql(int fromDb) {
-    return ParentEntityType.values[fromDb];
+    if (fromDb >= 0 && fromDb < ParentEntityType.values.length) {
+      return ParentEntityType.values[fromDb];
+    }
+    assert(false, 'Unknown ParentEntityType database value: $fromDb');
+    return ParentEntityType.PRODUCT;
   }
 
   @override

@@ -9,7 +9,7 @@ import 'clients.dart';
 @TableIndex(name: 'idx_invoice_status', columns: {#status})
 class SalesInvoices extends Table {
   TextColumn get id => text().withLength(min: 36, max: 36)();
-  TextColumn get localRef => text().withLength(min: 1, max: 50).unique()();
+  TextColumn get localRef => text().withLength(min: 1, max: 50)();
   TextColumn get officialNo => text().nullable()();
   TextColumn get clientId => text().withLength(min: 36, max: 36).references(Clients, #id)();
   DateTimeColumn get invoiceDate => dateTime()();

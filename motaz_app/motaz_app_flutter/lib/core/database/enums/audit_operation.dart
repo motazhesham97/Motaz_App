@@ -13,7 +13,11 @@ class AuditOperationConverter extends TypeConverter<AuditOperation, int> {
 
   @override
   AuditOperation fromSql(int fromDb) {
-    return AuditOperation.values[fromDb];
+    if (fromDb >= 0 && fromDb < AuditOperation.values.length) {
+      return AuditOperation.values[fromDb];
+    }
+    assert(false, 'Unknown AuditOperation database value: $fromDb');
+    return AuditOperation.CREATE;
   }
 
   @override

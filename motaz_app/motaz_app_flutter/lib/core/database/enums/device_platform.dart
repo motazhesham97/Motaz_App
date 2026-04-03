@@ -12,7 +12,11 @@ class DevicePlatformConverter extends TypeConverter<DevicePlatform, int> {
 
   @override
   DevicePlatform fromSql(int fromDb) {
-    return DevicePlatform.values[fromDb];
+    if (fromDb >= 0 && fromDb < DevicePlatform.values.length) {
+      return DevicePlatform.values[fromDb];
+    }
+    assert(false, 'Unknown DevicePlatform database value: $fromDb');
+    return DevicePlatform.ANDROID;
   }
 
   @override

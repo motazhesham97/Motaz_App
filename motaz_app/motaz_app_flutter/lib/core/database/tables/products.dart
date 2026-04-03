@@ -4,7 +4,7 @@ import 'devices.dart';
 
 class Products extends Table {
   TextColumn get id => text().withLength(min: 36, max: 36)();
-  TextColumn get name => text().withLength(min: 1, max: 255).unique()();
+  TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description => text().nullable()();
   IntColumn get defaultSalePrice => integer()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
