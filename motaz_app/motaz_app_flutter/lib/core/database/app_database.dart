@@ -94,6 +94,8 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File(p.join(dbFolder.path, 'motaz_app.db'));
-    return NativeDatabase.createInBackground(file);
+    return NativeDatabase.createInBackground(file, setup: (rawDb) {
+      rawDb.execute('PRAGMA foreign_keys = ON');
+    });
   });
 }

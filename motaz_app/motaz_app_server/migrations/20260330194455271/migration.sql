@@ -270,8 +270,8 @@ CREATE TABLE "sales_return_line" (
     "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     "returnId" uuid NOT NULL,
     "invoiceLineId" uuid NOT NULL,
-    "returnedQuantity" bigint NOT NULL CHECK ("returnedQuantity" >= 0),
-    "returnedAmount" bigint NOT NULL CHECK ("returnedAmount" >= 0),
+    "returnedQuantity" bigint NOT NULL CHECK ("returnedQuantity" > 0),
+    "returnedAmount" bigint NOT NULL CHECK ("returnedAmount" > 0),
     "createdAt" timestamp without time zone NOT NULL,
     "updatedAt" timestamp without time zone NOT NULL
 );

@@ -7,7 +7,9 @@ import 'package:motaz_app_flutter/core/database/enums/enums.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 AppDatabase _createInMemoryDatabase() {
-  return AppDatabase(NativeDatabase.memory());
+  return AppDatabase(NativeDatabase.memory(setup: (rawDb) {
+    rawDb.execute('PRAGMA foreign_keys = ON');
+  }));
 }
 
 const _deviceId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
@@ -365,6 +367,63 @@ void main() {
       expect(expense.voidReason, 'Duplicate entry');
       expect(salesReturn.status, RecordStatus.VOIDED);
       expect(salesReturn.voidReason, 'Invalid return');
+    });
+
+    test('rejects duplicate product name', () async {
+      await _insertDevice(db);
+      await _insertProduct(db);
+
+      await expectLater(
+        () => db.into(db.products).insert(
+              ProductsCompanion(
+                id: const Value('duplicate-name-product-id'),
+                name: const Value('Test Product'),
+                defaultSalePrice: const Value(99900),
+                createdAt: Value(_createdAt),
+                updatedAt: Value(_updatedAt),
+                deviceId: const Value(_deviceId),
+              ),
+            ),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('accepts zero-price product as boundary value', () async {
+      await _insertDevice(db);
+
+      await db.into(db.products).insert(
+        ProductsCompanion(
+          id: const Value(_productId),
+          name: const Value('Free Sample'),
+          defaultSalePrice: const Value(0),
+          createdAt: Value(_createdAt),
+          updatedAt: Value(_updatedAt),
+          deviceId: const Value(_deviceId),
+        ),
+      );
+
+      final product = await db.select(db.products).getSingle();
+      expect(product.defaultSalePrice, 0);
+    });
+
+    test('rejects invoice with non-existent clientId', () async {
+      await _insertDevice(db);
+
+      await expectLater(
+        () => db.into(db.salesInvoices).insert(
+              SalesInvoicesCompanion(
+                id: const Value(_invoiceId),
+                localRef: const Value('INV-abc1-002'),
+                clientId: const Value('non-existent-client-id-0000000000000'),
+                invoiceDate: Value(_createdAt),
+                total: const Value(100000),
+                createdAt: Value(_createdAt),
+                updatedAt: Value(_updatedAt),
+                deviceId: const Value(_deviceId),
+              ),
+            ),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 }

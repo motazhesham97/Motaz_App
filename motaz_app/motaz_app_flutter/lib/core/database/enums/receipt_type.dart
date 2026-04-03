@@ -12,7 +12,11 @@ class ReceiptTypeConverter extends TypeConverter<ReceiptType, int> {
 
   @override
   ReceiptType fromSql(int fromDb) {
-    return ReceiptType.values[fromDb];
+    if (fromDb >= 0 && fromDb < ReceiptType.values.length) {
+      return ReceiptType.values[fromDb];
+    }
+    assert(false, 'Unknown ReceiptType database value: $fromDb');
+    return ReceiptType.GENERAL;
   }
 
   @override

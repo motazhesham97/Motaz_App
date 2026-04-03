@@ -12,7 +12,11 @@ class RecordStatusConverter extends TypeConverter<RecordStatus, int> {
 
   @override
   RecordStatus fromSql(int fromDb) {
-    return RecordStatus.values[fromDb];
+    if (fromDb >= 0 && fromDb < RecordStatus.values.length) {
+      return RecordStatus.values[fromDb];
+    }
+    assert(false, 'Unknown RecordStatus database value: $fromDb');
+    return RecordStatus.ACTIVE;
   }
 
   @override

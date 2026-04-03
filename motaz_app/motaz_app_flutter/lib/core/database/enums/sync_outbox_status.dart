@@ -14,35 +14,16 @@ class SyncOutboxStatusConverter extends TypeConverter<SyncOutboxStatus, int> {
 
   @override
   SyncOutboxStatus fromSql(int fromDb) {
-    switch (fromDb) {
-      case 0:
-        return SyncOutboxStatus.PENDING;
-      case 1:
-        return SyncOutboxStatus.IN_PROGRESS;
-      case 2:
-        return SyncOutboxStatus.COMPLETED;
-      case 3:
-        return SyncOutboxStatus.FAILED;
+    if (fromDb >= 0 && fromDb < SyncOutboxStatus.values.length) {
+      return SyncOutboxStatus.values[fromDb];
     }
 
-    throw ArgumentError.value(
-      fromDb,
-      'fromDb',
-      'Unknown SyncOutboxStatus database value',
-    );
+    assert(false, 'Unknown SyncOutboxStatus database value: $fromDb');
+    return SyncOutboxStatus.PENDING;
   }
 
   @override
   int toSql(SyncOutboxStatus value) {
-    switch (value) {
-      case SyncOutboxStatus.PENDING:
-        return 0;
-      case SyncOutboxStatus.IN_PROGRESS:
-        return 1;
-      case SyncOutboxStatus.COMPLETED:
-        return 2;
-      case SyncOutboxStatus.FAILED:
-        return 3;
-    }
+    return value.index;
   }
 }

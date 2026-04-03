@@ -12,7 +12,11 @@ class ConflictStatusConverter extends TypeConverter<ConflictStatus, int> {
 
   @override
   ConflictStatus fromSql(int fromDb) {
-    return ConflictStatus.values[fromDb];
+    if (fromDb >= 0 && fromDb < ConflictStatus.values.length) {
+      return ConflictStatus.values[fromDb];
+    }
+    assert(false, 'Unknown ConflictStatus database value: $fromDb');
+    return ConflictStatus.PENDING;
   }
 
   @override

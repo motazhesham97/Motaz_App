@@ -8,9 +8,9 @@ class SalesReturnLines extends Table {
   TextColumn get returnId => text().withLength(min: 36, max: 36).references(SalesReturns, #id)();
   TextColumn get invoiceLineId => text().withLength(min: 36, max: 36).references(SalesInvoiceLines, #id)();
   IntColumn get returnedQuantity =>
-      integer().customConstraint('CHECK (returned_quantity >= 0)')();
+      integer().customConstraint('NOT NULL CHECK (returned_quantity > 0)')();
   IntColumn get returnedAmount =>
-      integer().customConstraint('CHECK (returned_amount >= 0)')();
+      integer().customConstraint('NOT NULL CHECK (returned_amount > 0)')();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

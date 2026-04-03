@@ -15,7 +15,11 @@ class ExpenseCategoryConverter extends TypeConverter<ExpenseCategory, int> {
 
   @override
   ExpenseCategory fromSql(int fromDb) {
-    return ExpenseCategory.values[fromDb];
+    if (fromDb >= 0 && fromDb < ExpenseCategory.values.length) {
+      return ExpenseCategory.values[fromDb];
+    }
+    assert(false, 'Unknown ExpenseCategory database value: $fromDb');
+    return ExpenseCategory.OPERATIONAL;
   }
 
   @override
