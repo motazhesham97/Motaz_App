@@ -1,0 +1,4 @@
+class: DeviceRegistrationResponse
+fields:
+  success: bool
+  errorMessage: String?

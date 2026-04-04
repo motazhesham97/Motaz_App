@@ -1,0 +1,7 @@
+class: ConflictPayload
+fields:
+  entityType: String
+  entityId: String
+  localPayload: String
+  remotePayload: String
+  conflictType: String

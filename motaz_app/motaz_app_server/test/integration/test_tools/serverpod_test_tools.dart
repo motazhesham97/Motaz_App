@@ -16,7 +16,19 @@ import 'package:serverpod/serverpod.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'package:motaz_app_server/src/generated/greetings/greeting.dart' as _i5;
+import 'package:motaz_app_server/src/generated/device_registration_response.dart'
+    as _i5;
+import 'package:motaz_app_server/src/generated/device_registration_request.dart'
+    as _i6;
+import 'package:motaz_app_server/src/generated/push_response.dart' as _i7;
+import 'package:motaz_app_server/src/generated/push_request.dart' as _i8;
+import 'package:motaz_app_server/src/generated/pull_response.dart' as _i9;
+import 'package:motaz_app_server/src/generated/pull_request.dart' as _i10;
+import 'package:motaz_app_server/src/generated/conflict_resolution_response.dart'
+    as _i11;
+import 'package:motaz_app_server/src/generated/conflict_resolution_request.dart'
+    as _i12;
+import 'package:motaz_app_server/src/generated/greetings/greeting.dart' as _i13;
 import 'package:motaz_app_server/src/generated/protocol.dart';
 import 'package:motaz_app_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -130,7 +142,11 @@ class TestEndpoints {
 
   late final _AuthEndpoint auth;
 
+  late final _DeviceEndpoint device;
+
   late final _HealthEndpoint health;
+
+  late final _SyncEndpoint sync;
 
   late final _GreetingEndpoint greeting;
 }
@@ -154,7 +170,15 @@ class _InternalTestEndpoints extends TestEndpoints
       endpoints,
       serializationManager,
     );
+    device = _DeviceEndpoint(
+      endpoints,
+      serializationManager,
+    );
     health = _HealthEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    sync = _SyncEndpoint(
       endpoints,
       serializationManager,
     );
@@ -559,6 +583,48 @@ class _AuthEndpoint {
   }
 }
 
+class _DeviceEndpoint {
+  _DeviceEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i5.DeviceRegistrationResponse> registerDevice(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i6.DeviceRegistrationRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'device',
+            method: 'registerDevice',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'device',
+          methodName: 'registerDevice',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i5.DeviceRegistrationResponse>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
 class _HealthEndpoint {
   _HealthEndpoint(
     this._endpointDispatch,
@@ -628,6 +694,110 @@ class _HealthEndpoint {
   }
 }
 
+class _SyncEndpoint {
+  _SyncEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i7.PushResponse> push(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i8.PushRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'sync',
+            method: 'push',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'sync',
+          methodName: 'push',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i7.PushResponse>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i9.PullResponse> pull(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i10.PullRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'sync',
+            method: 'pull',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'sync',
+          methodName: 'pull',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i9.PullResponse>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i11.ConflictResolutionResponse> resolveConflict(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i12.ConflictResolutionRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'sync',
+            method: 'resolveConflict',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'sync',
+          methodName: 'resolveConflict',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i11.ConflictResolutionResponse>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
 class _GreetingEndpoint {
   _GreetingEndpoint(
     this._endpointDispatch,
@@ -638,7 +808,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i5.Greeting> hello(
+  _i3.Future<_i13.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -661,7 +831,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i5.Greeting>);
+                as _i3.Future<_i13.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

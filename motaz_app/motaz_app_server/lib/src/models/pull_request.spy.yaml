@@ -1,0 +1,6 @@
+class: PullRequest
+fields:
+  entityType: String
+  sinceRowVersion: int
+  deviceId: String
+  limit: int

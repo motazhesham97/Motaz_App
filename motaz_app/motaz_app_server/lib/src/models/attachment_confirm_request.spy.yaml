@@ -1,0 +1,8 @@
+class: AttachmentConfirmRequest
+fields:
+  parentEntityType: String
+  parentEntityId: String
+  publicId: String
+  secureUrl: String
+  fileType: String
+  fileSize: int

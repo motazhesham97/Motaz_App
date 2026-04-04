@@ -1,0 +1,7 @@
+class: PushResponse
+fields:
+  success: bool
+  newRowVersion: int?
+  conflictId: String?
+  errorCode: String?
+  errorMessage: String?

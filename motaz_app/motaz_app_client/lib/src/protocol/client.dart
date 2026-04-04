@@ -16,8 +16,20 @@ import 'package:serverpod_client/serverpod_client.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i4;
-import 'package:motaz_app_client/src/protocol/greetings/greeting.dart' as _i5;
-import 'protocol.dart' as _i6;
+import 'package:motaz_app_client/src/protocol/device_registration_response.dart'
+    as _i5;
+import 'package:motaz_app_client/src/protocol/device_registration_request.dart'
+    as _i6;
+import 'package:motaz_app_client/src/protocol/push_response.dart' as _i7;
+import 'package:motaz_app_client/src/protocol/push_request.dart' as _i8;
+import 'package:motaz_app_client/src/protocol/pull_response.dart' as _i9;
+import 'package:motaz_app_client/src/protocol/pull_request.dart' as _i10;
+import 'package:motaz_app_client/src/protocol/conflict_resolution_response.dart'
+    as _i11;
+import 'package:motaz_app_client/src/protocol/conflict_resolution_request.dart'
+    as _i12;
+import 'package:motaz_app_client/src/protocol/greetings/greeting.dart' as _i13;
+import 'protocol.dart' as _i14;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -257,6 +269,22 @@ class EndpointAuth extends _i2.EndpointRef {
 }
 
 /// {@category Endpoint}
+class EndpointDevice extends _i2.EndpointRef {
+  EndpointDevice(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'device';
+
+  _i3.Future<_i5.DeviceRegistrationResponse> registerDevice(
+    _i6.DeviceRegistrationRequest request,
+  ) => caller.callServerEndpoint<_i5.DeviceRegistrationResponse>(
+    'device',
+    'registerDevice',
+    {'request': request},
+  );
+}
+
+/// {@category Endpoint}
 class EndpointHealth extends _i2.EndpointRef {
   EndpointHealth(_i2.EndpointCaller caller) : super(caller);
 
@@ -276,6 +304,36 @@ class EndpointHealth extends _i2.EndpointRef {
   );
 }
 
+/// {@category Endpoint}
+class EndpointSync extends _i2.EndpointRef {
+  EndpointSync(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'sync';
+
+  _i3.Future<_i7.PushResponse> push(_i8.PushRequest request) =>
+      caller.callServerEndpoint<_i7.PushResponse>(
+        'sync',
+        'push',
+        {'request': request},
+      );
+
+  _i3.Future<_i9.PullResponse> pull(_i10.PullRequest request) =>
+      caller.callServerEndpoint<_i9.PullResponse>(
+        'sync',
+        'pull',
+        {'request': request},
+      );
+
+  _i3.Future<_i11.ConflictResolutionResponse> resolveConflict(
+    _i12.ConflictResolutionRequest request,
+  ) => caller.callServerEndpoint<_i11.ConflictResolutionResponse>(
+    'sync',
+    'resolveConflict',
+    {'request': request},
+  );
+}
+
 /// This is an example endpoint that returns a greeting message through
 /// its [hello] method.
 /// {@category Endpoint}
@@ -286,8 +344,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i5.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i5.Greeting>(
+  _i3.Future<_i13.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i13.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -325,7 +383,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i6.Protocol(),
+         _i14.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -337,7 +395,9 @@ class Client extends _i2.ServerpodClientShared {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
     auth = EndpointAuth(this);
+    device = EndpointDevice(this);
     health = EndpointHealth(this);
+    sync = EndpointSync(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
@@ -348,7 +408,11 @@ class Client extends _i2.ServerpodClientShared {
 
   late final EndpointAuth auth;
 
+  late final EndpointDevice device;
+
   late final EndpointHealth health;
+
+  late final EndpointSync sync;
 
   late final EndpointGreeting greeting;
 
@@ -359,7 +423,9 @@ class Client extends _i2.ServerpodClientShared {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
     'auth': auth,
+    'device': device,
     'health': health,
+    'sync': sync,
     'greeting': greeting,
   };
 

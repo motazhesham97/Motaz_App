@@ -1,0 +1,6 @@
+class: AttachmentUploadApproval
+fields:
+  approved: bool
+  uploadUrl: String?
+  uploadPreset: String?
+  rejectionReason: String?

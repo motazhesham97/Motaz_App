@@ -1,0 +1,5 @@
+class: AttachmentConfirmResponse
+fields:
+  success: bool
+  attachmentMetadataId: String?
+  errorMessage: String?

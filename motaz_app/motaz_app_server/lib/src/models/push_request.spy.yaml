@@ -1,0 +1,9 @@
+class: PushRequest
+fields:
+  outboxId: String
+  entityType: String
+  entityId: String
+  operation: String
+  payload: String
+  rowVersion: int
+  deviceId: String

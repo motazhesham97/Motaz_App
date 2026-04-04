@@ -1,0 +1,6 @@
+class: PullResponse
+fields:
+  entityType: String
+  rows: List<String>
+  hasMore: bool
+  latestRowVersion: int
