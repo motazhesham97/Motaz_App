@@ -1,0 +1,6 @@
+class: AttachmentUploadRequest
+fields:
+  parentEntityType: String
+  parentEntityId: String
+  fileType: String
+  fileSize: int

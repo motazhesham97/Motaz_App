@@ -1,0 +1,6 @@
+class: DeviceRegistrationRequest
+fields:
+  deviceId: String
+  deviceCode: String
+  platform: String
+  deviceName: String

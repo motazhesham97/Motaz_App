@@ -1,0 +1,5 @@
+class: ConflictResolutionResponse
+fields:
+  success: bool
+  newRowVersion: int?
+  errorMessage: String?

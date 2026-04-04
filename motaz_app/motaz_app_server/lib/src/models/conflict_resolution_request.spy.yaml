@@ -1,0 +1,4 @@
+class: ConflictResolutionRequest
+fields:
+  conflictId: String
+  chosenVersion: String
