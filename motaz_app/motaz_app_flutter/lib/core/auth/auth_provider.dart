@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:motaz_app_client/motaz_app_client.dart';
+import 'package:serverpod_auth_shared_flutter/serverpod_auth_shared_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logging/app_logger.dart';
@@ -11,13 +12,13 @@ const _hasAccountKey = 'motaz_has_account';
 
 class AuthController extends ChangeNotifier {
   AuthController({
-    required dynamic client,
-    required dynamic sessionManager,
+    required Client client,
+    required SessionManager sessionManager,
   })  : _client = client,
         _sessionManager = sessionManager;
 
-  final dynamic _client;
-  final dynamic _sessionManager;
+  final Client _client;
+  final SessionManager _sessionManager;
 
   AuthState _state = const AuthInitial();
   AuthState get state => _state;
