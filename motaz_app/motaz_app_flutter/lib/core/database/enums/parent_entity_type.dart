@@ -4,11 +4,15 @@ import 'package:drift/drift.dart';
 
 enum ParentEntityType {
   SALES_INVOICE,
+  SALES_INVOICE_LINE,
   RECEIPT,
+  RECEIPT_ALLOCATION,
   PRODUCT,
   CLIENT,
   EXPENSE,
   SALES_RETURN,
+  SALES_RETURN_LINE,
+  ATTACHMENT_METADATA,
 }
 
 class ParentEntityTypeConverter extends TypeConverter<ParentEntityType, int> {

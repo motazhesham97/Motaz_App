@@ -25,13 +25,14 @@ class SyncState {
     int? pendingCount,
     DateTime? lastSyncedAt,
     String? errorMessage,
+    bool clearError = false,
     int? unresolvedConflictCount,
   }) {
     return SyncState(
       status: status ?? this.status,
       pendingCount: pendingCount ?? this.pendingCount,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       unresolvedConflictCount:
           unresolvedConflictCount ?? this.unresolvedConflictCount,
     );

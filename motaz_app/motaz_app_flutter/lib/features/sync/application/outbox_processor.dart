@@ -23,7 +23,6 @@ class OutboxProcessor {
           ..where((t) => t.status.equals(SyncOutboxStatus.PENDING.index))
           ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
         .get();
-
     for (final entry in pending) {
       await _processEntry(entry);
     }
@@ -32,9 +31,8 @@ class OutboxProcessor {
   Future<void> _processEntry(SyncOutboxData entry) async {
     final now = DateTime.now();
     if (entry.retryCount > 0) {
-      final delay = _computeBackoff(entry.retryCount);
-      final nextRetry = entry.createdAt.add(delay);
-      if (now.isBefore(nextRetry)) return;
+      final nextRetryAt = entry.createdAt.add(_computeCumulativeDelay(entry.retryCount));
+      if (now.isBefore(nextRetryAt)) return;
     }
 
     await (_db.update(_db.syncOutbox)..where((t) => t.id.equals(entry.id)))
@@ -55,7 +53,6 @@ class OutboxProcessor {
         rowVersion: entry.rowVersion,
         deviceId: entry.deviceId,
       );
-
       final response = await _serverClient.sync.push(request);
 
       if (response.success) {
@@ -63,7 +60,6 @@ class OutboxProcessor {
             .write(SyncOutboxCompanion(
           status: Value(SyncOutboxStatus.COMPLETED),
         ));
-
         await _updateEntitySyncStatus(
           entityType.name,
           entry.entityId,
@@ -74,7 +70,6 @@ class OutboxProcessor {
             .write(SyncOutboxCompanion(
           status: Value(SyncOutboxStatus.COMPLETED),
         ));
-
         await _updateEntitySyncStatus(
           entityType.name,
           entry.entityId,
@@ -116,7 +111,6 @@ class OutboxProcessor {
     final failed = await (_db.select(_db.syncOutbox)
           ..where((t) => t.status.equals(SyncOutboxStatus.FAILED.index)))
         .get();
-
     for (final entry in failed) {
       await (_db.update(_db.syncOutbox)..where((t) => t.id.equals(entry.id)))
           .write(SyncOutboxCompanion(
@@ -126,10 +120,13 @@ class OutboxProcessor {
     }
   }
 
-  Duration _computeBackoff(int retryCount) {
-    final baseSeconds = pow(2, retryCount).toInt();
+  Duration _computeCumulativeDelay(int retryCount) {
+    var totalSeconds = 0;
+    for (int i = 1; i <= retryCount; i++) {
+      totalSeconds += pow(2, i).toInt();
+    }
     final jitterFactor = 0.8 + Random().nextDouble() * 0.4;
-    final seconds = (baseSeconds * jitterFactor).round();
+    final seconds = (totalSeconds * jitterFactor).round();
     return Duration(seconds: seconds.clamp(1, 32));
   }
 
@@ -148,7 +145,6 @@ class OutboxProcessor {
   ) async {
     final tableName = _entityTableName[entityType];
     if (tableName == null) return;
-
     await _db.customStatement(
       'UPDATE "$tableName" SET "syncStatus" = ? WHERE "id" = ?',
       [syncStatus.index, entityId],

@@ -16,19 +16,27 @@ import 'package:serverpod/serverpod.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'package:motaz_app_server/src/generated/device_registration_response.dart'
+import 'package:motaz_app_server/src/generated/attachment_upload_approval.dart'
     as _i5;
-import 'package:motaz_app_server/src/generated/device_registration_request.dart'
+import 'package:motaz_app_server/src/generated/attachment_upload_request.dart'
     as _i6;
-import 'package:motaz_app_server/src/generated/push_response.dart' as _i7;
-import 'package:motaz_app_server/src/generated/push_request.dart' as _i8;
-import 'package:motaz_app_server/src/generated/pull_response.dart' as _i9;
-import 'package:motaz_app_server/src/generated/pull_request.dart' as _i10;
+import 'package:motaz_app_server/src/generated/attachment_confirm_response.dart'
+    as _i7;
+import 'package:motaz_app_server/src/generated/attachment_confirm_request.dart'
+    as _i8;
+import 'package:motaz_app_server/src/generated/device_registration_response.dart'
+    as _i9;
+import 'package:motaz_app_server/src/generated/device_registration_request.dart'
+    as _i10;
+import 'package:motaz_app_server/src/generated/push_response.dart' as _i11;
+import 'package:motaz_app_server/src/generated/push_request.dart' as _i12;
+import 'package:motaz_app_server/src/generated/pull_response.dart' as _i13;
+import 'package:motaz_app_server/src/generated/pull_request.dart' as _i14;
 import 'package:motaz_app_server/src/generated/conflict_resolution_response.dart'
-    as _i11;
+    as _i15;
 import 'package:motaz_app_server/src/generated/conflict_resolution_request.dart'
-    as _i12;
-import 'package:motaz_app_server/src/generated/greetings/greeting.dart' as _i13;
+    as _i16;
+import 'package:motaz_app_server/src/generated/greetings/greeting.dart' as _i17;
 import 'package:motaz_app_server/src/generated/protocol.dart';
 import 'package:motaz_app_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -140,6 +148,8 @@ class TestEndpoints {
 
   late final _JwtRefreshEndpoint jwtRefresh;
 
+  late final _AttachmentEndpoint attachment;
+
   late final _AuthEndpoint auth;
 
   late final _DeviceEndpoint device;
@@ -163,6 +173,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     jwtRefresh = _JwtRefreshEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    attachment = _AttachmentEndpoint(
       endpoints,
       serializationManager,
     );
@@ -507,6 +521,79 @@ class _JwtRefreshEndpoint {
   }
 }
 
+class _AttachmentEndpoint {
+  _AttachmentEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i5.AttachmentUploadApproval> requestUploadApproval(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i6.AttachmentUploadRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'attachment',
+            method: 'requestUploadApproval',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'attachment',
+          methodName: 'requestUploadApproval',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i5.AttachmentUploadApproval>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i7.AttachmentConfirmResponse> confirmUpload(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i8.AttachmentConfirmRequest request,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'attachment',
+            method: 'confirmUpload',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'attachment',
+          methodName: 'confirmUpload',
+          parameters: _i1.testObjectToJson({'request': request}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i7.AttachmentConfirmResponse>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
 class _AuthEndpoint {
   _AuthEndpoint(
     this._endpointDispatch,
@@ -593,9 +680,9 @@ class _DeviceEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i5.DeviceRegistrationResponse> registerDevice(
+  _i3.Future<_i9.DeviceRegistrationResponse> registerDevice(
     _i1.TestSessionBuilder sessionBuilder,
-    _i6.DeviceRegistrationRequest request,
+    _i10.DeviceRegistrationRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -616,7 +703,7 @@ class _DeviceEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i5.DeviceRegistrationResponse>);
+                as _i3.Future<_i9.DeviceRegistrationResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -704,9 +791,9 @@ class _SyncEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i7.PushResponse> push(
+  _i3.Future<_i11.PushResponse> push(
     _i1.TestSessionBuilder sessionBuilder,
-    _i8.PushRequest request,
+    _i12.PushRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -727,7 +814,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i7.PushResponse>);
+                as _i3.Future<_i11.PushResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -735,9 +822,9 @@ class _SyncEndpoint {
     });
   }
 
-  _i3.Future<_i9.PullResponse> pull(
+  _i3.Future<_i13.PullResponse> pull(
     _i1.TestSessionBuilder sessionBuilder,
-    _i10.PullRequest request,
+    _i14.PullRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -758,7 +845,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i9.PullResponse>);
+                as _i3.Future<_i13.PullResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -766,9 +853,9 @@ class _SyncEndpoint {
     });
   }
 
-  _i3.Future<_i11.ConflictResolutionResponse> resolveConflict(
+  _i3.Future<_i15.ConflictResolutionResponse> resolveConflict(
     _i1.TestSessionBuilder sessionBuilder,
-    _i12.ConflictResolutionRequest request,
+    _i16.ConflictResolutionRequest request,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -789,7 +876,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i11.ConflictResolutionResponse>);
+                as _i3.Future<_i15.ConflictResolutionResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -808,7 +895,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i13.Greeting> hello(
+  _i3.Future<_i17.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -831,7 +918,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i13.Greeting>);
+                as _i3.Future<_i17.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

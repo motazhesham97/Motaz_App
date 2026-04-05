@@ -6,3 +6,4 @@ fields:
   secureUrl: String
   fileType: String
   fileSize: int
+  deviceId: String

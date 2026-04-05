@@ -16,20 +16,28 @@ import 'package:serverpod_client/serverpod_client.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i4;
-import 'package:motaz_app_client/src/protocol/device_registration_response.dart'
+import 'package:motaz_app_client/src/protocol/attachment_upload_approval.dart'
     as _i5;
-import 'package:motaz_app_client/src/protocol/device_registration_request.dart'
+import 'package:motaz_app_client/src/protocol/attachment_upload_request.dart'
     as _i6;
-import 'package:motaz_app_client/src/protocol/push_response.dart' as _i7;
-import 'package:motaz_app_client/src/protocol/push_request.dart' as _i8;
-import 'package:motaz_app_client/src/protocol/pull_response.dart' as _i9;
-import 'package:motaz_app_client/src/protocol/pull_request.dart' as _i10;
+import 'package:motaz_app_client/src/protocol/attachment_confirm_response.dart'
+    as _i7;
+import 'package:motaz_app_client/src/protocol/attachment_confirm_request.dart'
+    as _i8;
+import 'package:motaz_app_client/src/protocol/device_registration_response.dart'
+    as _i9;
+import 'package:motaz_app_client/src/protocol/device_registration_request.dart'
+    as _i10;
+import 'package:motaz_app_client/src/protocol/push_response.dart' as _i11;
+import 'package:motaz_app_client/src/protocol/push_request.dart' as _i12;
+import 'package:motaz_app_client/src/protocol/pull_response.dart' as _i13;
+import 'package:motaz_app_client/src/protocol/pull_request.dart' as _i14;
 import 'package:motaz_app_client/src/protocol/conflict_resolution_response.dart'
-    as _i11;
+    as _i15;
 import 'package:motaz_app_client/src/protocol/conflict_resolution_request.dart'
-    as _i12;
-import 'package:motaz_app_client/src/protocol/greetings/greeting.dart' as _i13;
-import 'protocol.dart' as _i14;
+    as _i16;
+import 'package:motaz_app_client/src/protocol/greetings/greeting.dart' as _i17;
+import 'protocol.dart' as _i18;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -243,6 +251,30 @@ class EndpointJwtRefresh extends _i4.EndpointRefreshJwtTokens {
 }
 
 /// {@category Endpoint}
+class EndpointAttachment extends _i2.EndpointRef {
+  EndpointAttachment(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'attachment';
+
+  _i3.Future<_i5.AttachmentUploadApproval> requestUploadApproval(
+    _i6.AttachmentUploadRequest request,
+  ) => caller.callServerEndpoint<_i5.AttachmentUploadApproval>(
+    'attachment',
+    'requestUploadApproval',
+    {'request': request},
+  );
+
+  _i3.Future<_i7.AttachmentConfirmResponse> confirmUpload(
+    _i8.AttachmentConfirmRequest request,
+  ) => caller.callServerEndpoint<_i7.AttachmentConfirmResponse>(
+    'attachment',
+    'confirmUpload',
+    {'request': request},
+  );
+}
+
+/// {@category Endpoint}
 class EndpointAuth extends _i2.EndpointRef {
   EndpointAuth(_i2.EndpointCaller caller) : super(caller);
 
@@ -275,9 +307,9 @@ class EndpointDevice extends _i2.EndpointRef {
   @override
   String get name => 'device';
 
-  _i3.Future<_i5.DeviceRegistrationResponse> registerDevice(
-    _i6.DeviceRegistrationRequest request,
-  ) => caller.callServerEndpoint<_i5.DeviceRegistrationResponse>(
+  _i3.Future<_i9.DeviceRegistrationResponse> registerDevice(
+    _i10.DeviceRegistrationRequest request,
+  ) => caller.callServerEndpoint<_i9.DeviceRegistrationResponse>(
     'device',
     'registerDevice',
     {'request': request},
@@ -311,23 +343,23 @@ class EndpointSync extends _i2.EndpointRef {
   @override
   String get name => 'sync';
 
-  _i3.Future<_i7.PushResponse> push(_i8.PushRequest request) =>
-      caller.callServerEndpoint<_i7.PushResponse>(
+  _i3.Future<_i11.PushResponse> push(_i12.PushRequest request) =>
+      caller.callServerEndpoint<_i11.PushResponse>(
         'sync',
         'push',
         {'request': request},
       );
 
-  _i3.Future<_i9.PullResponse> pull(_i10.PullRequest request) =>
-      caller.callServerEndpoint<_i9.PullResponse>(
+  _i3.Future<_i13.PullResponse> pull(_i14.PullRequest request) =>
+      caller.callServerEndpoint<_i13.PullResponse>(
         'sync',
         'pull',
         {'request': request},
       );
 
-  _i3.Future<_i11.ConflictResolutionResponse> resolveConflict(
-    _i12.ConflictResolutionRequest request,
-  ) => caller.callServerEndpoint<_i11.ConflictResolutionResponse>(
+  _i3.Future<_i15.ConflictResolutionResponse> resolveConflict(
+    _i16.ConflictResolutionRequest request,
+  ) => caller.callServerEndpoint<_i15.ConflictResolutionResponse>(
     'sync',
     'resolveConflict',
     {'request': request},
@@ -344,8 +376,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i13.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i13.Greeting>(
+  _i3.Future<_i17.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i17.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -383,7 +415,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i14.Protocol(),
+         _i18.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -394,6 +426,7 @@ class Client extends _i2.ServerpodClientShared {
        ) {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
+    attachment = EndpointAttachment(this);
     auth = EndpointAuth(this);
     device = EndpointDevice(this);
     health = EndpointHealth(this);
@@ -405,6 +438,8 @@ class Client extends _i2.ServerpodClientShared {
   late final EndpointEmailIdp emailIdp;
 
   late final EndpointJwtRefresh jwtRefresh;
+
+  late final EndpointAttachment attachment;
 
   late final EndpointAuth auth;
 
@@ -422,6 +457,7 @@ class Client extends _i2.ServerpodClientShared {
   Map<String, _i2.EndpointRef> get endpointRefLookup => {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
+    'attachment': attachment,
     'auth': auth,
     'device': device,
     'health': health,
