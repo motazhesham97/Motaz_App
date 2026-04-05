@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/auth/auth_state.dart';
+import '../../features/sync/presentation/sync_status_badge.dart';
 import 'connectivity_badge.dart';
 
 class AppDestination {
@@ -54,6 +55,10 @@ class AppDrawerScaffold extends ConsumerWidget {
         appBar: AppBar(
           title: Text(title),
           actions: const [
+            Padding(
+              padding: EdgeInsetsDirectional.only(end: 8),
+              child: Center(child: SyncStatusBadge()),
+            ),
             Padding(
               padding: EdgeInsetsDirectional.only(end: 16),
               child: Center(child: ConnectivityBadge()),

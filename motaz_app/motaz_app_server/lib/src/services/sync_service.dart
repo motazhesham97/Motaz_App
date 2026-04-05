@@ -10,6 +10,20 @@ import '../generated/enums/conflict_status.dart';
 import '../generated/enums/parent_entity_type.dart';
 
 class SyncService {
+  static ParentEntityType? _parseParentEntityType(String name) {
+    for (final e in ParentEntityType.values) {
+      if (e.name == name) return e;
+    }
+    return null;
+  }
+
+  static AuditOperation? _parseAuditOperation(String name) {
+    for (final e in AuditOperation.values) {
+      if (e.name == name) return e;
+    }
+    return null;
+  }
+
   static Future<bool> validateDeviceIdentity(
     Session session,
     String deviceId,
@@ -28,7 +42,7 @@ class SyncService {
     if (tableName == null) return null;
 
     final rows = await session.db.unsafeQuery(
-      'SELECT "rowVersion" FROM "$tableName" WHERE "id" = @entityId',
+      'SELECT "rowVersion" FROM "' + tableName + '" WHERE "id" = @entityId',
       parameters: QueryParameters.named({'entityId': entityId}),
     );
     if (rows.isEmpty) return null;
@@ -44,7 +58,7 @@ class SyncService {
     if (tableName == null) return null;
 
     final rows = await session.db.unsafeQuery(
-      'SELECT * FROM "$tableName" WHERE "id" = @entityId',
+      'SELECT * FROM "' + tableName + '" WHERE "id" = @entityId',
       parameters: QueryParameters.named({'entityId': entityId}),
     );
     if (rows.isEmpty) return null;
@@ -95,12 +109,12 @@ class SyncService {
   ) async {
     final tableName = _entityTableName(entityType);
     if (tableName == null) {
-      throw ArgumentError('Unknown entity type: $entityType');
+      throw ArgumentError('Unknown entity type: ' + entityType);
     }
 
     final currentRow = await loadEntityRow(session, entityType, entityId);
     if (currentRow == null) {
-      throw StateError('Entity not found: $entityType/$entityId');
+      throw StateError('Entity not found: ' + entityType + '/' + entityId);
     }
 
     final autoFields = _autoMergeFields[entityType] ?? {};
@@ -127,11 +141,13 @@ class SyncService {
     String conflictType,
     String deviceId,
   ) async {
+    final parsed = _parseParentEntityType(entityType);
+    if (parsed == null) {
+      throw ArgumentError('Unknown entity type: ' + entityType);
+    }
+
     final conflict = ConflictLog(
-      entityType: ParentEntityType.values.firstWhere(
-        (e) => e.name == entityType,
-        orElse: () => ParentEntityType.PRODUCT,
-      ),
+      entityType: parsed,
       entityId: UuidValue(entityId),
       localPayload: localPayload,
       remotePayload: remotePayload,
@@ -155,7 +171,12 @@ class SyncService {
   ) async {
     final tableName = _entityTableName(entityType);
     if (tableName == null) {
-      throw ArgumentError('Unknown entity type: $entityType');
+      throw ArgumentError('Unknown entity type: ' + entityType);
+    }
+
+    final allowedColumns = _columnAllowlist[entityType];
+    if (allowedColumns == null) {
+      throw ArgumentError('No column allowlist for entity type: ' + entityType);
     }
 
     final now = DateTime.now().toUtc();
@@ -177,7 +198,13 @@ class SyncService {
           entry.key == 'syncStatus') {
         continue;
       }
-      setClauses.add('"${entry.key}" = @${entry.key}');
+      if (!allowedColumns.contains(entry.key)) {
+        throw ArgumentError(
+          'Column "' + entry.key + '" not allowed for entity type ' + entityType,
+        );
+      }
+      final snakeKey = _camelToSnake(entry.key);
+      setClauses.add('"' + snakeKey + '" = @' + entry.key);
       params[entry.key] = entry.value;
     }
     setClauses.add('"rowVersion" = @rowVersion');
@@ -187,31 +214,43 @@ class SyncService {
 
     if (existingRow != null) {
       await session.db.unsafeExecute(
-        'UPDATE "$tableName" SET ${setClauses.join(', ')} WHERE "id" = @entityId',
+        'UPDATE "' + tableName + '" SET ' + setClauses.join(', ') + ' WHERE "id" = @entityId',
         parameters: QueryParameters.named(params),
       );
     } else {
       final columns = payload.keys
           .where((k) => k != 'id' && k != 'rowVersion' && k != 'syncStatus')
           .toList();
-      final insertCols = ['"id"', ...columns.map((c) => '"$c"'), '"rowVersion"', '"updatedAt"'];
-      final insertVals = ['@entityId', ...columns.map((c) => '@$c'), '@rowVersion', '@updatedAt'];
+      final insertCols = [
+        '"id"',
+        ...columns.map((c) => '"' + _camelToSnake(c) + '"'),
+        '"rowVersion"',
+        '"updatedAt"',
+      ];
+      final insertVals = [
+        '@entityId',
+        ...columns.map((c) => '@' + c),
+        '@rowVersion',
+        '@updatedAt',
+      ];
       await session.db.unsafeExecute(
-        'INSERT INTO "$tableName" (${insertCols.join(', ')}) VALUES (${insertVals.join(', ')})',
+        'INSERT INTO "' + tableName + '" (' + insertCols.join(', ') + ') VALUES (' + insertVals.join(', ') + ')',
         parameters: QueryParameters.named(params),
       );
     }
 
+    final parsedEntityType = _parseParentEntityType(entityType);
+    final parsedOperation = _parseAuditOperation(operation);
+    if (parsedEntityType == null || parsedOperation == null) {
+      throw ArgumentError(
+        'Invalid entity type (' + entityType + ') or operation (' + operation + ')',
+      );
+    }
+
     final auditEvent = AuditEvent(
-      entityType: ParentEntityType.values.firstWhere(
-        (e) => e.name == entityType,
-        orElse: () => ParentEntityType.PRODUCT,
-      ),
+      entityType: parsedEntityType,
       entityId: UuidValue(entityId),
-      operation: AuditOperation.values.firstWhere(
-        (e) => e.name == operation,
-        orElse: () => AuditOperation.UPDATE,
-      ),
+      operation: parsedOperation,
       diffData: jsonEncode(payload),
       deviceId: UuidValue(deviceId),
       createdAt: now,
@@ -231,7 +270,7 @@ class SyncService {
     if (tableName == null) return [];
 
     final rows = await session.db.unsafeQuery(
-      'SELECT row_to_json(t) FROM "$tableName" t WHERE "rowVersion" > @sinceRowVersion ORDER BY "rowVersion" ASC LIMIT @limit',
+      'SELECT row_to_json(t) FROM "' + tableName + '" t WHERE "rowVersion" > @sinceRowVersion ORDER BY "rowVersion" ASC LIMIT @limit',
       parameters: QueryParameters.named({
         'sinceRowVersion': sinceRowVersion,
         'limit': limit,
@@ -248,7 +287,7 @@ class SyncService {
     if (tableName == null) return 0;
 
     final rows = await session.db.unsafeQuery(
-      'SELECT COALESCE(MAX("rowVersion"), 0) FROM "$tableName"',
+      'SELECT COALESCE(MAX("rowVersion"), 0) FROM "' + tableName + '"',
     );
     if (rows.isEmpty) return 0;
     return rows.first.first as int;
@@ -263,7 +302,7 @@ class SyncService {
     if (tableName == null) return 0;
 
     final rows = await session.db.unsafeQuery(
-      'SELECT COUNT(*) FROM "$tableName" WHERE "rowVersion" > @sinceRowVersion',
+      'SELECT COUNT(*) FROM "' + tableName + '" WHERE "rowVersion" > @sinceRowVersion',
       parameters: QueryParameters.named({'sinceRowVersion': sinceRowVersion}),
     );
     if (rows.isEmpty) return 0;
@@ -275,10 +314,10 @@ class SyncService {
     String entityType,
     String deviceId,
   ) async {
-    final entityTypeEnum = ParentEntityType.values.firstWhere(
-      (e) => e.name == entityType,
-      orElse: () => ParentEntityType.PRODUCT,
-    );
+    final entityTypeEnum = _parseParentEntityType(entityType);
+    if (entityTypeEnum == null) {
+      throw ArgumentError('Unknown entity type: ' + entityType);
+    }
     final deviceUuid = UuidValue(deviceId);
     return ConflictLog.db.find(
       session,
@@ -304,6 +343,13 @@ class SyncService {
     return rows.map((row) => row.first.toString()).toList();
   }
 
+  static String _camelToSnake(String input) {
+    return input.replaceAllMapped(
+      RegExp(r'[A-Z]'),
+      (match) => '_' + match.group(0)!.toLowerCase(),
+    );
+  }
+
   static const Map<String, String> _entityTableMap = {
     'PRODUCT': 'product',
     'CLIENT': 'client_record',
@@ -315,6 +361,48 @@ class SyncService {
     'SALES_RETURN': 'sales_return',
     'SALES_RETURN_LINE': 'sales_return_line',
     'ATTACHMENT_METADATA': 'attachment_metadata',
+  };
+
+  static const Map<String, Set<String>> _columnAllowlist = {
+    'PRODUCT': {
+      'name', 'description', 'sku', 'defaultSalePrice', 'costPrice',
+      'unit', 'isActive', 'status', 'voidReason', 'deviceId',
+    },
+    'CLIENT': {
+      'displayName', 'phone', 'email', 'address', 'note', 'clientCode',
+      'status', 'voidReason', 'deviceId',
+    },
+    'SALES_INVOICE': {
+      'clientId', 'invoiceDate', 'dueDate', 'discount', 'total',
+      'status', 'voidReason', 'note', 'deviceId',
+    },
+    'SALES_INVOICE_LINE': {
+      'invoiceId', 'productId', 'description', 'quantity', 'unitPrice',
+      'lineTotal', 'deviceId',
+    },
+    'RECEIPT': {
+      'receiptType', 'clientId', 'invoiceId', 'amount', 'paymentMethod',
+      'receiptDate', 'reference', 'note', 'status', 'voidReason', 'deviceId',
+    },
+    'RECEIPT_ALLOCATION': {
+      'receiptId', 'invoiceId', 'allocatedAmount', 'deviceId',
+    },
+    'EXPENSE': {
+      'category', 'amount', 'description', 'expenseDate', 'paymentMethod',
+      'reference', 'note', 'status', 'voidReason', 'deviceId',
+    },
+    'SALES_RETURN': {
+      'invoiceId', 'returnDate', 'totalReturnedAmount', 'note',
+      'status', 'voidReason', 'deviceId',
+    },
+    'SALES_RETURN_LINE': {
+      'returnId', 'invoiceLineId', 'returnedQuantity', 'returnedAmount',
+      'reason', 'deviceId',
+    },
+    'ATTACHMENT_METADATA': {
+      'parentEntityType', 'parentEntityId', 'storageReference', 'secureUrl',
+      'fileType', 'fileSize', 'deviceId',
+    },
   };
 
   static const Map<String, Set<String>> _autoMergeFields = {

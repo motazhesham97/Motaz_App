@@ -6,6 +6,13 @@ import '../generated/enums/audit_operation.dart';
 import '../generated/enums/parent_entity_type.dart';
 
 class AttachmentService {
+  static ParentEntityType? _parseParentEntityType(String name) {
+    for (final e in ParentEntityType.values) {
+      if (e.name == name) return e;
+    }
+    return null;
+  }
+
   static const int maxFileSize = 10 * 1024 * 1024;
   static const Set<String> allowedFileTypes = {
     'image/jpeg',
@@ -20,10 +27,10 @@ class AttachmentService {
     int fileSize,
   ) {
     if (!allowedFileTypes.contains(fileType)) {
-      return 'File type "$fileType" is not allowed. Allowed: ${allowedFileTypes.join(", ")}';
+      return 'File type "' + fileType + '" is not allowed. Allowed: ' + allowedFileTypes.join(', ');
     }
     if (fileSize > maxFileSize) {
-      return 'File size ${fileSize}b exceeds maximum of ${maxFileSize}b (10MB)';
+      return 'File size ' + fileSize.toString() + 'b exceeds maximum of ' + maxFileSize.toString() + 'b (10MB)';
     }
     return null;
   }
@@ -52,14 +59,17 @@ class AttachmentService {
     String secureUrl,
     String fileType,
     int fileSize,
+    String deviceId,
   ) async {
     final now = DateTime.now().toUtc();
 
+    final parsedType = _parseParentEntityType(parentEntityType);
+    if (parsedType == null) {
+      throw ArgumentError('Unknown parent entity type: ' + parentEntityType);
+    }
+
     final metadata = AttachmentMetadata(
-      parentEntityType: ParentEntityType.values.firstWhere(
-        (e) => e.name == parentEntityType,
-        orElse: () => ParentEntityType.SALES_INVOICE,
-      ),
+      parentEntityType: parsedType,
       parentEntityId: UuidValue(parentEntityId),
       storageReference: publicId,
       secureUrl: secureUrl,
@@ -67,20 +77,17 @@ class AttachmentService {
       fileSize: fileSize,
       createdAt: now,
       updatedAt: now,
-      deviceId: const UuidValue('00000000-0000-0000-0000-000000000000'),
+      deviceId: UuidValue(deviceId),
     );
 
     final inserted = await AttachmentMetadata.db.insertRow(session, metadata);
 
     final auditEvent = AuditEvent(
-      entityType: ParentEntityType.values.firstWhere(
-        (e) => e.name == parentEntityType,
-        orElse: () => ParentEntityType.SALES_INVOICE,
-      ),
+      entityType: parsedType,
       entityId: UuidValue(parentEntityId),
       operation: AuditOperation.CREATE,
-      diffData: '{"attachmentId":"${inserted.id}","publicId":"$publicId"}',
-      deviceId: const UuidValue('00000000-0000-0000-0000-000000000000'),
+      diffData: '{"attachmentId":"' + inserted.id.toString() + '","publicId":"' + publicId + '"}',
+      deviceId: UuidValue(deviceId),
       createdAt: now,
     );
     await AuditEvent.db.insertRow(session, auditEvent);

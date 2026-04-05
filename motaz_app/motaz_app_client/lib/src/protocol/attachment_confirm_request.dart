@@ -20,6 +20,7 @@ abstract class AttachmentConfirmRequest implements _i1.SerializableModel {
     required this.secureUrl,
     required this.fileType,
     required this.fileSize,
+    required this.deviceId,
   });
 
   factory AttachmentConfirmRequest({
@@ -29,6 +30,7 @@ abstract class AttachmentConfirmRequest implements _i1.SerializableModel {
     required String secureUrl,
     required String fileType,
     required int fileSize,
+    required String deviceId,
   }) = _AttachmentConfirmRequestImpl;
 
   factory AttachmentConfirmRequest.fromJson(
@@ -41,6 +43,7 @@ abstract class AttachmentConfirmRequest implements _i1.SerializableModel {
       secureUrl: jsonSerialization['secureUrl'] as String,
       fileType: jsonSerialization['fileType'] as String,
       fileSize: jsonSerialization['fileSize'] as int,
+      deviceId: jsonSerialization['deviceId'] as String,
     );
   }
 
@@ -56,6 +59,8 @@ abstract class AttachmentConfirmRequest implements _i1.SerializableModel {
 
   int fileSize;
 
+  String deviceId;
+
   /// Returns a shallow copy of this [AttachmentConfirmRequest]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -66,6 +71,7 @@ abstract class AttachmentConfirmRequest implements _i1.SerializableModel {
     String? secureUrl,
     String? fileType,
     int? fileSize,
+    String? deviceId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -77,6 +83,7 @@ abstract class AttachmentConfirmRequest implements _i1.SerializableModel {
       'secureUrl': secureUrl,
       'fileType': fileType,
       'fileSize': fileSize,
+      'deviceId': deviceId,
     };
   }
 
@@ -94,6 +101,7 @@ class _AttachmentConfirmRequestImpl extends AttachmentConfirmRequest {
     required String secureUrl,
     required String fileType,
     required int fileSize,
+    required String deviceId,
   }) : super._(
          parentEntityType: parentEntityType,
          parentEntityId: parentEntityId,
@@ -101,6 +109,7 @@ class _AttachmentConfirmRequestImpl extends AttachmentConfirmRequest {
          secureUrl: secureUrl,
          fileType: fileType,
          fileSize: fileSize,
+         deviceId: deviceId,
        );
 
   /// Returns a shallow copy of this [AttachmentConfirmRequest]
@@ -114,6 +123,7 @@ class _AttachmentConfirmRequestImpl extends AttachmentConfirmRequest {
     String? secureUrl,
     String? fileType,
     int? fileSize,
+    String? deviceId,
   }) {
     return AttachmentConfirmRequest(
       parentEntityType: parentEntityType ?? this.parentEntityType,
@@ -122,6 +132,7 @@ class _AttachmentConfirmRequestImpl extends AttachmentConfirmRequest {
       secureUrl: secureUrl ?? this.secureUrl,
       fileType: fileType ?? this.fileType,
       fileSize: fileSize ?? this.fileSize,
+      deviceId: deviceId ?? this.deviceId,
     );
   }
 }

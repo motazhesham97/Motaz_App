@@ -17,12 +17,13 @@ class DeviceEndpoint extends Endpoint {
       );
     }
 
+    final now = DateTime.now().toUtc();
     final uuid = UuidValue(request.deviceId);
     final existing = await Device.db.findById(session, uuid);
 
     if (existing != null) {
       final updated = existing.copyWith(
-        lastActiveAt: DateTime.now().toUtc(),
+        lastActiveAt: now,
         deviceName: request.deviceName,
       );
       await Device.db.updateRow(session, updated);
@@ -37,8 +38,8 @@ class DeviceEndpoint extends Endpoint {
         orElse: () => DevicePlatform.ANDROID,
       ),
       deviceCode: request.deviceCode,
-      createdAt: DateTime.now().toUtc(),
-      lastActiveAt: DateTime.now().toUtc(),
+      createdAt: now,
+      lastActiveAt: now,
     );
 
     await Device.db.insertRow(session, device);

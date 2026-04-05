@@ -14,18 +14,26 @@ import 'package:serverpod_client/serverpod_client.dart' as _i1;
 
 enum ParentEntityType implements _i1.SerializableModel {
   SALES_INVOICE,
+  SALES_INVOICE_LINE,
   RECEIPT,
+  RECEIPT_ALLOCATION,
   PRODUCT,
   CLIENT,
   EXPENSE,
-  SALES_RETURN;
+  SALES_RETURN,
+  SALES_RETURN_LINE,
+  ATTACHMENT_METADATA;
 
   static ParentEntityType fromJson(String name) {
     switch (name) {
       case 'SALES_INVOICE':
         return ParentEntityType.SALES_INVOICE;
+      case 'SALES_INVOICE_LINE':
+        return ParentEntityType.SALES_INVOICE_LINE;
       case 'RECEIPT':
         return ParentEntityType.RECEIPT;
+      case 'RECEIPT_ALLOCATION':
+        return ParentEntityType.RECEIPT_ALLOCATION;
       case 'PRODUCT':
         return ParentEntityType.PRODUCT;
       case 'CLIENT':
@@ -34,6 +42,10 @@ enum ParentEntityType implements _i1.SerializableModel {
         return ParentEntityType.EXPENSE;
       case 'SALES_RETURN':
         return ParentEntityType.SALES_RETURN;
+      case 'SALES_RETURN_LINE':
+        return ParentEntityType.SALES_RETURN_LINE;
+      case 'ATTACHMENT_METADATA':
+        return ParentEntityType.ATTACHMENT_METADATA;
       default:
         throw ArgumentError(
           'Value "$name" cannot be converted to "ParentEntityType"',
