@@ -20,6 +20,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
     this.id,
     required this.displayName,
     this.phone,
+    this.email,
+    this.address,
     this.note,
     this.clientCode,
     bool? isActive,
@@ -37,6 +39,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
     _i1.UuidValue? id,
     required String displayName,
     String? phone,
+    String? email,
+    String? address,
     String? note,
     String? clientCode,
     bool? isActive,
@@ -55,6 +59,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
           : _i1.UuidValueJsonExtension.fromJson(jsonSerialization['id']),
       displayName: jsonSerialization['displayName'] as String,
       phone: jsonSerialization['phone'] as String?,
+      email: jsonSerialization['email'] as String?,
+      address: jsonSerialization['address'] as String?,
       note: jsonSerialization['note'] as String?,
       clientCode: jsonSerialization['clientCode'] as String?,
       isActive: jsonSerialization['isActive'] == null
@@ -90,6 +96,10 @@ abstract class ClientRecord implements _i1.SerializableModel {
 
   String? phone;
 
+  String? email;
+
+  String? address;
+
   String? note;
 
   String? clientCode;
@@ -115,6 +125,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
     _i1.UuidValue? id,
     String? displayName,
     String? phone,
+    String? email,
+    String? address,
     String? note,
     String? clientCode,
     bool? isActive,
@@ -132,6 +144,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
       if (id != null) 'id': id?.toJson(),
       'displayName': displayName,
       if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+      if (address != null) 'address': address,
       if (note != null) 'note': note,
       if (clientCode != null) 'clientCode': clientCode,
       'isActive': isActive,
@@ -157,6 +171,8 @@ class _ClientRecordImpl extends ClientRecord {
     _i1.UuidValue? id,
     required String displayName,
     String? phone,
+    String? email,
+    String? address,
     String? note,
     String? clientCode,
     bool? isActive,
@@ -170,6 +186,8 @@ class _ClientRecordImpl extends ClientRecord {
          id: id,
          displayName: displayName,
          phone: phone,
+         email: email,
+         address: address,
          note: note,
          clientCode: clientCode,
          isActive: isActive,
@@ -189,6 +207,8 @@ class _ClientRecordImpl extends ClientRecord {
     Object? id = _Undefined,
     String? displayName,
     Object? phone = _Undefined,
+    Object? email = _Undefined,
+    Object? address = _Undefined,
     Object? note = _Undefined,
     Object? clientCode = _Undefined,
     bool? isActive,
@@ -203,6 +223,8 @@ class _ClientRecordImpl extends ClientRecord {
       id: id is _i1.UuidValue? ? id : this.id,
       displayName: displayName ?? this.displayName,
       phone: phone is String? ? phone : this.phone,
+      email: email is String? ? email : this.email,
+      address: address is String? ? address : this.address,
       note: note is String? ? note : this.note,
       clientCode: clientCode is String? ? clientCode : this.clientCode,
       isActive: isActive ?? this.isActive,

@@ -7,6 +7,9 @@ class Products extends Table {
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description => text().nullable()();
   IntColumn get defaultSalePrice => integer()();
+  IntColumn get costPrice => integer().nullable()();
+  TextColumn get unit => text().nullable()();
+  TextColumn get sku => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
