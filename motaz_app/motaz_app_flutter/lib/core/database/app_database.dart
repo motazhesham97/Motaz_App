@@ -49,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -76,6 +76,13 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(localAttachmentStaging);
           await m.createTable(auditEvents);
           await m.createTable(conflictLogs);
+        }
+        if (from < 3) {
+          await m.addColumn(products, products.costPrice);
+          await m.addColumn(products, products.unit);
+          await m.addColumn(products, products.sku);
+          await m.addColumn(clients, clients.email);
+          await m.addColumn(clients, clients.address);
         }
       },
     );

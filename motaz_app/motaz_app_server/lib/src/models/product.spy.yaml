@@ -5,6 +5,9 @@ fields:
   name: String
   description: String?
   defaultSalePrice: int
+  costPrice: int?
+  unit: String?
+  sku: String?
   isActive: bool, default=true
   createdAt: DateTime
   updatedAt: DateTime

@@ -7,6 +7,8 @@ class Clients extends Table {
   TextColumn get id => text().withLength(min: 36, max: 36)();
   TextColumn get displayName => text().withLength(min: 1, max: 255)();
   TextColumn get phone => text().nullable()();
+  TextColumn get email => text().nullable()();
+  TextColumn get address => text().nullable()();
   TextColumn get note => text().nullable()();
   TextColumn get clientCode => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();

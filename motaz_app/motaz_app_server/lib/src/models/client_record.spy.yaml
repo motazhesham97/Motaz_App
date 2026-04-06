@@ -4,6 +4,8 @@ fields:
   id: UuidValue?, defaultPersist=random
   displayName: String
   phone: String?
+  email: String?
+  address: String?
   note: String?
   clientCode: String?
   isActive: bool, default=true
