@@ -90,7 +90,7 @@ The owner views the computed monthly profit for any given month. The system calc
 
 ### User Story 6 — Distribute Monthly Profit (Priority: P2)
 
-The owner triggers the monthly profit distribution for a completed month. The system splits net profit into three equal integer shares, assigning any remainder to The Margin.
+The owner triggers the monthly profit distribution for a past completed month (not the current in-progress month). The system splits net profit into three equal integer shares, assigning any remainder to The Margin.
 
 **Why this priority**: This is the core accounting action that determines how profits are allocated to the three parties.
 
@@ -199,7 +199,7 @@ The owner sees the following dashboard cards: This Month Net Profit, Owner Balan
 
 #### Profit Distribution
 
-- **FR-021**: System MUST allow the owner to distribute monthly profit for any completed month.
+- **FR-021**: System MUST allow the owner to distribute monthly profit only for past completed months. Distribution for the current in-progress month MUST be blocked. Reports may still show the current month as a live reporting period.
 - **FR-022**: System MUST compute distribution as: `owner_share = trunc(net_profit / 3)`, `partner_share = trunc(net_profit / 3)`, `margin_share = net_profit - owner_share - partner_share`.
 - **FR-023**: System MUST handle negative net profit (net loss): all three parties receive negative shares, with remainder (closest to zero) assigned to Margin.
 - **FR-024**: System MUST block duplicate distributions for the same year-month.
@@ -246,7 +246,7 @@ The owner sees the following dashboard cards: This Month Net Profit, Owner Balan
 ## Assumptions
 
 - The fiscal year is the calendar year (January–December) per the constitution.
-- "Completed month" for distribution purposes means any past or current month — the system does not enforce waiting until month-end.
+- "Completed month" for distribution purposes means any past calendar month. The current in-progress month is not eligible for distribution.
 - The MonthlyDistribution entity does not exist yet in the Drift schema and must be added as part of this feature.
 - Returns affect net sales per the formula in the implementation plan, even though the Returns feature (Phase 7) is not yet implemented. The profit calculation queries should account for the returns table even if it is currently empty.
 - Expense categories are stored as an enum index. No new categories can be added without a code change.
@@ -255,4 +255,6 @@ The owner sees the following dashboard cards: This Month Net Profit, Owner Balan
 
 ## Clarifications
 
-_(None at this time — all business rules are explicitly defined in the constitution and implementation plan.)_
+### Session 2026-04-07
+
+- Q: Can the owner distribute profit for the current in-progress month, or only for past completed months? → A: Distribution is restricted to past completed months only. The current in-progress month is not eligible. Reports may still show the current month as a live reporting view, but actual distribution entries must be restricted to completed past months so the distributed figures do not become stale as new transactions arrive.
