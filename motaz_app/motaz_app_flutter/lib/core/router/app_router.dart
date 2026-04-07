@@ -8,10 +8,10 @@ import '../../features/clients/presentation/client_list_screen.dart';
 import '../../features/dashboard/presentation/placeholder_screen.dart';
 import '../../features/expenses/presentation/placeholder_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
-import '../../features/invoices/presentation/placeholder_screen.dart';
+import '../../features/invoices/presentation/invoice_list_screen.dart';
 import '../../features/party_balances/presentation/placeholder_screen.dart';
 import '../../features/products/presentation/product_list_screen.dart';
-import '../../features/receipts/presentation/placeholder_screen.dart';
+import '../../features/receipts/presentation/receipt_list_screen.dart';
 import '../../features/reports/presentation/placeholder_screen.dart';
 import '../../features/returns/presentation/placeholder_screen.dart';
 import '../../features/settings/presentation/placeholder_screen.dart';
@@ -54,8 +54,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/dashboard', builder: (context, state) => const DashboardPlaceholderScreen()),
       GoRoute(path: '/products', builder: (context, state) => const ProductListScreen()),
       GoRoute(path: '/clients', builder: (context, state) => const ClientListScreen()),
-      GoRoute(path: '/invoices', builder: (context, state) => const InvoicesPlaceholderScreen()),
-      GoRoute(path: '/receipts', builder: (context, state) => const ReceiptsPlaceholderScreen()),
+      GoRoute(path: '/invoices', builder: (context, state) => const InvoiceListScreen()),
+      GoRoute(path: '/receipts', builder: (context, state) => const ReceiptListScreen()),
       GoRoute(path: '/expenses', builder: (context, state) => const ExpensesPlaceholderScreen()),
       GoRoute(path: '/returns', builder: (context, state) => const ReturnsPlaceholderScreen()),
       GoRoute(path: '/reports', builder: (context, state) => const ReportsPlaceholderScreen()),
