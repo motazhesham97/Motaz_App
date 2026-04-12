@@ -40,7 +40,7 @@
 
 ### T001 — Create MonthlyDistributions table definition
 
-- [ ] T001 Create the MonthlyDistributions Drift table in `motaz_app_flutter/lib/core/database/tables/monthly_distributions.dart`
+- [x] T001 Create the MonthlyDistributions Drift table in `motaz_app_flutter/lib/core/database/tables/monthly_distributions.dart`
 
 **Objective**: Define a new Drift table class for monthly profit distributions.
 
@@ -84,7 +84,7 @@
 
 ### T002 — Add MONTHLY_DISTRIBUTION to ParentEntityType enum
 
-- [ ] T002 [P] Add `MONTHLY_DISTRIBUTION` to enum in `motaz_app_flutter/lib/core/database/enums/parent_entity_type.dart`
+- [x] T002 [P] Add `MONTHLY_DISTRIBUTION` to enum in `motaz_app_flutter/lib/core/database/enums/parent_entity_type.dart`
 
 **Objective**: Add the new sync entity type for monthly distributions at the END of the existing enum.
 
@@ -108,7 +108,7 @@
 
 ### T003 — Register table and bump schema version in AppDatabase
 
-- [ ] T003 Register MonthlyDistributions in `motaz_app_flutter/lib/core/database/app_database.dart` and bump schema to 4
+- [x] T003 Register MonthlyDistributions in `motaz_app_flutter/lib/core/database/app_database.dart` and bump schema to 4
 
 **Objective**: Add the new table to the Drift database registration and create a migration step.
 
@@ -141,7 +141,7 @@
 
 ### T004 — Run build_runner to regenerate Drift code
 
-- [ ] T004 Run `dart run build_runner build --delete-conflicting-outputs` in `motaz_app_flutter/`
+- [x] T004 Run `dart run build_runner build --delete-conflicting-outputs` in `motaz_app_flutter/`
 
 **Objective**: Regenerate Drift-generated code after adding the new table and registering it.
 
@@ -165,7 +165,7 @@
 
 ### T005 — Create ExpenseRepository with create method
 
-- [ ] T005 Create ExpenseRepository in `motaz_app_flutter/lib/features/expenses/data/expense_repository.dart`
+- [x] T005 Create ExpenseRepository in `motaz_app_flutter/lib/features/expenses/data/expense_repository.dart`
 
 **Objective**: Build the expense creation flow with atomic save and outbox entry.
 
@@ -201,7 +201,7 @@
 
 ### T006 — Add update and void methods to ExpenseRepository
 
-- [ ] T006 Add `update` and `voidExpense` methods to `motaz_app_flutter/lib/features/expenses/data/expense_repository.dart`
+- [x] T006 Add `update` and `voidExpense` methods to `motaz_app_flutter/lib/features/expenses/data/expense_repository.dart`
 
 **Objective**: Implement expense editing and voiding with validation.
 
@@ -239,7 +239,7 @@
 
 ### T007 — Add query methods to ExpenseRepository
 
-- [ ] T007 Add query methods to `motaz_app_flutter/lib/features/expenses/data/expense_repository.dart`
+- [x] T007 Add query methods to `motaz_app_flutter/lib/features/expenses/data/expense_repository.dart`
 
 **Objective**: Add all read-only query methods needed by UI and by the profit engine.
 
@@ -273,7 +273,7 @@
 
 ### T008 — Create expense providers
 
-- [ ] T008 Create expense providers in `motaz_app_flutter/lib/features/expenses/application/expense_providers.dart`
+- [x] T008 Create expense providers in `motaz_app_flutter/lib/features/expenses/application/expense_providers.dart`
 
 **Objective**: Create Riverpod providers for expense repository access and reactive data streams.
 
@@ -298,7 +298,7 @@
 
 ### T009 — Create expense form screen (create and edit modes)
 
-- [ ] T009 [US1] [US2] Create expense form screen in `motaz_app_flutter/lib/features/expenses/presentation/expense_form_screen.dart`
+- [x] T009 [US1] [US2] Create expense form screen in `motaz_app_flutter/lib/features/expenses/presentation/expense_form_screen.dart`
 
 **Objective**: Build the form for creating and editing expenses.
 
@@ -336,7 +336,7 @@
 
 ### T010 — Create expense list screen with void action
 
-- [ ] T010 [US3] [US4] Create expense list screen in `motaz_app_flutter/lib/features/expenses/presentation/expense_list_screen.dart`
+- [x] T010 [US3] [US4] Create expense list screen in `motaz_app_flutter/lib/features/expenses/presentation/expense_list_screen.dart`
 
 **Objective**: Build the expense list with search, void action, and navigation to form.
 
@@ -379,7 +379,7 @@
 
 ### T011 — Create ProfitEngine
 
-- [ ] T011 Create ProfitEngine in `motaz_app_flutter/lib/features/profit_distribution/data/profit_engine.dart`
+- [x] T011 Create ProfitEngine in `motaz_app_flutter/lib/features/profit_distribution/data/profit_engine.dart`
 
 **Objective**: Build the stateless helper for monthly profit computation and three-way distribution splitting.
 
@@ -432,7 +432,7 @@
 
 ### T012 — Create DistributionRepository
 
-- [ ] T012 Create DistributionRepository in `motaz_app_flutter/lib/features/profit_distribution/data/distribution_repository.dart`
+- [x] T012 Create DistributionRepository in `motaz_app_flutter/lib/features/profit_distribution/data/distribution_repository.dart`
 
 **Objective**: Build distribution creation and voiding with atomic transactions.
 
@@ -488,7 +488,7 @@
 
 ### T013 — Create profit distribution providers
 
-- [ ] T013 Create profit providers in `motaz_app_flutter/lib/features/profit_distribution/application/profit_providers.dart`
+- [x] T013 Create profit providers in `motaz_app_flutter/lib/features/profit_distribution/application/profit_providers.dart`
 
 **Objective**: Create Riverpod providers for ProfitEngine, DistributionRepository, and distribution list.
 
@@ -512,7 +512,7 @@
 
 ### T014 — Create distribution screen
 
-- [ ] T014 [US5] [US6] Create distribution screen in `motaz_app_flutter/lib/features/profit_distribution/presentation/distribution_screen.dart`
+- [x] T014 [US5] [US6] Create distribution screen in `motaz_app_flutter/lib/features/profit_distribution/presentation/distribution_screen.dart`
 
 **Objective**: Build the screen where the owner selects a month, sees computed net profit, distributes, and views distribution history.
 
@@ -562,7 +562,7 @@
 
 ### T015 — Create PartyBalanceCalculator
 
-- [ ] T015 Create party balance calculator in `motaz_app_flutter/lib/features/party_balances/data/party_balance_calculator.dart`
+- [x] T015 Create party balance calculator in `motaz_app_flutter/lib/features/party_balances/data/party_balance_calculator.dart`
 
 **Objective**: Build the compute-on-read balance queries for all three parties.
 
@@ -603,7 +603,7 @@
 
 ### T016 — Create party balance providers and screen
 
-- [ ] T016 [US7] [US8] Create party balance providers and screen in `motaz_app_flutter/lib/features/party_balances/`
+- [x] T016 [US7] [US8] Create party balance providers and screen in `motaz_app_flutter/lib/features/party_balances/`
 
 **Objective**: Build providers and a display screen for party balances.
 
@@ -645,7 +645,7 @@
 
 ### T017 — Create dashboard queries and providers
 
-- [ ] T017 [US9] Create dashboard data and providers in `motaz_app_flutter/lib/features/dashboard/`
+- [x] T017 [US9] Create dashboard data and providers in `motaz_app_flutter/lib/features/dashboard/`
 
 **Objective**: Build the dashboard query layer and Riverpod providers.
 
@@ -683,7 +683,7 @@
 
 ### T018 — Create dashboard screen
 
-- [ ] T018 [US9] Create dashboard screen in `motaz_app_flutter/lib/features/dashboard/presentation/dashboard_screen.dart`
+- [x] T018 [US9] Create dashboard screen in `motaz_app_flutter/lib/features/dashboard/presentation/dashboard_screen.dart`
 
 **Objective**: Build the dashboard with 5 cards.
 
@@ -724,7 +724,7 @@
 
 ### T019 — Update app router and delete placeholders
 
-- [ ] T019 Update router in `motaz_app_flutter/lib/core/router/app_router.dart` and delete placeholder files
+- [x] T019 Update router in `motaz_app_flutter/lib/core/router/app_router.dart` and delete placeholder files
 
 **Objective**: Replace expense, party balance, and dashboard placeholder screens with real screens.
 
@@ -766,7 +766,7 @@
 
 ### T020 — Run static analysis and verify compilation
 
-- [ ] T020 Run `dart analyze` in `motaz_app_flutter/` and fix any errors or warnings in new files
+- [x] T020 Run `dart analyze` in `motaz_app_flutter/` and fix any errors or warnings in new files
 
 **Objective**: Ensure all new code compiles cleanly.
 
@@ -784,7 +784,7 @@
 
 ### T021 — Verify end-to-end flow manually
 
-- [ ] T021 Verify: create expense, edit, void, distribute profit, view balances, check dashboard
+- [x] T021 Verify: create expense, edit, void, distribute profit, view balances, check dashboard
 
 **Objective**: Walk through the complete flow to ensure all pieces connect.
 
