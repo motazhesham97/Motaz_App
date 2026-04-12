@@ -7,6 +7,12 @@
 
 ---
 
+## Clarifications
+
+### Session 2026-04-12
+
+- Q: Is the return amount per line auto-calculated or manually entered? → A: Auto-fills from `returned_quantity × original_unit_price`, but the owner can manually override downward. The entered amount must not exceed `returned_quantity × original_unit_price`.
+
 ## User Scenarios & Testing
 
 ### User Story 1 — Create Partial Return from Invoice (Priority: P1)
@@ -20,7 +26,7 @@ The business owner opens a previously created sales invoice and initiates a part
 **Acceptance Scenarios**:
 
 1. **Given** an active invoice with 3 lines, **When** the owner selects 2 lines and enters valid returned quantities and amounts, **Then** a SalesReturn record is created with the correct `totalReturnedAmount` and 2 SalesReturnLine records are created.
-2. **Given** an active invoice line with quantity 10 and unit price 5000, **When** the owner enters returned quantity 3 and returned amount 15000, **Then** the system accepts the entry (quantity ≤ original, amount ≤ proportional line total).
+2. **Given** an active invoice line with quantity 10 and unit price 5000, **When** the owner enters returned quantity 3, **Then** the return amount auto-fills to 15000. The owner may reduce it (e.g., to 12000 for damaged goods) but cannot increase it above 15000.
 3. **Given** a voided invoice, **When** the owner attempts to create a return, **Then** the system blocks the action and displays an error message.
 4. **Given** an invoice line where a previous return already consumed 5 of 10 units, **When** the owner attempts to return 6 more, **Then** the system blocks the action (would exceed original line quantity).
 
@@ -137,7 +143,7 @@ From the invoice detail or list screen, the business owner can tap a "إنشاء
 
 - **FR-001**: System MUST allow creation of a partial return only against an active (non-voided) invoice.
 - **FR-002**: System MUST require at least one return line per return.
-- **FR-003**: Each return line MUST reference an existing invoice line and specify a returned quantity > 0 and a returned amount > 0.
+- **FR-003**: Each return line MUST reference an existing invoice line and specify a returned quantity > 0 and a returned amount > 0. The return amount MUST auto-fill as `returned_quantity × original_unit_price` and the owner MAY override it downward. The entered amount MUST NOT exceed `returned_quantity × original_unit_price`.
 - **FR-004**: System MUST validate that the returned quantity for any invoice line does not exceed the original line quantity minus previously returned (active) quantities for that line.
 - **FR-005**: System MUST validate that the cumulative returned amount across all active returns for an invoice does not exceed the invoice total.
 - **FR-006**: System MUST compute `totalReturnedAmount` on the SalesReturn header as the sum of all its return line `returnedAmount` values.
