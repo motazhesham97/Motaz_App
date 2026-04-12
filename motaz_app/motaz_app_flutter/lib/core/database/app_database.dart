@@ -20,6 +20,7 @@ import 'tables/attachment_metadata.dart';
 import 'tables/local_attachment_staging.dart';
 import 'tables/audit_events.dart';
 import 'tables/conflict_logs.dart';
+import 'tables/monthly_distributions.dart';
 
 part 'app_database.g.dart';
 
@@ -40,6 +41,7 @@ part 'app_database.g.dart';
   LocalAttachmentStaging,
   AuditEvents,
   ConflictLogs,
+  MonthlyDistributions,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
@@ -49,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -83,6 +85,9 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(products, products.sku);
           await m.addColumn(clients, clients.email);
           await m.addColumn(clients, clients.address);
+        }
+        if (from < 4) {
+          await m.createTable(monthlyDistributions);
         }
       },
     );

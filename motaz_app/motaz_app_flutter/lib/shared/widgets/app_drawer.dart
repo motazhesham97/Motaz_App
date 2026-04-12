@@ -30,6 +30,7 @@ const appDestinations = [
   AppDestination(label: 'المرتجعات', icon: Icons.assignment_return_rounded, route: '/returns'),
   AppDestination(label: 'التقارير', icon: Icons.bar_chart_rounded, route: '/reports'),
   AppDestination(label: 'أرصدة الأطراف', icon: Icons.balance_rounded, route: '/party-balances'),
+  AppDestination(label: 'توزيع الأرباح', icon: Icons.pie_chart_rounded, route: '/distributions'),
   AppDestination(label: 'الإعدادات', icon: Icons.settings_rounded, route: '/settings'),
 ];
 
