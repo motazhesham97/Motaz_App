@@ -14,7 +14,8 @@ import '../../features/profit_distribution/presentation/distribution_screen.dart
 import '../../features/products/presentation/product_list_screen.dart';
 import '../../features/receipts/presentation/receipt_list_screen.dart';
 import '../../features/reports/presentation/placeholder_screen.dart';
-import '../../features/returns/presentation/placeholder_screen.dart';
+import '../../features/returns/presentation/return_form_screen.dart';
+import '../../features/returns/presentation/return_list_screen.dart';
 import '../../features/settings/presentation/placeholder_screen.dart';
 import '../auth/auth_provider.dart';
 import '../auth/auth_state.dart';
@@ -58,7 +59,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/invoices', builder: (context, state) => const InvoiceListScreen()),
       GoRoute(path: '/receipts', builder: (context, state) => const ReceiptListScreen()),
       GoRoute(path: '/expenses', builder: (context, state) => const ExpenseListScreen()),
-      GoRoute(path: '/returns', builder: (context, state) => const ReturnsPlaceholderScreen()),
+      GoRoute(path: '/returns', builder: (context, state) => const ReturnListScreen()),
+      GoRoute(
+        path: '/returns/create',
+        builder: (context, state) {
+          final invoiceId = state.uri.queryParameters['invoiceId'];
+          return ReturnFormScreen(invoiceId: invoiceId);
+        },
+      ),
       GoRoute(path: '/reports', builder: (context, state) => const ReportsPlaceholderScreen()),
       GoRoute(path: '/party-balances', builder: (context, state) => const PartyBalancesScreen()),
       GoRoute(path: '/distributions', builder: (context, state) => const DistributionScreen()),

@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/enums/record_status.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../clients/application/client_providers.dart';
 import '../application/invoice_providers.dart';
@@ -104,32 +106,49 @@ class _InvoiceListScreenState extends ConsumerState<InvoiceListScreen> {
                           '${(invoice.total / 100).toStringAsFixed(2)} ر.ي.';
                       final isVoided = invoice.status.index == 1;
 
-                      return Opacity(
-                        opacity: isVoided ? 0.6 : 1.0,
-                        child: ListTile(
-                          title: Text(invoice.localRef),
-                          subtitle: Row(
-                            children: [
-                              Text('$clientName • $totalText'),
-                              if (isVoided) ...[
-                                const SizedBox(width: 8),
-                                const Text('ملغية',
-                                    style: TextStyle(color: Colors.red)),
-                              ],
-                            ],
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => InvoiceDetailScreen(
-                                  invoiceId: invoice.id,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
+return Opacity(
+                         opacity: isVoided ? 0.6 : 1.0,
+                         child: ListTile(
+                           title: Text(invoice.localRef),
+                           subtitle: Row(
+                             children: [
+                               Text('$clientName • $totalText'),
+                               if (isVoided) ...[
+                                 const SizedBox(width: 8),
+                                 const Text('ملغية',
+                                     style: TextStyle(color: Colors.red)),
+                               ],
+                             ],
+                           ),
+                           trailing: invoice.status == RecordStatus.ACTIVE
+                               ? PopupMenuButton<String>(
+                                   icon: const Icon(Icons.more_vert),
+                                   onSelected: (value) {
+                                     if (value == 'return') {
+                                       context.go(
+                                           '/returns/create?invoiceId=${invoice.id}');
+                                     }
+                                   },
+                                   itemBuilder: (context) => [
+                                     const PopupMenuItem(
+                                       value: 'return',
+                                       child: Text('إنشاء مرتجع'),
+                                     ),
+                                   ],
+                                 )
+                               : null,
+                           onTap: () {
+                             Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                 builder: (_) => InvoiceDetailScreen(
+                                   invoiceId: invoice.id,
+                                 ),
+                               ),
+                             );
+                           },
+                         ),
+                       );
                     },
                   );
                 },

@@ -32,7 +32,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 >
 > Do not guess architecture or business rules from memory. Follow the approved constitution, Master Implementation Plan, and current spec boundaries.
 
-- [ ] T001 Create `ReturnRepository` with `create()` method in `features/returns/data/return_repository.dart`
+- [X] T001 Create `ReturnRepository` with `create()` method in `features/returns/data/return_repository.dart`
 
   **Objective**: Implement the core return creation logic with all validations and atomic transaction.
 
@@ -71,7 +71,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T002 Add `voidReturn()` method to `ReturnRepository` in `features/returns/data/return_repository.dart`
+- [X] T002 Add `voidReturn()` method to `ReturnRepository` in `features/returns/data/return_repository.dart`
 
   **Objective**: Add the void return method with status/reason validation, atomic transaction, and outbox entry.
 
@@ -95,7 +95,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T003 Add query methods to `ReturnRepository` in `features/returns/data/return_repository.dart`
+- [X] T003 Add query methods to `ReturnRepository` in `features/returns/data/return_repository.dart`
 
   **Objective**: Add all read/query methods needed by UI and other features.
 
@@ -119,7 +119,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T004 Create Riverpod providers in `features/returns/application/return_providers.dart`
+- [X] T004 Create Riverpod providers in `features/returns/application/return_providers.dart`
 
   **Objective**: Create the Riverpod providers that expose the repository and streams to the UI.
 
@@ -153,7 +153,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > - `specs/007-partial-returns-reversals/data-model.md` — Validation rules V-001 through V-008
 > - `specs/007-partial-returns-reversals/contracts/endpoints.md` — `create()` contract
 
-- [ ] T005 [US1] Create return form screen in `features/returns/presentation/return_form_screen.dart`
+- [X] T005 [US1] Create return form screen in `features/returns/presentation/return_form_screen.dart`
 
   **Objective**: Build the UI form for creating a partial return against a specific invoice.
 
@@ -186,7 +186,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T006 [US1] Update app router to add return form route in `core/router/app_router.dart`
+- [X] T006 [US1] Update app router to add return form route in `core/router/app_router.dart`
 
   **Objective**: Add a route for the return form screen so it can be navigated to with an optional invoice ID.
 
@@ -217,7 +217,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > - `specs/007-partial-returns-reversals/spec.md` — User Story 5 acceptance scenarios
 > - `specs/007-partial-returns-reversals/research.md` — Decision 6 (void reversal mechanism)
 
-- [ ] T007 [US5] Add void confirmation dialog pattern to return form/list (no new file — used in T009)
+- [X] T007 [US5] Add void confirmation dialog pattern to return form/list (no new file — used in T009)
 
   **Objective**: Define the void dialog pattern for reuse. This is a design note — the actual dialog will be implemented inline in T009 (return list screen).
 
@@ -248,7 +248,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > - `specs/007-partial-returns-reversals/data-model.md` — Computed Values section
 > - `specs/007-partial-returns-reversals/contracts/endpoints.md` — Invoice Remaining Balance SQL
 
-- [ ] T008 [US2] Verify and update invoice remaining balance computation to include returns
+- [X] T008 [US2] Verify and update invoice remaining balance computation to include returns
 
   **Objective**: Ensure the invoice detail screen (and any place showing remaining balance) correctly subtracts active returns.
 
@@ -284,7 +284,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > - `specs/007-partial-returns-reversals/data-model.md` — Client Balance formula
 > - `specs/007-partial-returns-reversals/research.md` — Decision 8 (client balance)
 
-- [ ] T009 [US3] Verify and update client balance computation to include returns in `features/party_balances/data/party_balance_calculator.dart`
+- [X] T009 [US3] Verify and update client balance computation to include returns in `features/party_balances/data/party_balance_calculator.dart`
 
   **Objective**: Ensure the client balance computation subtracts active return totals.
 
@@ -322,7 +322,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > - `specs/007-partial-returns-reversals/spec.md` — User Story 4 acceptance scenarios
 > - `features/expenses/presentation/expense_list_screen.dart` — reference pattern for list screen with search, debounce, void, and AppDrawerScaffold
 
-- [ ] T010 [US4] Create return list screen in `features/returns/presentation/return_list_screen.dart`
+- [X] T010 [US4] Create return list screen in `features/returns/presentation/return_list_screen.dart`
 
   **Objective**: Build the returns list screen with search, void action, and AppDrawerScaffold.
 
@@ -357,7 +357,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T011 [US4] Delete returns placeholder and update router in `core/router/app_router.dart`
+- [X] T011 [US4] Delete returns placeholder and update router in `core/router/app_router.dart`
 
   **Objective**: Replace the returns placeholder with the real return list screen.
 
@@ -396,7 +396,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > - `features/invoices/data/invoice_repository.dart` — existing edit method
 > - `features/invoices/presentation/invoice_form_screen.dart` — existing edit form
 
-- [ ] T012 [US6] Add `hasActiveReturnsForInvoice()` check to invoice edit flow in `features/invoices/data/invoice_repository.dart`
+- [X] T012 [US6] Add `hasActiveReturnsForInvoice()` check to invoice edit flow in `features/invoices/data/invoice_repository.dart`
 
   **Objective**: Enforce that invoices with active returns cannot have financial fields modified.
 
@@ -422,7 +422,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T013 [US6] Update invoice form screen to show restriction UI in `features/invoices/presentation/invoice_form_screen.dart`
+- [X] T013 [US6] Update invoice form screen to show restriction UI in `features/invoices/presentation/invoice_form_screen.dart`
 
   **Objective**: When editing an invoice that has active returns, disable financial fields in the UI and show a message explaining why.
 
@@ -459,7 +459,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > **Before implementing any task in this phase, read:**
 > - `specs/007-partial-returns-reversals/spec.md` — User Story 7 acceptance scenarios
 
-- [ ] T014 [US7] Add "إنشاء مرتجع" action to invoice list screen in `features/invoices/presentation/invoice_list_screen.dart`
+- [X] T014 [US7] Add "إنشاء مرتجع" action to invoice list screen in `features/invoices/presentation/invoice_list_screen.dart`
 
   **Objective**: Add a context action on active invoices in the list to create a return.
 
@@ -480,7 +480,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T015 [US7] Add "إنشاء مرتجع" action to invoice detail screen in `features/invoices/presentation/invoice_detail_screen.dart`
+- [X] T015 [US7] Add "إنشاء مرتجع" action to invoice detail screen in `features/invoices/presentation/invoice_detail_screen.dart`
 
   **Objective**: Add a "Create Return" button on the invoice detail screen for active invoices.
 
@@ -512,7 +512,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 > - `specs/007-partial-returns-reversals/spec.md` — full spec to verify against
 > - `.specify/memory/constitution.md` — governance rules
 
-- [ ] T016 Verify drawer entry for `/returns` exists in `shared/widgets/app_drawer.dart`
+- [X] T016 Verify drawer entry for `/returns` exists in `shared/widgets/app_drawer.dart`
 
   **Objective**: Ensure the returns screen is accessible from the app navigation drawer.
 
@@ -531,7 +531,7 @@ All source files are relative to `motaz_app/motaz_app_flutter/lib/`.
 
 ---
 
-- [ ] T017 Run `dart analyze` and fix any issues across all new and modified files
+- [X] T017 Run `dart analyze` and fix any issues across all new and modified files
 
   **Objective**: Ensure zero errors and zero warnings from Phase 7 files.
 

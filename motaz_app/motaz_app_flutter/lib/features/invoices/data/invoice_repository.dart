@@ -294,7 +294,21 @@ class InvoiceRepository {
   Future<int> getRemainingBalance(String invoiceId) async {
     final invoice = await getById(invoiceId);
     final collected = await getCollectedAmount(invoiceId);
-    return invoice.total - collected;
+    final returned = await getActiveReturnTotal(invoiceId);
+    return invoice.total - collected - returned;
+  }
+
+  Future<int> getActiveReturnTotal(String invoiceId) async {
+    final row = await _db.customSelect(
+      'SELECT COALESCE(SUM(total_returned_amount), 0) AS returned '
+      'FROM sales_returns '
+      'WHERE invoice_id = ? AND status = ?',
+      variables: [
+        Variable(invoiceId),
+        Variable(RecordStatus.ACTIVE.index),
+      ],
+    ).getSingle();
+    return row.read<int>('returned');
   }
 
   Future<bool> hasActiveReceipts(String invoiceId) async {
