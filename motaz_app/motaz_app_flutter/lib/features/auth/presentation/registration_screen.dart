@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/auth_provider.dart';
 import '../../../core/auth/auth_state.dart';
+import '../../../core/server/server_client_provider.dart';
 
 class RegistrationScreen extends ConsumerStatefulWidget {
   const RegistrationScreen({super.key});
@@ -27,6 +28,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
+    final appConfig = ref.watch(appConfigProvider);
 
     return Scaffold(
       body: Center(
@@ -42,15 +44,24 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('إنشاء حساب المالك', style: Theme.of(context).textTheme.headlineSmall),
+                      Text(
+                        'إنشاء حساب المالك',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
                       const SizedBox(height: 24),
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(labelText: 'البريد الإلكتروني'),
+                        decoration: const InputDecoration(
+                          labelText: 'البريد الإلكتروني',
+                        ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) return 'البريد الإلكتروني مطلوب';
-                          if (!value.contains('@')) return 'البريد الإلكتروني غير صالح';
+                          if (value == null || value.trim().isEmpty) {
+                            return 'البريد الإلكتروني مطلوب';
+                          }
+                          if (!value.contains('@')) {
+                            return 'البريد الإلكتروني غير صالح';
+                          }
                           return null;
                         },
                       ),
@@ -58,23 +69,43 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: 'كلمة المرور'),
+                        decoration: const InputDecoration(
+                          labelText: 'كلمة المرور',
+                        ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'كلمة المرور مطلوبة';
-                          if (value.length < 8) return 'كلمة المرور قصيرة جداً';
+                          if (value == null || value.isEmpty) {
+                            return 'كلمة المرور مطلوبة';
+                          }
+                          if (value.length < 8) {
+                            return 'كلمة المرور قصيرة جداً';
+                          }
                           return null;
                         },
                       ),
-                      if (authState is AuthUnauthenticated && authState.errorMessage != null) ...[
+                      if (authState is AuthUnauthenticated &&
+                          authState.errorMessage != null) ...[
                         const SizedBox(height: 16),
-                        Text(authState.errorMessage!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                        Text(
+                          authState.errorMessage!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
                       ],
+                      const SizedBox(height: 12),
+                      SelectableText(
+                        'الخادم الحالي: ${appConfig.effectiveApiUrl}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _submitting ? null : _submit,
-                          child: Text(_submitting ? 'جاري الإنشاء...' : 'إنشاء الحساب'),
+                          child: Text(
+                            _submitting ? 'جاري الإنشاء...' : 'إنشاء الحساب',
+                          ),
                         ),
                       ),
                     ],
@@ -91,7 +122,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
-    await ref.read(authControllerProvider).register(
+    await ref
+        .read(authControllerProvider)
+        .register(
           _emailController.text.trim(),
           _passwordController.text,
         );

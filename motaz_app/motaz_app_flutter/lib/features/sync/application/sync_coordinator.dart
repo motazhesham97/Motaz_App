@@ -17,11 +17,11 @@ class SyncCoordinator {
     required server.Client serverClient,
     required DeviceService deviceService,
     required Stream<ConnectivityStatus> connectivityStream,
-  }) : _db = db, _serverClient = serverClient, _deviceService = deviceService, _connectivityStream = connectivityStream, _outboxProcessor = OutboxProcessor(db: db, serverClient: serverClient), _pullProcessor = PullProcessor(db: db, serverClient: serverClient), _attachmentUploader = AttachmentUploader(db: db, serverClient: serverClient, deviceService: deviceService) {
+  }) : _serverClient = serverClient, _deviceService = deviceService, _connectivityStream = connectivityStream, _outboxProcessor = OutboxProcessor(db: db, serverClient: serverClient), _pullProcessor = PullProcessor(db: db, serverClient: serverClient), _attachmentUploader = AttachmentUploader(db: db, serverClient: serverClient, deviceService: deviceService) {
     _connectivitySubscription = _connectivityStream.listen(_onConnectivityChanged);
   }
 
-  final AppDatabase _db;
+
   final server.Client _serverClient;
   final DeviceService _deviceService;
   final Stream<ConnectivityStatus> _connectivityStream;

@@ -56,14 +56,14 @@ class AttachmentUploader {
       final approval = await _serverClient.attachment.requestUploadApproval(approvalRequest);
 
       if (!approval.approved) {
-        AppLogger.database.warning('Upload approval rejected: ' + (approval.rejectionReason ?? 'unknown'));
+        AppLogger.database.warning('Upload approval rejected: ${approval.rejectionReason ?? 'unknown'}');
         await _markFailed(entry.id);
         return;
       }
 
       final file = File(entry.localFilePath);
       if (!await file.exists()) {
-        AppLogger.database.warning('File not found: ' + entry.localFilePath);
+        AppLogger.database.warning('File not found: ${entry.localFilePath}');
         await _markFailed(entry.id);
         return;
       }
@@ -75,7 +75,7 @@ class AttachmentUploader {
         entry.fileType,
       );
 
-    final secureUrl = 'https://res.cloudinary.com/demo/image/upload/' + publicId;
+    final secureUrl = 'https://res.cloudinary.com/demo/image/upload/$publicId';
 
     final device = await _deviceService.currentDevice();
     final deviceId = device?.id ?? '00000000-0000-0000-0000-000000000000';
@@ -97,13 +97,13 @@ class AttachmentUploader {
           uploadStatus: Value('UPLOADED'),
           updatedAt: Value(now),
         ));
-        AppLogger.database.info('Attachment uploaded: ' + entry.id);
+        AppLogger.database.info('Attachment uploaded: ${entry.id}');
       } else {
-        AppLogger.database.warning('Upload confirm failed: ' + (confirmResponse.errorMessage ?? 'unknown'));
+        AppLogger.database.warning('Upload confirm failed: ${confirmResponse.errorMessage ?? 'unknown'}');
         await _markFailed(entry.id);
       }
   } catch (e) {
-    AppLogger.database.warning('Attachment upload error for ' + entry.id + ': ' + e.toString());
+    AppLogger.database.warning('Attachment upload error for ${entry.id}: $e');
     _retryCounts[entry.id] = retryCount + 1;
     await _markFailedWithRetry(entry.id, entry.createdAt);
   }
@@ -124,8 +124,8 @@ class AttachmentUploader {
     final fileName = file.uri.pathSegments.last;
     final body = <int>[];
     body.addAll(utf8.encode('--FlutterBoundary\r\n'));
-    body.addAll(utf8.encode('Content-Disposition: form-data; name="file"; filename="' + fileName + '"\r\n'));
-    body.addAll(utf8.encode('Content-Type: ' + fileType + '\r\n\r\n'));
+    body.addAll(utf8.encode('Content-Disposition: form-data; name="file"; filename="$fileName"\r\n'));
+    body.addAll(utf8.encode('Content-Type: $fileType\r\n\r\n'));
     body.addAll(bytes);
     body.addAll(utf8.encode('\r\n--FlutterBoundary\r\n'));
     body.addAll(utf8.encode('Content-Disposition: form-data; name="upload_preset"\r\n\r\n'));

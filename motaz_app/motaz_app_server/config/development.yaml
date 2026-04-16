@@ -27,14 +27,15 @@ webServer:
   publicPort: 8082
   publicScheme: http
 
-# This is the database setup for your server (Neon PostgreSQL).
+# This is the database setup for your server (local Docker PostgreSQL).
+# For Neon cloud database, use requireSsl: true and set env vars for Neon host.
 database:
   host: ${SERVERPOD_DATABASE_HOST}
   port: ${SERVERPOD_DATABASE_PORT}
   name: ${SERVERPOD_DATABASE_NAME}
   user: ${SERVERPOD_DATABASE_USER}
   requireSsl: true
-  maxConnectionCount: 10
+  maxConnectionCount: 30
 
 # This is the setup for Redis.
 redis:
@@ -42,12 +43,12 @@ redis:
   host: localhost
   port: 8091
   #user: # defaults to empty
-  #requireSsl: true # defaults to false
+  #requireSsl: false # defaults to false
 
 maxRequestSize: 524288 # The maximum size of requests allowed in bytes
 
 sessionLogs:
-  persistentEnabled: true
+  persistentEnabled: false
   consoleEnabled: true
   consoleLogFormat: text # Defaults to "json", options are "text" or "json"
 
