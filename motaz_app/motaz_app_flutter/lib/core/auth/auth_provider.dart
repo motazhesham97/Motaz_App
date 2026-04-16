@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:motaz_app_client/motaz_app_client.dart';
 
 import '../logging/app_logger.dart';
 import '../server/server_client_provider.dart';
@@ -13,8 +14,8 @@ class AuthController extends ChangeNotifier {
   AuthController({
     required dynamic client,
     required dynamic sessionManager,
-  })  : _client = client,
-        _sessionManager = sessionManager;
+  }) : _client = client,
+       _sessionManager = sessionManager;
 
   final dynamic _client;
   final dynamic _sessionManager;
@@ -47,7 +48,9 @@ class AuthController extends ChangeNotifier {
       AppLogger.auth.warning('Falling back to cached auth state: $error');
       _state = AuthUnauthenticated(
         hasAccount: cachedHasAccount,
-        errorMessage: cachedHasAccount ? 'تعذر الوصول إلى الخادم حالياً' : null,
+        errorMessage: cachedHasAccount
+            ? 'تعذر الوصول إلى الخادم حالياً'
+            : _userFacingError(error),
       );
     }
     notifyListeners();
@@ -65,11 +68,18 @@ class AuthController extends ChangeNotifier {
         notifyListeners();
       }
       return success;
+    } on OwnerAlreadyExistsException {
+      _state = const AuthUnauthenticated(
+        hasAccount: true,
+        errorMessage: 'يوجد حساب مالك بالفعل',
+      );
+      notifyListeners();
+      return false;
     } catch (error) {
       AppLogger.auth.warning('Registration failed: $error');
-      _state = const AuthUnauthenticated(
+      _state = AuthUnauthenticated(
         hasAccount: false,
-        errorMessage: 'فشل إنشاء الحساب',
+        errorMessage: _userFacingError(error),
       );
       notifyListeners();
       return false;
@@ -111,9 +121,9 @@ class AuthController extends ChangeNotifier {
       return true;
     } catch (error) {
       AppLogger.auth.warning('Sign-in failed: $error');
-      _state = const AuthUnauthenticated(
+      _state = AuthUnauthenticated(
         hasAccount: true,
-        errorMessage: 'فشل تسجيل الدخول',
+        errorMessage: _userFacingError(error, fallback: 'فشل تسجيل الدخول'),
       );
       notifyListeners();
       return false;
@@ -124,6 +134,55 @@ class AuthController extends ChangeNotifier {
     await _sessionManager.signOutDevice();
     _state = const AuthUnauthenticated(hasAccount: true);
     notifyListeners();
+  }
+
+  String _userFacingError(
+    Object error, {
+    String fallback = 'فشل إنشاء الحساب',
+  }) {
+    if (error is ServerpodClientBadRequest) {
+      return 'الطلب غير صالح: ${error.message}';
+    }
+    if (error is ServerpodClientUnauthorized) {
+      return 'فشل التحقق من الجلسة';
+    }
+    if (error is ServerpodClientForbidden) {
+      return 'ليس لديك صلاحية لإجراء هذه العملية';
+    }
+    if (error is ServerpodClientNotFound) {
+      return 'تعذر العثور على مسار الخادم المطلوب';
+    }
+    if (error is ServerpodClientInternalServerError) {
+      return 'حدث خطأ داخلي في الخادم أثناء تنفيذ الطلب';
+    }
+    if (error is ServerpodClientException) {
+      return 'فشل الطلب من الخادم: ${error.message}';
+    }
+
+    final message = error.toString().toLowerCase();
+    if (message.contains('socketexception') ||
+        message.contains('failed host lookup') ||
+        message.contains('connection refused') ||
+        message.contains('connection closed') ||
+        message.contains('timeout')) {
+      final host = _clientHost();
+      return host == null
+          ? 'تعذر الوصول إلى الخادم. تحقق من تشغيل Serverpod أو من ملف config.json بجانب التطبيق.'
+          : 'تعذر الوصول إلى الخادم: $host\nتحقق من تشغيل Serverpod أو من ملف config.json بجانب التطبيق.';
+    }
+    return fallback;
+  }
+
+  String? _clientHost() {
+    try {
+      final host = (_client.host as String?)?.trim();
+      if (host == null || host.isEmpty) {
+        return null;
+      }
+      return host;
+    } catch (_) {
+      return null;
+    }
   }
 }
 

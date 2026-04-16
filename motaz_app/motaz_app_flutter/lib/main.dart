@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:motaz_app_client/motaz_app_client.dart' as api;
 import 'package:serverpod_auth_client/serverpod_auth_client.dart' as auth;
@@ -21,16 +18,25 @@ void main() async {
   AppLogger.initialize();
 
   try {
-    final configJson =
-        jsonDecode(await rootBundle.loadString('assets/config.json'))
-            as Map<String, dynamic>;
-    final config = AppConfig.fromJson(configJson);
+    final config = await AppConfig.load();
 
     final database = AppDatabase.connect();
     await database.customSelect('SELECT 1').get();
     await DeviceService(database).ensureCurrentDevice();
 
-    final client = api.Client(config.apiUrl);
+    final client = api.Client(
+      config.effectiveApiUrl,
+      onSucceededCall: (context) {
+        AppLogger.server.info(
+          'Server call succeeded: ${context.endpointName}.${context.methodName}',
+        );
+      },
+      onFailedCall: (context, error, stackTrace) {
+        AppLogger.server.warning(
+          'Server call failed: ${context.endpointName}.${context.methodName} => $error',
+        );
+      },
+    );
     client.authKeyProvider = FlutterAuthenticationKeyManager(
       runMode: config.runMode,
     );
@@ -41,6 +47,7 @@ void main() async {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(database),
+          appConfigProvider.overrideWithValue(config),
           serverpodClientProvider.overrideWithValue(client),
           sessionManagerProvider.overrideWithValue(sessionManager),
         ],
@@ -50,7 +57,8 @@ void main() async {
   } catch (error) {
     runApp(
       StartupFailureApp(
-        errorMessage: 'تعذر الوصول إلى قاعدة البيانات أو ملفات التطبيق. قد تكون البيانات المحلية تالفة أو هناك مشكلة في الصلاحيات.\n\n$error',
+        errorMessage:
+            'تعذر الوصول إلى قاعدة البيانات أو ملفات التطبيق. قد تكون البيانات المحلية تالفة أو هناك مشكلة في الصلاحيات.\n\n$error',
         onReset: () async {
           await deleteLocalDatabase();
         },

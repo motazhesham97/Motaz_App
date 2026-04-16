@@ -11,6 +11,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
+import 'exceptions/owner_already_exists_exception.dart' as _i1a;
 import 'attachment_confirm_request.dart' as _i2;
 import 'attachment_confirm_response.dart' as _i3;
 import 'attachment_metadata.dart' as _i4;
@@ -55,6 +56,7 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i42;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _i43;
+export 'exceptions/owner_already_exists_exception.dart';
 export 'attachment_confirm_request.dart';
 export 'attachment_confirm_response.dart';
 export 'attachment_metadata.dart';
@@ -695,6 +697,9 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
       return _i43.Protocol().deserializeByClassName(data);
+    }
+    if (dataClassName == 'motaz_app_server.OwnerAlreadyExistsException') {
+      return _i1a.OwnerAlreadyExistsException.fromJson(data['data']);
     }
     return super.deserializeByClassName(data);
   }

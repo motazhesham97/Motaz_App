@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/enums/audit_operation.dart';
 import '../../../core/database/enums/parent_entity_type.dart';
+import '../../../core/database/enums/record_status.dart';
 import '../../../core/database/enums/sync_outbox_status.dart';
 import '../../../core/database/enums/sync_status.dart';
 
@@ -134,16 +135,39 @@ class ClientRepository {
   Future<int> getOutstandingBalance(String clientId) async {
     try {
       final invoiceSum = await _db.customSelect(
-        'SELECT COALESCE(SUM(total), 0) AS total FROM sales_invoices WHERE clientId = ? AND status != 2',
-        variables: [Variable(clientId)],
+        'SELECT COALESCE(SUM(total), 0) AS total FROM sales_invoices WHERE client_id = ? AND status = ?',
+        variables: [
+          Variable(clientId),
+          Variable(RecordStatus.ACTIVE.index),
+        ],
       ).getSingle();
 
-      final receiptSum = await _db.customSelect(
-        'SELECT COALESCE(SUM(amount), 0) AS total FROM receipts WHERE clientId = ? AND status != 2',
-        variables: [Variable(clientId)],
+      final receiptAllocSum = await _db.customSelect(
+        'SELECT COALESCE(SUM(ra.allocated_amount), 0) AS total '
+        'FROM receipt_allocations ra '
+        'INNER JOIN receipts r ON ra.receipt_id = r.id '
+        'INNER JOIN sales_invoices si ON si.id = ra.invoice_id '
+        'WHERE si.client_id = ? AND r.status = ?',
+        variables: [
+          Variable(clientId),
+          Variable(RecordStatus.ACTIVE.index),
+        ],
       ).getSingle();
 
-      return invoiceSum.read<int>('total') - receiptSum.read<int>('total');
+      final returnSum = await _db.customSelect(
+        'SELECT COALESCE(SUM(sr.total_returned_amount), 0) AS total '
+        'FROM sales_returns sr '
+        'INNER JOIN sales_invoices si ON si.id = sr.invoice_id '
+        'WHERE si.client_id = ? AND sr.status = ?',
+        variables: [
+          Variable(clientId),
+          Variable(RecordStatus.ACTIVE.index),
+        ],
+      ).getSingle();
+
+      return invoiceSum.read<int>('total') -
+          receiptAllocSum.read<int>('total') -
+          returnSum.read<int>('total');
     } catch (e) {
       return 0;
     }

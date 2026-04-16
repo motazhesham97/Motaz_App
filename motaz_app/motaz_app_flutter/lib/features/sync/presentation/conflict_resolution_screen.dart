@@ -53,10 +53,10 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               return ListTile(
                 leading: const Icon(Icons.warning_amber, color: Colors.orange),
                 title: Text(
-                  conflict.entityType.name + ' - ' + conflict.entityId.substring(0, 8),
+                  '${conflict.entityType.name} - ${conflict.entityId.substring(0, 8)}',
                 ),
                 subtitle: Text(
-                  conflict.conflictType + '  |  ' + conflict.createdAt.toString().substring(0, 19),
+                  '${conflict.conflictType}  |  ${conflict.createdAt.toString().substring(0, 19)}',
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
@@ -67,7 +67,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: ' + e.toString())),
+        error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
   }
@@ -95,7 +95,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               ),
               Expanded(
                 child: Text(
-                  conflict.entityType.name + ' Conflict',
+                  '${conflict.entityType.name} Conflict',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -193,14 +193,14 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
                         TextSpan(
                           text: '${e.key}: ',
                           style: TextStyle(
-                            backgroundColor: isDiff ? Colors.orange.withOpacity(0.3) : null,
+                            backgroundColor: isDiff ? Colors.orange.withValues(alpha: 0.3) : null,
                             fontWeight: isDiff ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
                         TextSpan(
                           text: e.value.toString(),
                           style: TextStyle(
-                            backgroundColor: isDiff ? Colors.orange.withOpacity(0.3) : null,
+                            backgroundColor: isDiff ? Colors.orange.withValues(alpha: 0.3) : null,
                           ),
                         ),
                       ],
@@ -231,6 +231,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
       ),
     );
     if (confirmed == true) {
+      if (!context.mounted) return;
       await _resolveConflict(context, conflict, chosenVersion);
     }
   }
@@ -260,6 +261,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
           resolvedAt: Value(DateTime.now()),
         ));
               ref.invalidate(_pendingConflictsProvider);
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Conflict resolved successfully')),
               );
@@ -267,13 +269,13 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               ref.invalidate(syncStateProvider);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Resolution failed: ' + (response.errorMessage ?? 'unknown'))),
+          SnackBar(content: Text('Resolution failed: ${response.errorMessage ?? 'unknown'}')),
         );
       }
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ' + e.toString())),
+        SnackBar(content: Text('Error: $e')),
       );
     } finally {
       if (mounted) { setState(() { _resolving = false; }); }

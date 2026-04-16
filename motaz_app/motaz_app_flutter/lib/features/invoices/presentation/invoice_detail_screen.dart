@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
@@ -27,6 +28,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
   List<Receipt> _receipts = [];
   Client? _client;
   int _collectedAmount = 0;
+  int _returnAmount = 0;
   int _remainingBalance = 0;
   bool _hasReceipts = false;
   bool _hasReturns = false;
@@ -47,6 +49,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       final lines = await repo.getLinesForInvoice(widget.invoiceId);
       final receipts = await repo.getReceiptsForInvoice(widget.invoiceId);
       final collected = await repo.getCollectedAmount(widget.invoiceId);
+      final returned = await repo.getActiveReturnTotal(widget.invoiceId);
       final remaining = await repo.getRemainingBalance(widget.invoiceId);
       final hasR = await repo.hasActiveReceipts(widget.invoiceId);
       final hasRet = await repo.hasActiveReturns(widget.invoiceId);
@@ -68,6 +71,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
           _lines = lines;
           _receipts = receipts;
           _collectedAmount = collected;
+          _returnAmount = returned;
           _remainingBalance = remaining;
           _hasReceipts = hasR;
           _hasReturns = hasRet;
@@ -280,7 +284,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'المدفوعات',
+                      'المدفوعات والمرتجعات',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
@@ -301,7 +305,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                               '${_formatMoney(r.amount)} - ${r.receiptDate.year}-${r.receiptDate.month.toString().padLeft(2, '0')}-${r.receiptDate.day.toString().padLeft(2, '0')}',
                             ),
                           ),
-                      ),
+                        ),
                     const Divider(),
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -314,6 +318,21 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         ],
                       ),
                     ),
+                    if (_returnAmount > 0)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('المرتجع:'),
+                            Text(
+                              _formatMoney(_returnAmount),
+                              style: const TextStyle(color: Colors.orange),
+                            ),
+                          ],
+                        ),
+                      ),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 4),
@@ -359,6 +378,15 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       },
                       icon: const Icon(Icons.edit),
                       label: const Text('تعديل'),
+                    ),
+                  ),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        context.go('/returns/create?invoiceId=${widget.invoiceId}');
+                      },
+                      icon: const Icon(Icons.assignment_return),
+                      label: const Text('إنشاء مرتجع'),
                     ),
                   ),
                   if (_remainingBalance > 0)
