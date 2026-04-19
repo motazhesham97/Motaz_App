@@ -48,6 +48,8 @@ dependencies:
   motaz_app_client:
     path: ../motaz_app_client
   serverpod_flutter: 3.4.4
+  pdf: ^3.11.1
+  printing: ^5.13.3
 
 dev_dependencies:
   flutter_lints: '>=3.0.0 <7.0.0'
@@ -80,6 +82,8 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    - assets/fonts/Cairo-Regular.ttf
+    - assets/fonts/Cairo-Bold.ttf
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
