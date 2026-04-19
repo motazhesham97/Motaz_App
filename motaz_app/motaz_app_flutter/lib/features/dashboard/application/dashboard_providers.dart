@@ -4,6 +4,7 @@ import '../../../core/database/database_provider.dart';
 import '../../../core/database/enums/expense_category.dart';
 import '../../party_balances/application/party_balance_providers.dart';
 import '../../profit_distribution/application/profit_providers.dart';
+import '../data/dashboard_models.dart';
 import '../data/dashboard_queries.dart';
 
 final dashboardQueriesProvider = Provider<DashboardQueries>((ref) {
@@ -27,4 +28,21 @@ final dashboardPartyBalancesProvider =
 final dashboardExpenseSummaryProvider =
     FutureProvider<Map<ExpenseCategory, int>>((ref) {
   return ref.watch(dashboardQueriesProvider).getThisMonthExpensesByCategory();
+});
+
+final dashboardTodayNetSalesProvider = FutureProvider<int>((ref) {
+  return ref.watch(dashboardQueriesProvider).getTodayNetSales();
+});
+
+final dashboardThisMonthNetSalesProvider = FutureProvider<int>((ref) {
+  return ref.watch(dashboardQueriesProvider).getThisMonthNetSales();
+});
+
+final dashboardReceivablesTotalProvider = FutureProvider<int>((ref) {
+  return ref.watch(dashboardQueriesProvider).getOutstandingReceivablesTotal();
+});
+
+final dashboardActivityFeedProvider =
+    FutureProvider<List<ActivityFeedItem>>((ref) {
+  return ref.watch(dashboardQueriesProvider).getRecentActivityFeed();
 });
