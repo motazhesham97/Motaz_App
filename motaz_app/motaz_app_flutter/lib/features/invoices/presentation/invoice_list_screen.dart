@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/audit_trail_sheet.dart';
 import '../../clients/application/client_providers.dart';
 import '../application/invoice_providers.dart';
 import 'invoice_detail_screen.dart';
@@ -120,23 +122,34 @@ return Opacity(
                                ],
                              ],
                            ),
-                           trailing: invoice.status == RecordStatus.ACTIVE
-                               ? PopupMenuButton<String>(
-                                   icon: const Icon(Icons.more_vert),
-                                   onSelected: (value) {
-                                     if (value == 'return') {
-                                       context.go(
-                                           '/returns/create?invoiceId=${invoice.id}');
-                                     }
-                                   },
-                                   itemBuilder: (context) => [
-                                     const PopupMenuItem(
-                                       value: 'return',
-                                       child: Text('إنشاء مرتجع'),
-                                     ),
-                                   ],
-                                 )
-                               : null,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.history, size: 20),
+                                  tooltip: 'سجل التعديلات',
+                                  onPressed: () {
+                                    showAuditTrailSheet(context, ref, ParentEntityType.SALES_INVOICE, invoice.id);
+                                  },
+                                ),
+                                if (invoice.status == RecordStatus.ACTIVE)
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert),
+                                    onSelected: (value) {
+                                      if (value == 'return') {
+                                        context.go(
+                                            '/returns/create?invoiceId=${invoice.id}');
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(
+                                        value: 'return',
+                                        child: Text('إنشاء مرتجع'),
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
                            onTap: () {
                              Navigator.push(
                                context,

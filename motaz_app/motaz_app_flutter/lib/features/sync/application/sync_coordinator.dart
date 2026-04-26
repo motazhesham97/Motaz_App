@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:motaz_app_client/motaz_app_client.dart' as server;
 
@@ -37,6 +38,7 @@ class SyncCoordinator {
   bool _isRunning = false;
   bool _deviceRegistered = false;
   ConnectivityStatus _lastConnectivity = ConnectivityStatus.offline;
+  DateTime? _lastSyncAttempt;
 
   Stream<SyncState> get stateStream => _stateController.stream;
   SyncState get currentState => _state;
@@ -60,34 +62,46 @@ class SyncCoordinator {
       final response = await _serverClient.device.registerDevice(request);
       if (response.success) {
         _deviceRegistered = true;
-        AppLogger.database.info('Device registered: ${device.id}');
+        AppLogger.sync.info('Device registered: ${device.id}');
         return true;
       }
-      AppLogger.database.warning('Device registration failed');
+      AppLogger.sync.warning('Device registration failed');
       return false;
     } catch (e) {
-      AppLogger.database.warning('Device registration error: $e');
+      AppLogger.sync.warning('Device registration error: $e');
       return false;
     }
   }
 
   Future<void> runSyncCycle() async {
     if (_isRunning) return;
+    if (_lastSyncAttempt != null &&
+        DateTime.now().difference(_lastSyncAttempt!) <
+            const Duration(seconds: 10)) {
+      return;
+    }
     _isRunning = true;
     try {
       await ensureDeviceRegistered();
+      _lastSyncAttempt = DateTime.now();
       _emitState(_state.copyWith(status: SyncPhase.pushing));
       await _outboxProcessor.processPending();
-    _emitState(_state.copyWith(status: SyncPhase.pulling));
-    await _pullProcessor.pullAllEntityTypes();
-    await _attachmentUploader.processPending();
-    _emitState(_state.copyWith(
+      _emitState(_state.copyWith(status: SyncPhase.pulling));
+      await _pullProcessor.pullAllEntityTypes();
+      await _attachmentUploader.processPending();
+      _emitState(_state.copyWith(
         status: SyncPhase.idle,
         lastSyncedAt: DateTime.now(),
         clearError: true,
       ));
+    } on SocketException catch (e) {
+      AppLogger.sync.info('Transient network error: $e');
+      _emitState(_state.copyWith(status: SyncPhase.idle));
+    } on TimeoutException catch (e) {
+      AppLogger.sync.info('Transient timeout error: $e');
+      _emitState(_state.copyWith(status: SyncPhase.idle));
     } catch (e) {
-      AppLogger.database.warning('Sync cycle error: $e');
+      AppLogger.sync.warning('Sync cycle error: $e');
       _emitState(_state.copyWith(
         status: SyncPhase.error,
         errorMessage: e.toString(),

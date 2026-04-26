@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/device_service.dart';
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/audit_trail_sheet.dart';
 import '../application/expense_providers.dart';
 import 'expense_form_screen.dart' show ExpenseFormScreen, categoryLabel;
 
@@ -196,6 +198,13 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              IconButton(
+                                icon: const Icon(Icons.history, size: 20),
+                                tooltip: 'سجل التعديلات',
+                                onPressed: () {
+                                  showAuditTrailSheet(context, ref, ParentEntityType.EXPENSE, expense.id);
+                                },
+                              ),
                               if (isVoided)
                                 Container(
                                   padding: const EdgeInsets.symmetric(

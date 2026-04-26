@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/device_service.dart';
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
 import '../../../core/database/enums/receipt_type.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/audit_trail_sheet.dart';
 import '../../clients/application/client_providers.dart';
 import '../application/receipt_providers.dart';
 import 'receipt_form_screen.dart';
@@ -193,6 +195,13 @@ class _ReceiptListScreenState extends ConsumerState<ReceiptListScreen> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                IconButton(
+                                  icon: const Icon(Icons.history, size: 20),
+                                  tooltip: 'سجل التعديلات',
+                                  onPressed: () {
+                                    showAuditTrailSheet(context, ref, ParentEntityType.RECEIPT, receipt.id);
+                                  },
+                                ),
                                 if (isVoided)
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

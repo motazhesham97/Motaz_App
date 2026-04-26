@@ -16,7 +16,8 @@ import '../../features/receipts/presentation/receipt_list_screen.dart';
 import '../../features/reports/presentation/placeholder_screen.dart';
 import '../../features/returns/presentation/return_form_screen.dart';
 import '../../features/returns/presentation/return_list_screen.dart';
-import '../../features/settings/presentation/placeholder_screen.dart';
+import '../../features/settings/presentation/log_viewer_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 import '../auth/auth_provider.dart';
 import '../auth/auth_state.dart';
 
@@ -70,7 +71,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/reports', builder: (context, state) => const ReportsPlaceholderScreen()),
       GoRoute(path: '/party-balances', builder: (context, state) => const PartyBalancesScreen()),
       GoRoute(path: '/distributions', builder: (context, state) => const DistributionScreen()),
-      GoRoute(path: '/settings', builder: (context, state) => const SettingsPlaceholderScreen()),
+      GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
+      GoRoute(path: '/settings/logs', builder: (context, state) => const LogViewerScreen()),
     ],
   );
 });

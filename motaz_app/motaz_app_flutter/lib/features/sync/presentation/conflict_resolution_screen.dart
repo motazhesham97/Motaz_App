@@ -36,12 +36,12 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Conflict Resolution'),
+        title: const Text('حل التعارضات'),
       ),
       body: conflictsAsync.when(
         data: (conflicts) {
           if (conflicts.isEmpty) {
-            return const Center(child: Text('No pending conflicts'));
+            return const Center(child: Text('لا توجد تعارضات معلقة'));
           }
           if (_selectedConflict != null) {
             return _buildDetail(context, _selectedConflict!);
@@ -53,7 +53,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               return ListTile(
                 leading: const Icon(Icons.warning_amber, color: Colors.orange),
                 title: Text(
-                  '${conflict.entityType.name} - ${conflict.entityId.substring(0, 8)}',
+                  '${_entityTypeLabel(conflict.entityType)} - ${conflict.entityId.substring(0, 8)}',
                 ),
                 subtitle: Text(
                   '${conflict.conflictType}  |  ${conflict.createdAt.toString().substring(0, 19)}',
@@ -67,10 +67,24 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(child: Text('خطأ: $e')),
       ),
     );
   }
+
+  String _entityTypeLabel(ParentEntityType type) => switch (type) {
+        ParentEntityType.SALES_INVOICE => 'فاتورة',
+        ParentEntityType.SALES_INVOICE_LINE => 'بند فاتورة',
+        ParentEntityType.RECEIPT => 'سند قبض',
+        ParentEntityType.RECEIPT_ALLOCATION => 'تخصيص سند',
+        ParentEntityType.PRODUCT => 'منتج',
+        ParentEntityType.CLIENT => 'عميل',
+        ParentEntityType.EXPENSE => 'مصروف',
+        ParentEntityType.SALES_RETURN => 'مرتجع',
+        ParentEntityType.SALES_RETURN_LINE => 'بند مرتجع',
+        ParentEntityType.ATTACHMENT_METADATA => 'مرفق',
+        ParentEntityType.MONTHLY_DISTRIBUTION => 'توزيع شهري',
+      };
 
   Widget _buildDetail(BuildContext context, ConflictLog conflict) {
     Map<String, dynamic>? localPayload;
@@ -81,6 +95,14 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
     try {
       remotePayload = jsonDecode(conflict.remotePayload) as Map<String, dynamic>;
     } catch (_) {}
+
+    final db = ref.read(appDatabaseProvider);
+    final localDeviceId = localPayload?['deviceId'] as String?;
+    final remoteDeviceId = remotePayload?['deviceId'] as String?;
+    final localDeviceFuture = _resolveDeviceName(db, localDeviceId);
+    final remoteDeviceFuture = _resolveDeviceName(db, remoteDeviceId);
+    final localTimestamp = _extractTimestamp(localPayload);
+    final remoteTimestamp = _extractTimestamp(remotePayload);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -95,7 +117,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               ),
               Expanded(
                 child: Text(
-                  '${conflict.entityType.name} Conflict',
+                  'تعارض ${_entityTypeLabel(conflict.entityType)}',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -107,7 +129,8 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
             Expanded(
               child: _buildPayloadCard(
                 context,
-                'Local',
+                localDeviceFuture,
+                localTimestamp,
                 localPayload,
                 remotePayload,
                 Colors.blue,
@@ -117,7 +140,8 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
             Expanded(
               child: _buildPayloadCard(
                 context,
-                'Remote',
+                remoteDeviceFuture,
+                remoteTimestamp,
                 remotePayload,
                 localPayload,
                 Colors.green,
@@ -135,7 +159,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               child: ElevatedButton.icon(
                 onPressed: () => _confirmAndResolve(context, conflict, 'local'),
                 icon: const Icon(Icons.phone_android),
-                label: const Text('Choose Local'),
+                label: const Text('اختيار نسخة هذا الجهاز'),
                 style: ElevatedButton.styleFrom(foregroundColor: Colors.blue),
               ),
             ),
@@ -144,7 +168,7 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               child: ElevatedButton.icon(
                 onPressed: () => _confirmAndResolve(context, conflict, 'remote'),
                 icon: const Icon(Icons.cloud),
-                label: const Text('Choose Remote'),
+                label: const Text('اختيار النسخة الأخرى'),
                 style: ElevatedButton.styleFrom(foregroundColor: Colors.green),
               ),
             ),
@@ -155,9 +179,34 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
     );
   }
 
+  Future<String> _resolveDeviceName(AppDatabase db, String? deviceId) async {
+    if (deviceId == null) return 'جهاز غير معروف';
+    try {
+      final device = await (db.select(db.devices)
+            ..where((t) => t.id.equals(deviceId)))
+          .getSingleOrNull();
+      return device?.deviceName ?? 'جهاز غير معروف';
+    } catch (_) {
+      return 'جهاز غير معروف';
+    }
+  }
+
+  String? _extractTimestamp(Map<String, dynamic>? payload) {
+    final ts = payload?['createdAt'] ?? payload?['created_at'];
+    if (ts == null) return null;
+    try {
+      final dt = ts is String ? DateTime.parse(ts) : ts is DateTime ? ts : null;
+      if (dt == null) return null;
+      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return null;
+    }
+  }
+
   Widget _buildPayloadCard(
     BuildContext context,
-    String title,
+    Future<String> deviceNameFuture,
+    String? timestamp,
     Map<String, dynamic>? payload,
     Map<String, dynamic>? otherPayload,
     Color color,
@@ -177,7 +226,16 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 16)),
+            FutureBuilder<String>(
+              future: deviceNameFuture,
+              builder: (context, snapshot) {
+                final name = snapshot.data ?? 'جهاز غير معروف';
+                return Text(
+                  timestamp != null ? '$name  ($timestamp)' : name,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14),
+                );
+              },
+            ),
             const SizedBox(height: 8),
             if (payload == null)
               const SelectableText('Unable to parse payload', style: TextStyle(fontFamily: 'monospace', fontSize: 11))
@@ -222,11 +280,11 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Confirm ${chosenVersion == 'local' ? 'Local' : 'Remote'} Version'),
-        content: Text('Are you sure you want to choose the $chosenVersion version? This action cannot be undone.'),
+        title: const Text('تأكيد اختيار النسخة'),
+        content: const Text('هل أنت متأكد من اختيار هذه النسخة؟ لا يمكن التراجع عن هذا الإجراء.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirm')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('تأكيد')),
         ],
       ),
     );
@@ -263,19 +321,19 @@ class _ConflictResolutionScreenState extends ConsumerState<ConflictResolutionScr
               ref.invalidate(_pendingConflictsProvider);
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Conflict resolved successfully')),
+                const SnackBar(content: Text('تم حل التعارض بنجاح')),
               );
               setState(() { _selectedConflict = null; });
               ref.invalidate(syncStateProvider);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Resolution failed: ${response.errorMessage ?? 'unknown'}')),
+          SnackBar(content: Text('فشل حل التعارض: ${response.errorMessage ?? 'unknown'}')),
         );
       }
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('خطأ: $e')),
       );
     } finally {
       if (mounted) { setState(() { _resolving = false; }); }

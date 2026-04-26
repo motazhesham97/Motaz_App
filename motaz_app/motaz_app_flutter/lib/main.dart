@@ -15,7 +15,7 @@ import 'core/server/server_client_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  AppLogger.initialize();
+  await AppLogger.initialize();
 
   try {
     final config = await AppConfig.load();

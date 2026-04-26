@@ -4,6 +4,7 @@ import '../enums/audit_operation.dart';
 import '../enums/sync_outbox_status.dart';
 import 'devices.dart';
 
+@TableIndex(name: 'idx_outbox_status', columns: {#status})
 class SyncOutbox extends Table {
   TextColumn get id => text().withLength(min: 36, max: 36)();
   IntColumn get entityType => intEnum<ParentEntityType>()();

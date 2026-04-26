@@ -11,6 +11,7 @@ class SyncState {
   final DateTime? lastSyncedAt;
   final String? errorMessage;
   final int unresolvedConflictCount;
+  final int failedCount;
 
   const SyncState({
     this.status = SyncPhase.idle,
@@ -18,6 +19,7 @@ class SyncState {
     this.lastSyncedAt,
     this.errorMessage,
     this.unresolvedConflictCount = 0,
+    this.failedCount = 0,
   });
 
   SyncState copyWith({
@@ -27,6 +29,7 @@ class SyncState {
     String? errorMessage,
     bool clearError = false,
     int? unresolvedConflictCount,
+    int? failedCount,
   }) {
     return SyncState(
       status: status ?? this.status,
@@ -35,6 +38,7 @@ class SyncState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       unresolvedConflictCount:
           unresolvedConflictCount ?? this.unresolvedConflictCount,
+      failedCount: failedCount ?? this.failedCount,
     );
   }
 }

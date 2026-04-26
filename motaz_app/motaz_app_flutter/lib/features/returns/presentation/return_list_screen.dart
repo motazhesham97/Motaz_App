@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/database/device_service.dart';
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/audit_trail_sheet.dart';
 import '../application/return_providers.dart';
 
 class ReturnListScreen extends ConsumerStatefulWidget {
@@ -217,8 +219,18 @@ class _ReturnListScreenState extends ConsumerState<ReturnListScreen> {
                                 ),
                             ],
                           ),
-                          trailing: isVoided
-                              ? Container(
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.history, size: 20),
+                                tooltip: 'سجل التعديلات',
+                                onPressed: () {
+                                  showAuditTrailSheet(context, ref, ParentEntityType.SALES_RETURN, ret.id);
+                                },
+                              ),
+                              if (isVoided)
+                                Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
@@ -230,7 +242,8 @@ class _ReturnListScreenState extends ConsumerState<ReturnListScreen> {
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 )
-                              : PopupMenuButton<String>(
+                              else
+                                PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert),
                                   onSelected: (value) {
                                     if (value == 'void') {
@@ -243,8 +256,10 @@ class _ReturnListScreenState extends ConsumerState<ReturnListScreen> {
                                       child: Text('إلغاء المرتجع'),
                                     ),
                                   ],
-                                ),
-                        ),
+                                 ),
+                            ],
+                          ),
+                         ),
                       );
                     },
                   );

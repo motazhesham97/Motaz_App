@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../logging/app_logger.dart';
 import 'enums/enums.dart';
 import 'tables/devices.dart';
 import 'tables/sync_outbox.dart';
@@ -51,7 +52,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -60,34 +61,51 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        if (from < 2) {
-          await m.createTable(products);
-          await m.createTable(clients);
-          await m.createTable(salesInvoices);
-          await m.createTable(salesInvoiceLines);
-          await m.createTable(receipts);
-          await m.createTable(receiptAllocations);
-          await m.createTable(expenses);
-          await m.createIndex(idxExpenseDate);
-          await m.createIndex(idxExpenseCategory);
-          await m.createIndex(idxExpenseStatus);
-          await m.createTable(salesReturns);
-          await m.createTable(salesReturnLines);
-          await m.createTable(attachmentMetadata);
-          await m.createIndex(idxAttachmentParent);
-          await m.createTable(localAttachmentStaging);
-          await m.createTable(auditEvents);
-          await m.createTable(conflictLogs);
+        final dbFolder = await getApplicationDocumentsDirectory();
+        final dbFile = File(p.join(dbFolder.path, 'motaz_app.db'));
+        final backupFile = File(p.join(dbFolder.path, 'motaz_app.db.backup'));
+        if (dbFile.existsSync()) {
+          await dbFile.copy(backupFile.path);
         }
-        if (from < 3) {
-          await m.addColumn(products, products.costPrice);
-          await m.addColumn(products, products.unit);
-          await m.addColumn(products, products.sku);
-          await m.addColumn(clients, clients.email);
-          await m.addColumn(clients, clients.address);
-        }
-        if (from < 4) {
-          await m.createTable(monthlyDistributions);
+        try {
+          if (from < 2) {
+            await m.createTable(products);
+            await m.createTable(clients);
+            await m.createTable(salesInvoices);
+            await m.createTable(salesInvoiceLines);
+            await m.createTable(receipts);
+            await m.createTable(receiptAllocations);
+            await m.createTable(expenses);
+            await m.createIndex(idxExpenseDate);
+            await m.createIndex(idxExpenseCategory);
+            await m.createIndex(idxExpenseStatus);
+            await m.createTable(salesReturns);
+            await m.createTable(salesReturnLines);
+            await m.createTable(attachmentMetadata);
+            await m.createIndex(idxAttachmentParent);
+            await m.createTable(localAttachmentStaging);
+            await m.createTable(auditEvents);
+            await m.createTable(conflictLogs);
+          }
+          if (from < 3) {
+            await m.addColumn(products, products.costPrice);
+            await m.addColumn(products, products.unit);
+            await m.addColumn(products, products.sku);
+            await m.addColumn(clients, clients.email);
+            await m.addColumn(clients, clients.address);
+          }
+          if (from < 4) {
+            await m.createTable(monthlyDistributions);
+          }
+          if (from < 5) {
+            await m.createIndex(idxOutboxStatus);
+          }
+          if (backupFile.existsSync()) {
+            await backupFile.delete();
+          }
+        } catch (e) {
+          AppLogger.database.severe('Migration from v$from to v$to failed: $e');
+          rethrow;
         }
       },
     );

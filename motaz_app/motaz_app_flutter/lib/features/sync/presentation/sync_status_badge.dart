@@ -17,7 +17,10 @@ class SyncStatusBadge extends ConsumerWidget {
       data: (syncState) {
     final pendingCount = pendingAsync.value ?? 0;
     final conflictCount = conflictAsync.value ?? 0;
-        return _buildContent(context, syncState, pendingCount, conflictCount, ref);
+        return GestureDetector(
+          onTap: () => _showSyncInfoSheet(context, syncState, pendingCount, conflictCount, ref),
+          child: _buildContent(context, syncState, pendingCount, conflictCount, ref),
+        );
       },
       loading: () => const Padding(
         padding: EdgeInsets.all(8),
@@ -27,7 +30,7 @@ class SyncStatusBadge extends ConsumerWidget {
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
-      error: (_, __) => const Icon(Icons.sync_problem, size: 20, color: Colors.grey),
+      error: (_, _) => const Icon(Icons.sync_problem, size: 20, color: Colors.grey),
     );
   }
 
@@ -38,16 +41,10 @@ class SyncStatusBadge extends ConsumerWidget {
     int conflictCount,
     WidgetRef ref,
   ) {
-    final lastSyncedStr = syncState.lastSyncedAt != null
-        ? 'Last synced: ${syncState.lastSyncedAt!.toLocal().toString().substring(0, 19)}'
-        : 'Not synced yet';
     switch (syncState.status) {
       case SyncPhase.idle:
         if (pendingCount == 0 && conflictCount == 0) {
-          return Tooltip(
-            message: 'Synced\n$lastSyncedStr',
-            child: const Icon(Icons.check_circle, size: 20, color: Colors.green),
-          );
+          return const Icon(Icons.check_circle, size: 20, color: Colors.green);
         }
         if (conflictCount > 0) {
           return _buildConflictBadge(context, conflictCount);
@@ -64,15 +61,7 @@ class SyncStatusBadge extends ConsumerWidget {
           ),
         );
       case SyncPhase.error:
-        return GestureDetector(
-          onTap: () {
-            ref.read(syncCoordinatorProvider).retryAndSync();
-          },
-          child: Tooltip(
-            message: 'Tap to retry\n${syncState.errorMessage ?? "Unknown error"}',
-            child: const Icon(Icons.error_outline, size: 20, color: Colors.red),
-          ),
-        );
+        return const Icon(Icons.error_outline, size: 20, color: Colors.red);
     }
   }
 
@@ -88,6 +77,105 @@ class SyncStatusBadge extends ConsumerWidget {
       label: Text(count.toString()),
       backgroundColor: Colors.orange,
       child: const Icon(Icons.warning_amber_rounded, size: 20, color: Colors.orange),
+    );
+  }
+
+  void _showSyncInfoSheet(
+    BuildContext context,
+    SyncState syncState,
+    int pendingCount,
+    int conflictCount,
+    WidgetRef ref,
+  ) {
+    final String statusLabel;
+    switch (syncState.status) {
+      case SyncPhase.idle:
+        statusLabel = 'متزامن';
+      case SyncPhase.pushing:
+      case SyncPhase.pulling:
+        statusLabel = 'قيد المزامنة';
+      case SyncPhase.error:
+        statusLabel = 'خطأ في المزامنة';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: Icon(
+                  syncState.status == SyncPhase.error
+                      ? Icons.error_outline
+                      : syncState.status == SyncPhase.idle
+                          ? Icons.check_circle
+                          : Icons.sync,
+                  color: syncState.status == SyncPhase.error
+                      ? Colors.red
+                      : syncState.status == SyncPhase.idle
+                          ? Colors.green
+                          : Colors.blue,
+                ),
+                title: Text(statusLabel, style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_upload_outlined),
+                title: Text('التغييرات المعلقة: $pendingCount'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.access_time),
+                title: Text(
+                  syncState.lastSyncedAt != null
+                      ? 'آخر مزامنة: ${syncState.lastSyncedAt!.toLocal().toString().substring(0, 16)}'
+                      : 'لم تتم المزامنة بعد',
+                ),
+              ),
+              if (conflictCount > 0)
+                ListTile(
+                  leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  title: Text('التعارضات: $conflictCount'),
+                ),
+              if (syncState.failedCount > 0)
+                ListTile(
+                  leading: const Icon(Icons.error_outline, color: Colors.red),
+                  title: Text('فشل المزامنة: ${syncState.failedCount}'),
+                ),
+              if (syncState.status == SyncPhase.error)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ref.read(syncCoordinatorProvider).retryAndSync();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('إعادة المحاولة'),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
