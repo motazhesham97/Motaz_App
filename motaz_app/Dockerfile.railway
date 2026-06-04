@@ -2,18 +2,22 @@ FROM dart:stable
 
 WORKDIR /app
 
-# Copy only backend packages.
-# Do NOT copy Flutter app because it requires Flutter SDK.
+# Copy backend packages only.
+# Do NOT copy motaz_app_flutter because it requires Flutter SDK.
 COPY motaz_app_client ./motaz_app_client
 COPY motaz_app_server ./motaz_app_server
 
 # Install Serverpod CLI.
-# IMPORTANT: keep this version aligned with your serverpod package version.
+# Keep this version aligned with your Serverpod package version.
 RUN dart pub global activate serverpod_cli 3.4.7
 
 ENV PATH="/root/.pub-cache/bin:${PATH}"
 
-# Serverpod generation must happen before running the server.
+# Remove Dart workspace resolution for Railway server-only build.
+# The original project can keep workspace mode locally.
+RUN sed -i '/^[[:space:]]*resolution:[[:space:]]*workspace[[:space:]]*$/d' /app/motaz_app_server/pubspec.yaml && \
+    sed -i '/^[[:space:]]*resolution:[[:space:]]*workspace[[:space:]]*$/d' /app/motaz_app_client/pubspec.yaml
+
 WORKDIR /app/motaz_app_server
 
 RUN dart pub get
