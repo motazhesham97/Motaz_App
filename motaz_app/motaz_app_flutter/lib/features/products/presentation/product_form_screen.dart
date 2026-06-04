@@ -12,8 +12,7 @@ class ProductFormScreen extends ConsumerStatefulWidget {
   final Product? existingProduct;
 
   @override
-  ConsumerState<ProductFormScreen> createState() =>
-      _ProductFormScreenState();
+  ConsumerState<ProductFormScreen> createState() => _ProductFormScreenState();
 }
 
 class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
@@ -21,9 +20,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  final _costPriceController = TextEditingController();
   final _unitController = TextEditingController();
   final _skuController = TextEditingController();
+  final _shelfLifeDaysController = TextEditingController();
   bool _saving = false;
 
   bool get _isEditing => widget.existingProduct != null;
@@ -36,11 +35,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       _nameController.text = p.name;
       _descriptionController.text = p.description ?? '';
       _priceController.text = (p.defaultSalePrice / 100).toStringAsFixed(2);
-      if (p.costPrice != null) {
-        _costPriceController.text = (p.costPrice! / 100).toStringAsFixed(2);
-      }
       _unitController.text = p.unit ?? '';
       _skuController.text = p.sku ?? '';
+      _shelfLifeDaysController.text = p.shelfLifeDays?.toString() ?? '';
     }
   }
 
@@ -49,9 +46,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
-    _costPriceController.dispose();
     _unitController.dispose();
     _skuController.dispose();
+    _shelfLifeDaysController.dispose();
     super.dispose();
   }
 
@@ -69,37 +66,36 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     if (!mounted) return;
     if (taken) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('اسم المنتج مستخدم بالفعل')),      );
+        const SnackBar(content: Text('اسم المنتج مستخدم بالفعل')),
+      );
       return;
     }
 
     setState(() => _saving = true);
 
     try {
-      final device =
-          await ref.read(deviceServiceProvider).ensureCurrentDevice();
+      final device = await ref
+          .read(deviceServiceProvider)
+          .ensureCurrentDevice();
       if (!mounted) return;
 
-      final salePrice =
-          (double.parse(_priceController.text.trim()) * 100).round();
-
-      int? costPrice;
-      final costPriceText = _costPriceController.text.trim();
-      if (costPriceText.isNotEmpty) {
-        costPrice = (double.parse(costPriceText) * 100).round();
-      }
-
+      final salePrice = (double.parse(_priceController.text.trim()) * 100)
+          .round();
       final desc = _descriptionController.text.trim();
       final unit = _unitController.text.trim();
       final sku = _skuController.text.trim();
+      final shelfLifeText = _shelfLifeDaysController.text.trim();
+      final shelfLifeDays = shelfLifeText.isEmpty
+          ? null
+          : int.parse(shelfLifeText);
 
       final companion = ProductsCompanion(
         name: Value(name),
         description: Value(desc.isEmpty ? null : desc),
         defaultSalePrice: Value(salePrice),
-        costPrice: Value(costPrice),
         unit: Value(unit.isEmpty ? null : unit),
         sku: Value(sku.isEmpty ? null : sku),
+        shelfLifeDays: Value(shelfLifeDays),
         deviceId: Value(device.id),
       );
 
@@ -146,7 +142,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                     return 'اسم المنتج مطلوب';
                   }
                   if (v.trim().length > 200) {
-                    return 'اسم المنتج طويل جداً';
+                    return 'اسم المنتج طويل جدا';
                   }
                   return null;
                 },
@@ -154,9 +150,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'الوصف',
-                ),
+                decoration: const InputDecoration(labelText: 'الوصف'),
                 maxLines: 3,
                 textInputAction: TextInputAction.next,
               ),
@@ -168,8 +162,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   hintText: '500.00',
                   suffixText: 'ر.ي.',
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textInputAction: TextInputAction.next,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) {
@@ -177,26 +172,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   }
                   final parsed = double.tryParse(v.trim());
                   if (parsed == null) return 'أدخل رقم صحيح';
-                  if (parsed < 0) return 'السعر لا يمكن أن يكون سالباً';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _costPriceController,
-                decoration: const InputDecoration(
-                  labelText: 'سعر التكلفة',
-                  hintText: '400.00',
-                  suffixText: 'ر.ي.',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                textInputAction: TextInputAction.next,
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return null;
-                  final parsed = double.tryParse(v.trim());
-                  if (parsed == null) return 'أدخل رقم صحيح';
-                  if (parsed < 0) return 'السعر لا يمكن أن يكون سالباً';
+                  if (parsed < 0) return 'السعر لا يمكن أن يكون سالبا';
                   return null;
                 },
               ),
@@ -212,21 +188,37 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _skuController,
+                decoration: const InputDecoration(labelText: 'رمز SKU'),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _shelfLifeDaysController,
                 decoration: const InputDecoration(
-                  labelText: 'رمز SKU',
+                  labelText: 'صلاحية المنتج بالأيام',
+                  hintText: 'اتركه فارغا إذا كان بدون انتهاء',
                 ),
+                keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.done,
+                validator: (v) {
+                  final text = v?.trim() ?? '';
+                  if (text.isEmpty) return null;
+                  final parsed = int.tryParse(text);
+                  if (parsed == null) return 'أدخل عدد أيام صحيح';
+                  if (parsed <= 0) return 'الصلاحية يجب أن تكون أكبر من صفر';
+                  return null;
+                },
               ),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: _saving ? null : _save,
                 child: _saving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                         ),
                       )
                     : const Text('حفظ'),

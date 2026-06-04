@@ -1,6 +1,6 @@
 {
-    "apiUrl": "http://192.168.8.142:8080",
-    "apiUrlAndroid": "http://192.168.8.142:8080",
-    "runMode": "development",
-    "note": "Default desktop and Android API URL. Change these values if the server IP changes. A config.json beside the exe still overrides these defaults."
+    "apiUrl": "http://localhost:8080",
+    "apiUrlAndroid": "http://192.168.8.146:8080",
+    "runMode": "docker",
+    "note": "Default desktop and Android API URL for the Docker backend. Change apiUrlAndroid to the laptop/server LAN IP when the network changes. A config.json beside the exe still overrides these defaults."
 }

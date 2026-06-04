@@ -13,8 +13,10 @@ final expenseListProvider = StreamProvider<List<Expense>>((ref) {
   return repo.watchAll();
 });
 
-final expenseSearchProvider =
-    StreamProvider.family<List<Expense>, String>((ref, query) {
+final expenseSearchProvider = StreamProvider.family<List<Expense>, String>((
+  ref,
+  query,
+) {
   final repo = ref.watch(expenseRepositoryProvider);
   return repo.searchByText(query);
 });

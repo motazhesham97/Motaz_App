@@ -1,59 +1,47 @@
-# This is the configuration file for your local development environment. By
-# default, it runs a single server on port 8080. To set up your server, you will
-# need to add the name of the database you are connecting to and the user name.
-# The password for the database is stored in the config/passwords.yaml.
-#
-# When running your server locally, the server ports are the same as the public
-# facing ports.
-
-# Configuration for the main API server.
+# Development configuration for running Serverpod against Neon.
+# The database password stays in config/passwords.yaml, which is ignored by git.
 apiServer:
   port: 8080
-  publicHost: localhost
+  publicHost: 192.168.8.132
   publicPort: 8080
   publicScheme: http
 
-# Configuration for the Insights server.
 insightsServer:
   port: 8081
-  publicHost: localhost
+  publicHost: 192.168.8.132
   publicPort: 8081
   publicScheme: http
 
-# Configuration for the web server.
 webServer:
   port: 8082
-  publicHost: localhost
+  publicHost: 192.168.8.132
   publicPort: 8082
   publicScheme: http
 
-# This is the database setup for your server (local Docker PostgreSQL).
-# For Neon cloud database, use requireSsl: true and set env vars for Neon host.
-database:
-  host: ${SERVERPOD_DATABASE_HOST}
-  port: ${SERVERPOD_DATABASE_PORT}
-  name: ${SERVERPOD_DATABASE_NAME}
-  user: ${SERVERPOD_DATABASE_USER}
-  requireSsl: true
-  maxConnectionCount: 30
+logging: normal
 
-# This is the setup for Redis.
+sessionLogs:
+  persistentEnabled: true
+  consoleEnabled: true
+  consoleLogFormat: text
+
+futureCallExecutionEnabled: true
+futureCall:
+  concurrencyLimit: 1
+  scanInterval: 5000
+
+database:
+  host: ep-round-shadow-abpm7n8k.eu-west-2.aws.neon.tech
+  port: 5432
+  name: neondb
+  user: neondb_owner
+  requireSsl: true
+  # Serverpod verifies table definitions in parallel during startup.
+  # The workspace pins a patched postgres pool timeout so Neon has enough time
+  # to open/reuse these remote connections reliably.
+  maxConnectionCount: 10
+
 redis:
   enabled: false
   host: localhost
-  port: 8091
-  #user: # defaults to empty
-  #requireSsl: false # defaults to false
-
-maxRequestSize: 524288 # The maximum size of requests allowed in bytes
-
-sessionLogs:
-  persistentEnabled: false
-  consoleEnabled: true
-  consoleLogFormat: text # Defaults to "json", options are "text" or "json"
-
-# futureCallExecutionEnabled: true # Defaults to true
-
-#futureCall:
-#  concurrencyLimit: 1 # Defaults to 1, a negative or null value removes the limit
-#  scanInterval: 5000 # Unit in milliseconds, defaults to 5000
+  port: 6379

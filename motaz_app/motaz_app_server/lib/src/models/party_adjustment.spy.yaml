@@ -1,0 +1,23 @@
+class: PartyAdjustment
+table: party_adjustment
+fields:
+  id: UuidValue?, defaultPersist=random
+  party: PartyAccount
+  amount: int
+  adjustmentDate: DateTime
+  note: String?
+  status: RecordStatus, default=ACTIVE
+  voidReason: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  party_adjustment_party_idx:
+    fields: party
+  party_adjustment_date_idx:
+    fields: adjustmentDate
+  party_adjustment_status_idx:
+    fields: status

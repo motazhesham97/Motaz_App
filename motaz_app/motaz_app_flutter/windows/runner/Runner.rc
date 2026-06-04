@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "motaz_app_flutter" "\0"
+            VALUE "FileDescription", "Fastika" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "motaz_app_flutter" "\0"
+            VALUE "InternalName", "Fastika" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "motaz_app_flutter.exe" "\0"
-            VALUE "ProductName", "motaz_app_flutter" "\0"
+            VALUE "ProductName", "Fastika" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

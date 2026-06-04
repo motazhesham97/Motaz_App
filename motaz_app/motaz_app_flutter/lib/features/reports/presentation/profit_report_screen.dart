@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/date_range.dart';
 import '../../../shared/widgets/app_drawer.dart';
@@ -30,6 +31,11 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
     return AppDrawerScaffold(
       title: 'تقرير الأرباح',
       currentRoute: '/reports/profit',
+      leading: IconButton(
+        tooltip: 'الرجوع للتقارير',
+        icon: const BackButtonIcon(),
+        onPressed: () => context.go('/reports'),
+      ),
       child: Scaffold(
         body: Column(
           children: [
@@ -116,16 +122,19 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   ReportSummaryRow(
-                                    label: 'حصة المالك',
-                                    amountMinorUnits: data.distribution!.ownerShare,
+                                    label: 'حصة امي',
+                                    amountMinorUnits:
+                                        data.distribution!.ownerShare,
                                   ),
                                   ReportSummaryRow(
-                                    label: 'حصة الشريك',
-                                    amountMinorUnits: data.distribution!.partnerShare,
+                                    label: 'حصة معتز',
+                                    amountMinorUnits:
+                                        data.distribution!.partnerShare,
                                   ),
                                   ReportSummaryRow(
                                     label: 'حصة الهامش',
-                                    amountMinorUnits: data.distribution!.marginShare,
+                                    amountMinorUnits:
+                                        data.distribution!.marginShare,
                                   ),
                                 ],
                               ),
@@ -161,6 +170,9 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
   bool _isNonMonthly(DateRange range) {
     final s = range.start;
     final e = range.end;
-    return !(s.year == e.year && s.month == e.month && s.day == 1 && e.day >= 28);
+    return !(s.year == e.year &&
+        s.month == e.month &&
+        s.day == 1 &&
+        e.day >= 28);
   }
 }

@@ -10,9 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      VERSION: '3.4.4'
-      SERVERPOD_PASSWORD_database: 'v-y1fEnncE76TMeecnS1DfCYCAtVoyUh'
-      SERVERPOD_PASSWORD_redis: 'brovKHFg9kTeBkRMCzuCacbSnoL-Fxe8'
+      VERSION: '3.4.7'
+      SERVERPOD_PASSWORD_database: 'motaz_test_password'
+      SERVERPOD_PASSWORD_redis: 'motaz_test_redis_password'
 
     steps:
       - uses: actions/checkout@v4
@@ -21,13 +21,12 @@ jobs:
         with:
           flutter-version: '3.32.8'
 
+      - name: Install dependencies
+        run: flutter pub get
+
       - name: Start containers
         working-directory: motaz_app_server
         run: docker compose up --quiet-pull --quiet-build --build -d
-
-      - name: Install dependencies
-        working-directory: motaz_app_server
-        run: dart pub get
 
       - name: Install Serverpod CLI
         working-directory: motaz_app_server
@@ -37,9 +36,13 @@ jobs:
         working-directory: motaz_app_server
         run: serverpod generate
 
-      - name: Run tests
+      - name: Run server tests
         working-directory: motaz_app_server
         run: dart test
+
+      - name: Run Flutter tests
+        working-directory: motaz_app_flutter
+        run: flutter test
 
       - name: Stop containers
         if: always()

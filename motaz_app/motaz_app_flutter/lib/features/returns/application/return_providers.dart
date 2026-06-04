@@ -13,8 +13,10 @@ final returnListProvider = StreamProvider<List<SalesReturn>>((ref) {
   return repo.watchAll();
 });
 
-final returnSearchProvider =
-    StreamProvider.family<List<SalesReturn>, String>((ref, query) {
+final returnSearchProvider = StreamProvider.family<List<SalesReturn>, String>((
+  ref,
+  query,
+) {
   final repo = ref.watch(returnRepositoryProvider);
   return repo.searchByText(query);
 });

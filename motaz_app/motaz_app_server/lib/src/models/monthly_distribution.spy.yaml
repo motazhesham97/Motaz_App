@@ -1,0 +1,24 @@
+class: MonthlyDistribution
+table: monthly_distribution
+fields:
+  id: UuidValue?, defaultPersist=random
+  year: int
+  month: int
+  netProfit: int
+  ownerShare: int
+  partnerShare: int
+  marginShare: int
+  status: RecordStatus, default=ACTIVE
+  voidReason: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  monthly_distribution_year_month_idx:
+    fields: year, month
+    unique: true
+  monthly_distribution_status_idx:
+    fields: status

@@ -14,27 +14,31 @@ final invoiceListProvider = StreamProvider<List<SalesInvoice>>((ref) {
   return repo.watchAll();
 });
 
-final invoiceSearchProvider =
-    StreamProvider.family<List<SalesInvoice>, String>((ref, query) {
-  final db = ref.watch(appDatabaseProvider);
-  final q = query.trim().toLowerCase();
+final invoiceSearchProvider = StreamProvider.family<List<SalesInvoice>, String>(
+  (ref, query) {
+    final db = ref.watch(appDatabaseProvider);
+    final q = query.trim().toLowerCase();
 
-  final invoiceStream = (db.select(db.salesInvoices)
-        ..orderBy([
-          (t) => OrderingTerm.desc(t.invoiceDate),
-          (t) => OrderingTerm.desc(t.createdAt),
-        ])).watch();
+    final invoiceStream =
+        (db.select(db.salesInvoices)..orderBy([
+              (t) => OrderingTerm.desc(t.invoiceDate),
+              (t) => OrderingTerm.desc(t.createdAt),
+            ]))
+            .watch();
 
-  return invoiceStream.asyncMap((invoices) async {
-    if (q.isEmpty) return invoices;
-    final clients = await (db.select(db.clients)).get();
-    final clientMap = {
-      for (final c in clients) c.id: c.displayName.toLowerCase(),
-    };
-    return invoices
-        .where((inv) =>
-            inv.localRef.toLowerCase().contains(q) ||
-            (clientMap[inv.clientId]?.contains(q) ?? false))
-        .toList();
-  });
-});
+    return invoiceStream.asyncMap((invoices) async {
+      if (q.isEmpty) return invoices;
+      final clients = await (db.select(db.clients)).get();
+      final clientMap = {
+        for (final c in clients) c.id: c.displayName.toLowerCase(),
+      };
+      return invoices
+          .where(
+            (inv) =>
+                inv.localRef.toLowerCase().contains(q) ||
+                (clientMap[inv.clientId]?.contains(q) ?? false),
+          )
+          .toList();
+    });
+  },
+);

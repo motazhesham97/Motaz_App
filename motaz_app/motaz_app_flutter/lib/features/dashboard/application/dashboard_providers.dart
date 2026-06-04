@@ -15,34 +15,65 @@ final dashboardQueriesProvider = Provider<DashboardQueries>((ref) {
   );
 });
 
+final dashboardRefreshProvider = StreamProvider<int>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  var tick = 0;
+  return db
+      .customSelect(
+        'SELECT 1 AS tick',
+        readsFrom: {
+          db.salesInvoices,
+          db.salesInvoiceLines,
+          db.receipts,
+          db.receiptAllocations,
+          db.salesReturns,
+          db.expenses,
+          db.monthlyDistributions,
+        },
+      )
+      .watch()
+      .map((_) => tick++);
+});
+
 final dashboardNetProfitProvider = FutureProvider<int>((ref) {
+  ref.watch(dashboardRefreshProvider);
   return ref.watch(dashboardQueriesProvider).getThisMonthNetProfit();
 });
 
 final dashboardPartyBalancesProvider =
     FutureProvider<({int ownerBalance, int partnerBalance, int marginBalance})>(
-        (ref) {
-  return ref.watch(dashboardQueriesProvider).getPartyBalances();
-});
+      (ref) {
+        ref.watch(dashboardRefreshProvider);
+        return ref.watch(dashboardQueriesProvider).getPartyBalances();
+      },
+    );
 
 final dashboardExpenseSummaryProvider =
     FutureProvider<Map<ExpenseCategory, int>>((ref) {
-  return ref.watch(dashboardQueriesProvider).getThisMonthExpensesByCategory();
-});
+      ref.watch(dashboardRefreshProvider);
+      return ref
+          .watch(dashboardQueriesProvider)
+          .getThisMonthExpensesByCategory();
+    });
 
 final dashboardTodayNetSalesProvider = FutureProvider<int>((ref) {
+  ref.watch(dashboardRefreshProvider);
   return ref.watch(dashboardQueriesProvider).getTodayNetSales();
 });
 
 final dashboardThisMonthNetSalesProvider = FutureProvider<int>((ref) {
+  ref.watch(dashboardRefreshProvider);
   return ref.watch(dashboardQueriesProvider).getThisMonthNetSales();
 });
 
 final dashboardReceivablesTotalProvider = FutureProvider<int>((ref) {
+  ref.watch(dashboardRefreshProvider);
   return ref.watch(dashboardQueriesProvider).getOutstandingReceivablesTotal();
 });
 
-final dashboardActivityFeedProvider =
-    FutureProvider<List<ActivityFeedItem>>((ref) {
+final dashboardActivityFeedProvider = FutureProvider<List<ActivityFeedItem>>((
+  ref,
+) {
+  ref.watch(dashboardRefreshProvider);
   return ref.watch(dashboardQueriesProvider).getRecentActivityFeed();
 });

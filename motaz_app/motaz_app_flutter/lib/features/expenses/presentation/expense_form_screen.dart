@@ -5,21 +5,9 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/device_service.dart';
 import '../../../core/database/enums/expense_category.dart';
 import '../application/expense_providers.dart';
+import '../data/expense_category_labels.dart';
 
-String categoryLabel(ExpenseCategory cat) {
-  switch (cat) {
-    case ExpenseCategory.OWNER_DRAW:
-      return 'سحب مالك';
-    case ExpenseCategory.PARTNER_DRAW:
-      return 'سحب شريك';
-    case ExpenseCategory.MARGIN_DRAW:
-      return 'سحب هامش';
-    case ExpenseCategory.OPERATIONAL:
-      return 'تشغيلي';
-    case ExpenseCategory.PRODUCTION:
-      return 'إنتاج';
-  }
-}
+String categoryLabel(ExpenseCategory cat) => expenseCategoryLabel(cat);
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
   const ExpenseFormScreen({super.key, this.existingExpense});
@@ -27,8 +15,7 @@ class ExpenseFormScreen extends ConsumerStatefulWidget {
   final Expense? existingExpense;
 
   @override
-  ConsumerState<ExpenseFormScreen> createState() =>
-      _ExpenseFormScreenState();
+  ConsumerState<ExpenseFormScreen> createState() => _ExpenseFormScreenState();
 }
 
 class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
@@ -53,6 +40,13 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -61,9 +55,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      setState(() {
-        _expenseDate = picked;
-      });
+      setState(() => _expenseDate = picked);
     }
   }
 
@@ -71,8 +63,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_saving) return;
 
-    final amountText = _amountController.text.trim();
-    final parsed = double.tryParse(amountText);
+    final parsed = double.tryParse(_amountController.text.trim());
     if (parsed == null || parsed <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('المبلغ يجب أن يكون أكبر من صفر')),
@@ -84,8 +75,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     setState(() => _saving = true);
 
     try {
-      final device =
-          await ref.read(deviceServiceProvider).ensureCurrentDevice();
+      final device = await ref
+          .read(deviceServiceProvider)
+          .ensureCurrentDevice();
       if (!mounted) return;
 
       final repo = ref.read(expenseRepositoryProvider);
@@ -123,13 +115,6 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 
   @override
-  void dispose() {
-    _amountController.dispose();
-    _noteController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -142,23 +127,23 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildCategoryDropdown(),
+              _buildNoteField(),
               const SizedBox(height: 12),
               _buildAmountField(),
               const SizedBox(height: 12),
               _buildDateField(),
               const SizedBox(height: 12),
-              _buildNoteField(),
+              _buildCategoryDropdown(),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: _saving ? null : _save,
                 child: _saving
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                         ),
                       )
                     : const Text('حفظ'),
@@ -170,27 +155,14 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  Widget _buildCategoryDropdown() {
-    return DropdownButtonFormField<ExpenseCategory>(
-      initialValue: _category,
+  Widget _buildNoteField() {
+    return TextFormField(
+      controller: _noteController,
       decoration: const InputDecoration(
-        labelText: 'التصنيف *',
+        labelText: 'ملاحظة',
+        alignLabelWithHint: true,
       ),
-      items: ExpenseCategory.values.map((cat) {
-        return DropdownMenuItem(
-          value: cat,
-          child: Text(categoryLabel(cat)),
-        );
-      }).toList(),
-      onChanged: (value) {
-        if (value != null) {
-          setState(() => _category = value);
-        }
-      },
-      validator: (value) {
-        if (value == null) return 'يرجى اختيار التصنيف';
-        return null;
-      },
+      maxLines: 3,
     );
   }
 
@@ -227,14 +199,27 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
     );
   }
 
-  Widget _buildNoteField() {
-    return TextFormField(
-      controller: _noteController,
+  Widget _buildCategoryDropdown() {
+    return DropdownButtonFormField<ExpenseCategory>(
+      initialValue: _category,
       decoration: const InputDecoration(
-        labelText: 'ملاحظة',
-        alignLabelWithHint: true,
+        labelText: 'التصنيف *',
       ),
-      maxLines: 3,
+      items: ExpenseCategory.values.map((cat) {
+        return DropdownMenuItem(
+          value: cat,
+          child: Text(categoryLabel(cat)),
+        );
+      }).toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() => _category = value);
+        }
+      },
+      validator: (value) {
+        if (value == null) return 'يرجى اختيار التصنيف';
+        return null;
+      },
     );
   }
 }

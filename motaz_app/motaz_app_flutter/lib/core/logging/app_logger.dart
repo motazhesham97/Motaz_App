@@ -3,12 +3,14 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../app_identity.dart';
+
 class AppLogger {
-  static final Logger auth = Logger('motaz.auth');
-  static final Logger connectivity = Logger('motaz.connectivity');
-  static final Logger database = Logger('motaz.database');
-  static final Logger server = Logger('motaz.server');
-  static final Logger sync = Logger('motaz.sync');
+  static final Logger auth = Logger('fastika.auth');
+  static final Logger connectivity = Logger('fastika.connectivity');
+  static final Logger database = Logger('fastika.database');
+  static final Logger server = Logger('fastika.server');
+  static final Logger sync = Logger('fastika.sync');
 
   static IOSink? _fileSink;
 
@@ -26,7 +28,9 @@ class AppLogger {
 
   static Future<File> logFile() async {
     final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}${Platform.pathSeparator}motaz_app.log');
+    return File(
+      '${dir.path}${Platform.pathSeparator}${AppIdentity.logFileName}',
+    );
   }
 
   static Future<IOSink?> _createLogSink() async {

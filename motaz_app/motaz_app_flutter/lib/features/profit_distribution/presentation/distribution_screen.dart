@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/device_service.dart';
 import '../../../core/database/enums/record_status.dart';
+import '../../../core/utils/money_formatter.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../application/profit_providers.dart';
 
@@ -11,8 +12,7 @@ class DistributionScreen extends ConsumerStatefulWidget {
   const DistributionScreen({super.key});
 
   @override
-  ConsumerState<DistributionScreen> createState() =>
-      _DistributionScreenState();
+  ConsumerState<DistributionScreen> createState() => _DistributionScreenState();
 }
 
 class _DistributionScreenState extends ConsumerState<DistributionScreen> {
@@ -23,6 +23,21 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
   ({int ownerShare, int partnerShare, int marginShare})? _shares;
   bool _computing = false;
   bool _distributing = false;
+
+  static const _monthNames = [
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
+  ];
 
   @override
   void initState() {
@@ -40,10 +55,14 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
     setState(() => _computing = true);
     try {
       final engine = ref.read(profitEngineProvider);
-      final netSales =
-          await engine.computeMonthlyNetSales(_selectedYear, _selectedMonth);
-      final netProfit =
-          await engine.computeMonthlyNetProfit(_selectedYear, _selectedMonth);
+      final netSales = await engine.computeMonthlyNetSales(
+        _selectedYear,
+        _selectedMonth,
+      );
+      final netProfit = await engine.computeMonthlyNetProfit(
+        _selectedYear,
+        _selectedMonth,
+      );
       final shares = engine.computeDistribution(netProfit);
       if (mounted) {
         setState(() {
@@ -63,15 +82,12 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
     }
   }
 
-  String _formatMoney(int minorUnits) {
-    return '\${(minorUnits / 100).toStringAsFixed(2)} ر.ي.';
-  }
-
   Future<void> _distribute() async {
     setState(() => _distributing = true);
     try {
-      final device =
-          await ref.read(deviceServiceProvider).ensureCurrentDevice();
+      final device = await ref
+          .read(deviceServiceProvider)
+          .ensureCurrentDevice();
       if (!mounted) return;
 
       final repo = ref.read(distributionRepositoryProvider);
@@ -83,9 +99,10 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم التوزيع بنجاح')),
+          const SnackBar(content: Text('تم تسجيل توزيع الأرباح')),
         );
-        ref.invalidate(distributionListProvider);
+        _refreshDistributionList();
+        await _computePreview();
       }
     } catch (e) {
       if (mounted) {
@@ -108,7 +125,7 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('هل أنت متأكد من إلغاء هذا التوزيع؟'),
+            const Text('سيبقى السجل محفوظا كملغى، وسيتم مزامنة الإلغاء.'),
             const SizedBox(height: 12),
             TextField(
               controller: reasonController,
@@ -124,7 +141,7 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('تراجع'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () {
               final text = reasonController.text.trim();
               if (text.isEmpty) {
@@ -136,7 +153,7 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
               reasonText = text;
               Navigator.of(context).pop(true);
             },
-            child: const Text('إلغاء'),
+            child: const Text('إلغاء التوزيع'),
           ),
         ],
       ),
@@ -149,17 +166,20 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
   }
 
   Future<void> _voidDistribution(
-      MonthlyDistribution dist, String reason) async {
+    MonthlyDistribution dist,
+    String reason,
+  ) async {
     try {
-      final device =
-          await ref.read(deviceServiceProvider).ensureCurrentDevice();
+      final device = await ref
+          .read(deviceServiceProvider)
+          .ensureCurrentDevice();
       final repo = ref.read(distributionRepositoryProvider);
       await repo.voidDistribution(dist.id, reason, device.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إلغاء التوزيع')),
         );
-        ref.invalidate(distributionListProvider);
+        _refreshDistributionList();
       }
     } catch (e) {
       if (mounted) {
@@ -170,9 +190,29 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
     }
   }
 
-  bool get _canDistribute {
+  bool get _isPastMonth {
     final engine = ref.read(profitEngineProvider);
     return engine.isPastMonth(_selectedYear, _selectedMonth);
+  }
+
+  MonthlyDistribution? _selectedDistribution(
+    List<MonthlyDistribution> distributions,
+  ) {
+    for (final distribution in distributions) {
+      if (distribution.year == _selectedYear &&
+          distribution.month == _selectedMonth &&
+          distribution.status == RecordStatus.ACTIVE) {
+        return distribution;
+      }
+    }
+    return null;
+  }
+
+  void _refreshDistributionList() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(distributionListProvider);
+    });
   }
 
   @override
@@ -183,25 +223,52 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
       title: 'توزيع الأرباح',
       currentRoute: '/distributions',
       child: Scaffold(
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildMonthSelector(),
-              const SizedBox(height: 16),
-              _buildProfitPreview(),
-              const SizedBox(height: 16),
-              _buildDistributeButton(),
-              const SizedBox(height: 24),
-              const Text(
-                'سجل التوزيعات',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        body: distributionsAsync.when(
+          data: (distributions) {
+            final selectedDistribution = _selectedDistribution(distributions);
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildPolicyNote(),
+                const SizedBox(height: 12),
+                _buildMonthSelector(),
+                const SizedBox(height: 12),
+                _buildProfitPreview(),
+                const SizedBox(height: 12),
+                _buildDistributeButton(selectedDistribution),
+                const SizedBox(height: 24),
+                Text(
+                  'سجل التوزيعات',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                _buildDistributionHistory(distributions),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('خطأ: $e')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPolicyNote() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Icon(Icons.event_repeat_rounded, color: colorScheme.primary),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'يتم توزيع أرباح الشهر السابق تلقائيا عند أول مزامنة بعد بداية شهر جديد. الزر اليدوي مخصص للشهور السابقة غير المسجلة فقط.',
               ),
-              const SizedBox(height: 8),
-              _buildDistributionHistory(distributionsAsync),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -232,8 +299,11 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
             initialValue: _selectedMonth,
             decoration: const InputDecoration(labelText: 'الشهر'),
             items: List.generate(12, (i) {
-              final m = i + 1;
-              return DropdownMenuItem(value: m, child: Text('$m'));
+              final month = i + 1;
+              return DropdownMenuItem(
+                value: month,
+                child: Text(_monthNames[i]),
+              );
             }),
             onChanged: (v) {
               if (v != null) {
@@ -248,29 +318,51 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
   }
 
   Widget _buildProfitPreview() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (_computing) {
-      return const Center(child: CircularProgressIndicator());
+      return const Card(
+        child: SizedBox(
+          height: 148,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'صافي المبيعات: ${_netSales != null ? _formatMoney(_netSales!) : '---'}',
+            _SummaryLine(
+              label: 'صافي المبيعات',
+              value: _netSales != null ? formatMoney(_netSales!) : '---',
             ),
             const SizedBox(height: 8),
-            Text(
-              'صافي الربح: ${_netProfit != null ? _formatMoney(_netProfit!) : '---'}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            _SummaryLine(
+              label: 'صافي الربح',
+              value: _netProfit != null ? formatMoney(_netProfit!) : '---',
+              emphasized: true,
             ),
             if (_shares != null) ...[
-              const Divider(),
-              Text('حصة المالك: ${_formatMoney(_shares!.ownerShare)}'),
-              Text('حصة الشريك: ${_formatMoney(_shares!.partnerShare)}'),
-              Text('حصة الهامش: ${_formatMoney(_shares!.marginShare)}'),
+              const Divider(height: 24),
+              _SummaryLine(
+                label: 'حصة امي',
+                value: formatMoney(_shares!.ownerShare),
+                valueColor: colorScheme.primary,
+              ),
+              const SizedBox(height: 6),
+              _SummaryLine(
+                label: 'حصة معتز',
+                value: formatMoney(_shares!.partnerShare),
+                valueColor: colorScheme.secondary,
+              ),
+              const SizedBox(height: 6),
+              _SummaryLine(
+                label: 'حصة الهامش',
+                value: formatMoney(_shares!.marginShare),
+                valueColor: colorScheme.tertiary,
+              ),
             ],
           ],
         ),
@@ -278,84 +370,143 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
     );
   }
 
-  Widget _buildDistributeButton() {
-    return FilledButton(
-      onPressed: _canDistribute && !_distributing ? _distribute : null,
-      child: _distributing
-          ? const SizedBox(
-              height: 20,
-              width: 20,
+  Widget _buildDistributeButton(MonthlyDistribution? selectedDistribution) {
+    final alreadyDistributed = selectedDistribution != null;
+    final enabled = _isPastMonth && !alreadyDistributed && !_distributing;
+    final label = !_isPastMonth
+        ? 'الشهر الحالي أو المستقبلي لا يوزع'
+        : alreadyDistributed
+        ? 'هذا الشهر مسجل بالفعل'
+        : 'تسجيل توزيع يدوي';
+
+    return FilledButton.icon(
+      onPressed: enabled ? _distribute : null,
+      icon: _distributing
+          ? SizedBox(
+              height: 18,
+              width: 18,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
               ),
             )
-          : Text(
-              _canDistribute ? 'توزيع' : 'لا يمكن توزيع الشهر الحالي أو المستقبلي',
-            ),
+          : const Icon(Icons.pie_chart_rounded),
+      label: Text(label),
     );
   }
 
-  Widget _buildDistributionHistory(AsyncValue<List<MonthlyDistribution>> async) {
-    return async.when(
-      data: (distributions) {
-        if (distributions.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('لا توجد توزيعات'),
-            ),
-          );
-        }
-        return Column(
-          children: distributions.map((dist) {
-            final isVoided = dist.status == RecordStatus.VOIDED;
-            return Opacity(
-              opacity: isVoided ? 0.6 : 1.0,
-              child: Card(
-                child: ListTile(
-                  title: Text('${dist.year}-${dist.month.toString().padLeft(2, '0')}'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('صافي الربح: ${_formatMoney(dist.netProfit)}'),
-                      Text('مالك: ${_formatMoney(dist.ownerShare)} | شريك: ${_formatMoney(dist.partnerShare)} | هامش: ${_formatMoney(dist.marginShare)}'),
-                    ],
-                  ),
-                  trailing: isVoided
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'ملغى',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        )
-                      : PopupMenuButton<String>(
-                          onSelected: (value) {
-                            if (value == 'void') {
-                              _showVoidDialog(dist);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'void',
-                              child: Text('إلغاء التوزيع'),
-                            ),
-                          ],
-                        ),
+  Widget _buildDistributionHistory(List<MonthlyDistribution> distributions) {
+    if (distributions.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: Text('لا توجد توزيعات بعد')),
+      );
+    }
+    return Column(
+      children: [
+        for (final dist in distributions) ...[
+          _DistributionHistoryCard(
+            distribution: dist,
+            onVoid: () => _showVoidDialog(dist),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _SummaryLine extends StatelessWidget {
+  const _SummaryLine({
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasized;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = emphasized
+        ? Theme.of(context).textTheme.titleMedium
+        : Theme.of(context).textTheme.bodyLarge;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: textStyle),
+        Text(
+          value,
+          style: textStyle?.copyWith(
+            color: valueColor,
+            fontWeight: emphasized ? FontWeight.w800 : FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DistributionHistoryCard extends StatelessWidget {
+  const _DistributionHistoryCard({
+    required this.distribution,
+    required this.onVoid,
+  });
+
+  final MonthlyDistribution distribution;
+  final VoidCallback onVoid;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isVoided = distribution.status == RecordStatus.VOIDED;
+
+    return Opacity(
+      opacity: isVoided ? 0.62 : 1,
+      child: Card(
+        child: ListTile(
+          title: Text(
+            '${distribution.year}-${distribution.month.toString().padLeft(2, '0')}',
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('صافي الربح: ${formatMoney(distribution.netProfit)}'),
+                Text(
+                  'امي: ${formatMoney(distribution.ownerShare)} | معتز: ${formatMoney(distribution.partnerShare)} | هامش: ${formatMoney(distribution.marginShare)}',
                 ),
-              ),
-            );
-          }).toList(),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('خطأ: \$e')),
+              ],
+            ),
+          ),
+          trailing: isVoided
+              ? Chip(
+                  label: const Text('ملغى'),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: colorScheme.errorContainer,
+                  labelStyle: TextStyle(color: colorScheme.onErrorContainer),
+                )
+              : PopupMenuButton<String>(
+                  tooltip: 'خيارات التوزيع',
+                  onSelected: (value) {
+                    if (value == 'void') {
+                      onVoid();
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'void',
+                      child: Text('إلغاء التوزيع'),
+                    ),
+                  ],
+                ),
+        ),
+      ),
     );
   }
 }

@@ -7,21 +7,23 @@ class Products extends Table {
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description => text().nullable()();
   IntColumn get defaultSalePrice => integer()();
-  IntColumn get costPrice => integer().nullable()();
   TextColumn get unit => text().nullable()();
   TextColumn get sku => text().nullable()();
+  IntColumn get shelfLifeDays => integer().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
-  TextColumn get deviceId => text().withLength(min: 36, max: 36).references(Devices, #id)();
+  TextColumn get deviceId =>
+      text().withLength(min: 36, max: 36).references(Devices, #id)();
   IntColumn get rowVersion => integer().withDefault(const Constant(1))();
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(const Constant(0))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};
 
   @override
   List<Set<Column>> get uniqueKeys => [
-    {name}
+    {name},
   ];
 }

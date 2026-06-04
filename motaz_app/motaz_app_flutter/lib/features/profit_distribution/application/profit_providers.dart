@@ -16,7 +16,8 @@ final distributionRepositoryProvider = Provider<DistributionRepository>((ref) {
   );
 });
 
-final distributionListProvider = StreamProvider<List<MonthlyDistribution>>(
-    (ref) {
+final distributionListProvider = StreamProvider<List<MonthlyDistribution>>((
+  ref,
+) {
   return ref.watch(distributionRepositoryProvider).watchAll();
 });

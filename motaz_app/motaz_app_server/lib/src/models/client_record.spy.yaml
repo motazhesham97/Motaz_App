@@ -8,6 +8,8 @@ fields:
   address: String?
   note: String?
   clientCode: String?
+  creditLimit: int?
+  invoiceCheckIntervalDays: int?
   isActive: bool, default=true
   createdAt: DateTime
   updatedAt: DateTime

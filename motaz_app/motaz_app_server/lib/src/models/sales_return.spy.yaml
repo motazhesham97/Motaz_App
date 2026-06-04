@@ -2,6 +2,8 @@ class: SalesReturn
 table: sales_return
 fields:
   id: UuidValue?, defaultPersist=random
+  localRef: String?
+  officialNo: String?
   invoiceId: UuidValue
   invoice: SalesInvoice?, relation(field=invoiceId)
   returnDate: DateTime
@@ -22,3 +24,6 @@ indexes:
     fields: returnDate
   return_status_idx:
     fields: status
+  return_official_no_idx:
+    fields: officialNo
+    unique: true

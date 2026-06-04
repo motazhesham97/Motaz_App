@@ -18,7 +18,7 @@ class DeviceEndpoint extends Endpoint {
     }
 
     final now = DateTime.now().toUtc();
-    final uuid = UuidValue(request.deviceId);
+    final uuid = UuidValue.fromString(request.deviceId);
     final existing = await Device.db.findById(session, uuid);
 
     if (existing != null) {

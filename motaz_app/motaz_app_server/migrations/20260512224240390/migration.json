@@ -1,0 +1,70 @@
+{
+  "__className__": "serverpod.DatabaseMigration",
+  "actions": [
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "monthly_distribution",
+        "schema": "public",
+        "addColumns": [],
+        "deleteColumns": [],
+        "modifyColumns": [],
+        "addIndexes": [
+          {
+            "__className__": "serverpod.IndexDefinition",
+            "indexName": "monthly_distribution_year_month_idx",
+            "elements": [
+              {
+                "__className__": "serverpod.IndexElementDefinition",
+                "type": 0,
+                "definition": "year"
+              },
+              {
+                "__className__": "serverpod.IndexElementDefinition",
+                "type": 0,
+                "definition": "month"
+              }
+            ],
+            "type": "btree",
+            "isUnique": true,
+            "isPrimary": false
+          }
+        ],
+        "deleteIndexes": [
+          "monthly_distribution_year_month_idx"
+        ],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": [
+          {
+            "__className__": "serverpod.DatabaseMigrationWarning",
+            "type": "uniqueIndexCreated",
+            "message": "Unique index \"monthly_distribution_year_month_idx\" is added to table \"monthly_distribution\". If there are existing rows with duplicate values, this migration will fail.",
+            "table": "monthly_distribution",
+            "columns": [
+              "year",
+              "month"
+            ],
+            "destrucive": false
+          }
+        ]
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "uniqueIndexCreated",
+      "message": "Unique index \"monthly_distribution_year_month_idx\" is added to table \"monthly_distribution\". If there are existing rows with duplicate values, this migration will fail.",
+      "table": "monthly_distribution",
+      "columns": [
+        "year",
+        "month"
+      ],
+      "destrucive": false
+    }
+  ],
+  "migrationApiVersion": 1
+}

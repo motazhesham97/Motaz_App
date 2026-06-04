@@ -50,19 +50,21 @@ class DateRange {
   }
 
   factory DateRange.custom(DateTime start, DateTime end) {
-    assert(start.isBefore(end) || start.isAtSameMomentAs(end),
-        'start must be <= end');
+    assert(
+      start.isBefore(end) || start.isAtSameMomentAs(end),
+      'start must be <= end',
+    );
     return DateRange._(start: start, end: end, type: DateRangeType.custom);
   }
 
   String get label => switch (type) {
-        DateRangeType.today => 'اليوم',
-        DateRangeType.thisWeek => 'هذا الأسبوع',
-        DateRangeType.thisMonth => 'هذا الشهر',
-        DateRangeType.thisYear => 'هذا العام',
-        DateRangeType.allTime => 'الكل',
-        DateRangeType.custom => 'مخصص',
-      };
+    DateRangeType.today => 'اليوم',
+    DateRangeType.thisWeek => 'هذا الأسبوع',
+    DateRangeType.thisMonth => 'هذا الشهر',
+    DateRangeType.thisYear => 'هذا العام',
+    DateRangeType.allTime => 'الكل',
+    DateRangeType.custom => 'مخصص',
+  };
 
   @override
   bool operator ==(Object other) =>

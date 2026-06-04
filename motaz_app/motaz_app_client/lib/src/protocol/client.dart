@@ -36,8 +36,9 @@ import 'package:motaz_app_client/src/protocol/conflict_resolution_response.dart'
     as _i15;
 import 'package:motaz_app_client/src/protocol/conflict_resolution_request.dart'
     as _i16;
-import 'package:motaz_app_client/src/protocol/greetings/greeting.dart' as _i17;
-import 'protocol.dart' as _i18;
+import 'package:motaz_app_client/src/protocol/conflict_log.dart' as _i17;
+import 'package:motaz_app_client/src/protocol/greetings/greeting.dart' as _i18;
+import 'protocol.dart' as _i19;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -281,12 +282,17 @@ class EndpointAuth extends _i2.EndpointRef {
   @override
   String get name => 'auth';
 
+  /// Returns true if an owner account exists in the system.
+  /// Uses the owner_account table as the single source of truth.
   _i3.Future<bool> hasOwnerAccount() => caller.callServerEndpoint<bool>(
     'auth',
     'hasOwnerAccount',
     {},
   );
 
+  /// Registers the owner account.
+  /// Throws OwnerAlreadyExistsException if an owner already exists.
+  /// Returns true on successful registration.
   _i3.Future<bool> registerOwner({
     required String email,
     required String password,
@@ -329,6 +335,12 @@ class EndpointHealth extends _i2.EndpointRef {
     {},
   );
 
+  _i3.Future<String> serverFingerprint() => caller.callServerEndpoint<String>(
+    'health',
+    'serverFingerprint',
+    {},
+  );
+
   _i3.Future<String> authenticatedPing() => caller.callServerEndpoint<String>(
     'health',
     'authenticatedPing',
@@ -364,6 +376,13 @@ class EndpointSync extends _i2.EndpointRef {
     'resolveConflict',
     {'request': request},
   );
+
+  _i3.Future<List<_i17.ConflictLog>> listPendingConflicts() =>
+      caller.callServerEndpoint<List<_i17.ConflictLog>>(
+        'sync',
+        'listPendingConflicts',
+        {},
+      );
 }
 
 /// This is an example endpoint that returns a greeting message through
@@ -376,8 +395,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i17.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i17.Greeting>(
+  _i3.Future<_i18.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i18.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -415,7 +434,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i18.Protocol(),
+         _i19.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

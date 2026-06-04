@@ -34,13 +34,15 @@ webServer:
 # If you are connecting on a public IP (e.g. on AWS or Google Cloud Run), you
 # connect on the public IP of the database e.g. database-staging.examplepod.com.
 database:
-  host: database.private-staging.examplepod.com
+  host: ep-round-shadow-abpm7n8k.eu-west-2.aws.neon.tech
   port: 5432
-  name: serverpod
-  user: postgres
+  name: neondb
+  user: neondb_owner
   requireSsl: true
   #isUnixSocket: true # defaults to false
-  #maxConnectionCount: 10 # Defaults to 10, a negative or null value removes the limit
+  # Keep migrations on the direct Neon host. Serverpod verifies many table
+  # definitions in parallel during startup.
+  maxConnectionCount: 10
 
 # This is the setup for Redis. The default for the Google Cloud Engine Terraform
 # configuration is to connect on a private IP address.

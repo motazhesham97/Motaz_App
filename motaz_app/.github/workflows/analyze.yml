@@ -13,14 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: subosito/flutter-action@v2
         with:
-          sdk: 3.8.0
+          flutter-version: '3.32.8'
 
       - name: Install dependencies
-        working-directory: motaz_app_server
-        run: dart pub get
+        run: flutter pub get
 
-      - name: Analyze
-        working-directory: motaz_app_server
-        run: dart analyze --fatal-infos
+      - name: Analyze Dart packages
+        run: dart analyze motaz_app_client motaz_app_server
+
+      - name: Analyze Flutter app
+        run: flutter analyze --no-fatal-infos motaz_app_flutter
+

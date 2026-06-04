@@ -22,10 +22,16 @@ abstract class Device implements _i1.SerializableModel {
     required this.platform,
     required this.deviceCode,
     int? nextInvoiceSequence,
+    int? nextReceiptSequence,
+    int? nextReturnSequence,
+    int? nextSampleSequence,
     required this.createdAt,
     required this.lastActiveAt,
     this.syncOutboxItems,
-  }) : nextInvoiceSequence = nextInvoiceSequence ?? 1;
+  }) : nextInvoiceSequence = nextInvoiceSequence ?? 1,
+       nextReceiptSequence = nextReceiptSequence ?? 1,
+       nextReturnSequence = nextReturnSequence ?? 1,
+       nextSampleSequence = nextSampleSequence ?? 1;
 
   factory Device({
     _i1.UuidValue? id,
@@ -33,6 +39,9 @@ abstract class Device implements _i1.SerializableModel {
     required _i2.DevicePlatform platform,
     required String deviceCode,
     int? nextInvoiceSequence,
+    int? nextReceiptSequence,
+    int? nextReturnSequence,
+    int? nextSampleSequence,
     required DateTime createdAt,
     required DateTime lastActiveAt,
     List<_i3.SyncOutbox>? syncOutboxItems,
@@ -49,6 +58,9 @@ abstract class Device implements _i1.SerializableModel {
       ),
       deviceCode: jsonSerialization['deviceCode'] as String,
       nextInvoiceSequence: jsonSerialization['nextInvoiceSequence'] as int?,
+      nextReceiptSequence: jsonSerialization['nextReceiptSequence'] as int?,
+      nextReturnSequence: jsonSerialization['nextReturnSequence'] as int?,
+      nextSampleSequence: jsonSerialization['nextSampleSequence'] as int?,
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
       ),
@@ -76,6 +88,12 @@ abstract class Device implements _i1.SerializableModel {
 
   int nextInvoiceSequence;
 
+  int nextReceiptSequence;
+
+  int nextReturnSequence;
+
+  int nextSampleSequence;
+
   DateTime createdAt;
 
   DateTime lastActiveAt;
@@ -91,6 +109,9 @@ abstract class Device implements _i1.SerializableModel {
     _i2.DevicePlatform? platform,
     String? deviceCode,
     int? nextInvoiceSequence,
+    int? nextReceiptSequence,
+    int? nextReturnSequence,
+    int? nextSampleSequence,
     DateTime? createdAt,
     DateTime? lastActiveAt,
     List<_i3.SyncOutbox>? syncOutboxItems,
@@ -104,6 +125,9 @@ abstract class Device implements _i1.SerializableModel {
       'platform': platform.toJson(),
       'deviceCode': deviceCode,
       'nextInvoiceSequence': nextInvoiceSequence,
+      'nextReceiptSequence': nextReceiptSequence,
+      'nextReturnSequence': nextReturnSequence,
+      'nextSampleSequence': nextSampleSequence,
       'createdAt': createdAt.toJson(),
       'lastActiveAt': lastActiveAt.toJson(),
       if (syncOutboxItems != null)
@@ -128,6 +152,9 @@ class _DeviceImpl extends Device {
     required _i2.DevicePlatform platform,
     required String deviceCode,
     int? nextInvoiceSequence,
+    int? nextReceiptSequence,
+    int? nextReturnSequence,
+    int? nextSampleSequence,
     required DateTime createdAt,
     required DateTime lastActiveAt,
     List<_i3.SyncOutbox>? syncOutboxItems,
@@ -137,6 +164,9 @@ class _DeviceImpl extends Device {
          platform: platform,
          deviceCode: deviceCode,
          nextInvoiceSequence: nextInvoiceSequence,
+         nextReceiptSequence: nextReceiptSequence,
+         nextReturnSequence: nextReturnSequence,
+         nextSampleSequence: nextSampleSequence,
          createdAt: createdAt,
          lastActiveAt: lastActiveAt,
          syncOutboxItems: syncOutboxItems,
@@ -152,6 +182,9 @@ class _DeviceImpl extends Device {
     _i2.DevicePlatform? platform,
     String? deviceCode,
     int? nextInvoiceSequence,
+    int? nextReceiptSequence,
+    int? nextReturnSequence,
+    int? nextSampleSequence,
     DateTime? createdAt,
     DateTime? lastActiveAt,
     Object? syncOutboxItems = _Undefined,
@@ -162,6 +195,9 @@ class _DeviceImpl extends Device {
       platform: platform ?? this.platform,
       deviceCode: deviceCode ?? this.deviceCode,
       nextInvoiceSequence: nextInvoiceSequence ?? this.nextInvoiceSequence,
+      nextReceiptSequence: nextReceiptSequence ?? this.nextReceiptSequence,
+      nextReturnSequence: nextReturnSequence ?? this.nextReturnSequence,
+      nextSampleSequence: nextSampleSequence ?? this.nextSampleSequence,
       createdAt: createdAt ?? this.createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
       syncOutboxItems: syncOutboxItems is List<_i3.SyncOutbox>?

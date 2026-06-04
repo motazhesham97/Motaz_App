@@ -11,13 +11,15 @@ final productRepositoryProvider = Provider<ProductRepository>((ref) {
 
 final productListProvider = StreamProvider<List<Product>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return (db.select(db.products)
-        ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
-      .watch();
+  return (db.select(
+    db.products,
+  )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
 });
 
-final productSearchProvider =
-    StreamProvider.family<List<Product>, String>((ref, query) {
+final productSearchProvider = StreamProvider.family<List<Product>, String>((
+  ref,
+  query,
+) {
   final db = ref.watch(appDatabaseProvider);
   return (db.select(db.products)
         ..where((t) => t.name.like('%$query%'))
@@ -27,9 +29,9 @@ final productSearchProvider =
 
 final activeProductSearchProvider =
     StreamProvider.family<List<Product>, String>((ref, query) {
-  final db = ref.watch(appDatabaseProvider);
-  return (db.select(db.products)
-        ..where((t) => t.name.like('%$query%') & t.isActive.equals(true))
-        ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
-      .watch();
-});
+      final db = ref.watch(appDatabaseProvider);
+      return (db.select(db.products)
+            ..where((t) => t.name.like('%$query%') & t.isActive.equals(true))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+    });

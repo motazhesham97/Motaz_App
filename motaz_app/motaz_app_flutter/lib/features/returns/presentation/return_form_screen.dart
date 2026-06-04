@@ -7,7 +7,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/database/device_service.dart';
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
+import '../../../core/utils/document_reference_formatter.dart';
+import '../../../features/attachments/application/document_attachment_service.dart';
+import '../../../features/attachments/presentation/document_photo_field.dart';
 import '../../../features/invoices/application/invoice_providers.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../application/return_providers.dart';
@@ -28,10 +32,12 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
   final Map<String, _ReturnLineEntry> _lineEntries = {};
   bool _loading = false;
   bool _saving = false;
+  String? _attachmentPath;
 
   List<SalesInvoiceLine> _invoiceLines = [];
   Map<String, Product> _products = {};
   SalesInvoice? _selectedInvoice;
+  String? _selectedInvoiceClientName;
 
   @override
   void initState() {
@@ -59,6 +65,9 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
       final invoice = await invoiceRepo.getById(_selectedInvoiceId!);
       final lines = await invoiceRepo.getLinesForInvoice(_selectedInvoiceId!);
       final products = await (db.select(db.products)).get();
+      final client = await (db.select(
+        db.clients,
+      )..where((t) => t.id.equals(invoice.clientId))).getSingleOrNull();
 
       final returnRepo = ref.read(returnRepositoryProvider);
       final returnedQuantities = <String, int>{};
@@ -69,11 +78,13 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
 
       setState(() {
         _selectedInvoice = invoice;
+        _selectedInvoiceClientName = client?.displayName;
         _invoiceLines = lines;
         _products = {for (final p in products) p.id: p};
         _lineEntries.clear();
         for (final line in lines) {
-          final availableQty = line.quantity - (returnedQuantities[line.id] ?? 0);
+          final availableQty =
+              line.quantity - (returnedQuantities[line.id] ?? 0);
           _lineEntries[line.id] = _ReturnLineEntry(
             invoiceLineId: line.id,
             originalQuantity: line.quantity,
@@ -118,29 +129,19 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
     });
   }
 
-  void _onAmountChanged(String lineId, String value) {
-    final entry = _lineEntries[lineId];
-    if (entry == null) return;
-
-    final parsed = double.tryParse(value) ?? 0.0;
-    final amount = (parsed * 100).round();
-    final maxAmount = entry.returnedQuantity * entry.unitPrice;
-    final validAmount = amount.clamp(0, maxAmount);
-
-    setState(() {
-      _lineEntries[lineId] = entry.copyWith(returnedAmount: validAmount);
-    });
-  }
-
   void _onLineSelected(String lineId, bool selected) {
     final entry = _lineEntries[lineId];
     if (entry == null) return;
+    final defaultQuantity = selected
+        ? (entry.returnedQuantity > 0 ? entry.returnedQuantity : 1)
+        : 0;
+    final validQuantity = defaultQuantity.clamp(0, entry.availableQuantity);
 
     setState(() {
       _lineEntries[lineId] = entry.copyWith(
         selected: selected,
-        returnedQuantity: selected ? entry.returnedQuantity : 0,
-        returnedAmount: selected ? entry.returnedAmount : 0,
+        returnedQuantity: validQuantity,
+        returnedAmount: validQuantity * entry.unitPrice,
       );
     });
   }
@@ -149,14 +150,18 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
     if (_selectedInvoiceId == null || _saving) return false;
     if (_selectedInvoice?.status != RecordStatus.ACTIVE) return false;
 
-    final selectedLines = _lineEntries.values.where((e) => e.selected && e.returnedQuantity > 0);
+    final selectedLines = _lineEntries.values.where(
+      (e) => e.selected && e.returnedQuantity > 0,
+    );
     if (selectedLines.isEmpty) return false;
 
     for (final line in selectedLines) {
       if (line.returnedQuantity <= 0) return false;
       if (line.returnedAmount <= 0) return false;
       if (line.returnedQuantity > line.availableQuantity) return false;
-      if (line.returnedAmount > line.returnedQuantity * line.unitPrice) return false;
+      if (line.returnedAmount > line.returnedQuantity * line.unitPrice) {
+        return false;
+      }
     }
 
     return true;
@@ -168,31 +173,40 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
     setState(() => _saving = true);
 
     try {
-      final device = await ref.read(deviceServiceProvider).ensureCurrentDevice();
+      final device = await ref
+          .read(deviceServiceProvider)
+          .ensureCurrentDevice();
       final returnRepo = ref.read(returnRepositoryProvider);
 
       final lines = _lineEntries.values
           .where((e) => e.selected && e.returnedQuantity > 0)
-          .map((e) => (
-                invoiceLineId: e.invoiceLineId,
-                returnedQuantity: e.returnedQuantity,
-                returnedAmount: e.returnedAmount,
-              ))
+          .map(
+            (e) => (
+              invoiceLineId: e.invoiceLineId,
+              returnedQuantity: e.returnedQuantity,
+              returnedAmount: e.returnedAmount,
+            ),
+          )
           .toList();
 
-      await returnRepo.create(
+      final created = await returnRepo.create(
         invoiceId: _selectedInvoiceId!,
         returnDate: _returnDate,
-        note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+        note: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
         lines: lines,
         deviceId: device.id,
       );
 
+      await _stageReturnPhoto(created.id);
+
       if (mounted) {
+        ref.invalidate(returnListProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إنشاء المرتجع بنجاح')),
         );
-        context.pop();
+        context.go('/returns');
       }
     } catch (e) {
       if (mounted) {
@@ -204,44 +218,116 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
     }
   }
 
+  Future<void> _captureReturnPhoto() async {
+    final path = await ref
+        .read(documentAttachmentServiceProvider)
+        .captureDocumentPhoto(context);
+    if (path != null && mounted) {
+      setState(() => _attachmentPath = path);
+    }
+  }
+
+  Future<void> _stageReturnPhoto(String returnId) async {
+    final path = _attachmentPath;
+    if (path == null) return;
+    await ref
+        .read(documentAttachmentServiceProvider)
+        .stagePhoto(
+          parentEntityType: ParentEntityType.SALES_RETURN,
+          parentEntityId: returnId,
+          localFilePath: path,
+        );
+  }
+
   Future<void> _selectInvoice() async {
     final invoices = await ref.read(invoiceRepositoryProvider).watchAll().first;
-    final activeInvoices = invoices.where((i) => i.status == RecordStatus.ACTIVE).toList();
+    final activeInvoices = invoices
+        .where((i) => i.status == RecordStatus.ACTIVE)
+        .toList();
+    final db = ref.read(appDatabaseProvider);
+    final clients = await (db.select(db.clients)).get();
+    final clientMap = {for (final client in clients) client.id: client};
 
     if (!mounted) return;
 
     final selected = await showDialog<SalesInvoice>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('اختر فاتورة'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: activeInvoices.length,
-            itemBuilder: (context, index) {
-              final inv = activeInvoices[index];
-              return ListTile(
-                title: Text(inv.localRef),
-                subtitle: Text('${_formatMoney(inv.total)} - ${inv.invoiceDate.year}-${inv.invoiceDate.month.toString().padLeft(2, '0')}-${inv.invoiceDate.day.toString().padLeft(2, '0')}'),
-                onTap: () => Navigator.of(context).pop(inv),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('إلغاء'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        var query = '';
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final filteredInvoices = activeInvoices.where((invoice) {
+              final normalizedQuery = query.trim().toLowerCase();
+              if (normalizedQuery.isEmpty) return true;
+              final clientName =
+                  clientMap[invoice.clientId]?.displayName.toLowerCase() ?? '';
+              return invoice.localRef.toLowerCase().contains(normalizedQuery) ||
+                  clientName.contains(normalizedQuery);
+            }).toList();
+
+            return AlertDialog(
+              title: const Text('اختر فاتورة'),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 460,
+                child: Column(
+                  children: [
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'بحث برقم الفاتورة أو اسم العميل',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) {
+                        setDialogState(() => query = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: filteredInvoices.isEmpty
+                          ? const Center(child: Text('لا توجد فواتير مطابقة'))
+                          : ListView.builder(
+                              itemCount: filteredInvoices.length,
+                              itemBuilder: (context, index) {
+                                final inv = filteredInvoices[index];
+                                final clientName =
+                                    clientMap[inv.clientId]?.displayName ??
+                                    'عميل غير معروف';
+                                return ListTile(
+                                  title: Text(
+                                    invoiceDisplayRef(
+                                      inv.localRef,
+                                      officialNo: inv.officialNo,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '$clientName - ${_formatMoney(inv.total)} - ${inv.invoiceDate.year}-${inv.invoiceDate.month.toString().padLeft(2, '0')}-${inv.invoiceDate.day.toString().padLeft(2, '0')}',
+                                  ),
+                                  onTap: () => Navigator.of(context).pop(inv),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('إلغاء'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
 
     if (selected != null) {
       setState(() {
         _selectedInvoiceId = selected.id;
         _selectedInvoice = null;
+        _selectedInvoiceClientName = clientMap[selected.clientId]?.displayName;
         _invoiceLines = [];
         _lineEntries.clear();
       });
@@ -266,6 +352,11 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
     return AppDrawerScaffold(
       title: 'إنشاء مرتجع',
       currentRoute: '/returns/create',
+      leading: IconButton(
+        tooltip: 'الرجوع للمرتجعات',
+        icon: const BackButtonIcon(),
+        onPressed: () => context.go('/returns'),
+      ),
       child: Scaffold(
         body: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -284,6 +375,13 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
                       _buildDateField(),
                       const SizedBox(height: 12),
                       _buildNoteField(),
+                      const SizedBox(height: 12),
+                      DocumentPhotoField(
+                        label: 'إضافة صورة المرتجع',
+                        localPath: _attachmentPath,
+                        onCapture: _captureReturnPhoto,
+                        onRemove: () => setState(() => _attachmentPath = null),
+                      ),
                       const SizedBox(height: 24),
                       _buildSaveButton(),
                     ],
@@ -295,6 +393,7 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
   }
 
   Widget _buildInvoiceSelector() {
+    final selectedInvoice = _selectedInvoice;
     return InkWell(
       onTap: widget.invoiceId == null ? _selectInvoice : null,
       child: InputDecorator(
@@ -302,9 +401,11 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
           labelText: 'الفاتورة',
           suffixIcon: Icon(Icons.receipt_long),
         ),
-        child: _selectedInvoice == null
+        child: selectedInvoice == null
             ? const Text('اضغط لاختيار فاتورة')
-            : Text(_selectedInvoice!.localRef),
+            : Text(
+                '${invoiceDisplayRef(selectedInvoice.localRef, officialNo: selectedInvoice.officialNo)} - ${_selectedInvoiceClientName ?? 'عميل غير معروف'}',
+              ),
       ),
     );
   }
@@ -318,7 +419,10 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('إجمالي الفاتورة: ${_formatMoney(invoice.total)}'),
-            Text('تاريخ الفاتورة: ${invoice.invoiceDate.year}-${invoice.invoiceDate.month.toString().padLeft(2, '0')}-${invoice.invoiceDate.day.toString().padLeft(2, '0')}'),
+            Text('العميل: ${_selectedInvoiceClientName ?? 'عميل غير معروف'}'),
+            Text(
+              'تاريخ الفاتورة: ${invoice.invoiceDate.year}-${invoice.invoiceDate.month.toString().padLeft(2, '0')}-${invoice.invoiceDate.day.toString().padLeft(2, '0')}',
+            ),
             if (invoice.status != RecordStatus.ACTIVE)
               Text(
                 invoice.status == RecordStatus.VOIDED ? 'ملغاة' : 'غير نشطة',
@@ -334,7 +438,15 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('بنود الفاتورة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text(
+          'بنود الفاتورة',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'اختر فقط البنود التي تريد إرجاعها، ثم عدل الكمية المرتجعة لكل بند.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 8),
         ..._invoiceLines.map((line) {
           final product = _products[line.productId];
@@ -361,7 +473,9 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
                           children: [
                             Text(
                               product?.name ?? 'منتج غير معروف',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text('الكمية الأصلية: ${line.quantity}'),
                             Text('السعر: ${_formatMoney(line.unitPrice)}'),
@@ -370,7 +484,9 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
                             Text(
                               'المتاح للإرجاع: ${entry.availableQuantity}',
                               style: TextStyle(
-                                color: entry.availableQuantity > 0 ? Colors.green : Colors.red,
+                                color: entry.availableQuantity > 0
+                                    ? Colors.green
+                                    : Colors.red,
                               ),
                             ),
                           ],
@@ -384,11 +500,15 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
                       children: [
                         Expanded(
                           child: TextFormField(
+                            key: ValueKey(
+                              'return_qty_${line.id}_${entry.selected}',
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'الكمية المرتجعة',
                               border: OutlineInputBorder(),
                             ),
                             keyboardType: TextInputType.number,
+                            selectAllOnFocus: true,
                             initialValue: entry.returnedQuantity.toString(),
                             onChanged: (v) => _onQuantityChanged(line.id, v),
                           ),
@@ -396,14 +516,20 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextFormField(
+                            key: ValueKey(
+                              'return_amount_${line.id}_${entry.returnedAmount}',
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'المبلغ',
                               border: OutlineInputBorder(),
                               suffixText: 'ر.ي.',
                             ),
-                            keyboardType: TextInputType.numberWithOptions(decimal: true),
-                            initialValue: (entry.returnedAmount / 100).toStringAsFixed(2),
-                            onChanged: (v) => _onAmountChanged(line.id, v),
+                            readOnly: true,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            initialValue: (entry.returnedAmount / 100)
+                                .toStringAsFixed(2),
                           ),
                         ),
                       ],
@@ -452,10 +578,13 @@ class _ReturnFormScreenState extends ConsumerState<ReturnFormScreen> {
     return FilledButton(
       onPressed: _canSave() && !_saving ? _save : null,
       child: _saving
-          ? const SizedBox(
+          ? SizedBox(
               height: 20,
               width: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Theme.of(context).colorScheme.surface,
+              ),
             )
           : const Text('حفظ المرتجع'),
     );

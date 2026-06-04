@@ -84,9 +84,10 @@ void _sendRegistrationCode(
   required String verificationCode,
   required Transaction? transaction,
 }) {
-  // NOTE: Here you call your mail service to send the verification code to
-  // the user. For testing, we will just log the verification code.
-  session.log('[EmailIdp] Registration code ($email): $verificationCode');
+  _logVerificationCodeForLocalDevelopment(
+    session,
+    '[EmailIdp] Registration code ($email): $verificationCode',
+  );
 }
 
 void _sendPasswordResetCode(
@@ -96,7 +97,18 @@ void _sendPasswordResetCode(
   required String verificationCode,
   required Transaction? transaction,
 }) {
-  // NOTE: Here you call your mail service to send the verification code to
-  // the user. For testing, we will just log the verification code.
-  session.log('[EmailIdp] Password reset code ($email): $verificationCode');
+  _logVerificationCodeForLocalDevelopment(
+    session,
+    '[EmailIdp] Password reset code ($email): $verificationCode',
+  );
+}
+
+void _logVerificationCodeForLocalDevelopment(
+  Session session,
+  String message,
+) {
+  final runMode = Serverpod.instance.runMode;
+  if (runMode == 'development' || runMode == 'test') {
+    session.log(message);
+  }
 }

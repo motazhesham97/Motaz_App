@@ -22,7 +22,12 @@ enum ParentEntityType implements _i1.SerializableModel {
   EXPENSE,
   SALES_RETURN,
   SALES_RETURN_LINE,
-  ATTACHMENT_METADATA;
+  ATTACHMENT_METADATA,
+  MONTHLY_DISTRIBUTION,
+  PARTY_ADJUSTMENT,
+  BENEFICIARY,
+  FREE_SAMPLE,
+  FREE_SAMPLE_LINE;
 
   static ParentEntityType fromJson(String name) {
     switch (name) {
@@ -46,6 +51,16 @@ enum ParentEntityType implements _i1.SerializableModel {
         return ParentEntityType.SALES_RETURN_LINE;
       case 'ATTACHMENT_METADATA':
         return ParentEntityType.ATTACHMENT_METADATA;
+      case 'MONTHLY_DISTRIBUTION':
+        return ParentEntityType.MONTHLY_DISTRIBUTION;
+      case 'PARTY_ADJUSTMENT':
+        return ParentEntityType.PARTY_ADJUSTMENT;
+      case 'BENEFICIARY':
+        return ParentEntityType.BENEFICIARY;
+      case 'FREE_SAMPLE':
+        return ParentEntityType.FREE_SAMPLE;
+      case 'FREE_SAMPLE_LINE':
+        return ParentEntityType.FREE_SAMPLE_LINE;
       default:
         throw ArgumentError(
           'Value "$name" cannot be converted to "ParentEntityType"',

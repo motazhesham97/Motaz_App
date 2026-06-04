@@ -14,9 +14,14 @@ class ReceiptAllocator {
     String clientId,
     int amount, {
     String? excludeInvoiceId,
+    String? excludeReceiptId,
   }) async {
     var query = _db.select(_db.salesInvoices)
-      ..where((t) => t.clientId.equals(clientId) & t.status.equals(RecordStatus.ACTIVE.index))
+      ..where(
+        (t) =>
+            t.clientId.equals(clientId) &
+            t.status.equals(RecordStatus.ACTIVE.index),
+      )
       ..orderBy([
         (t) => OrderingTerm.asc(t.invoiceDate),
         (t) => OrderingTerm.asc(t.createdAt),
@@ -34,32 +39,40 @@ class ReceiptAllocator {
     for (final invoice in invoices) {
       if (remaining <= 0) break;
 
-      final paidRow = await _db.customSelect(
-        'SELECT COALESCE(SUM(ra.allocated_amount), 0) AS paid '
-        'FROM receipt_allocations ra '
-        'INNER JOIN receipts r ON ra.receipt_id = r.id '
-        'WHERE ra.invoice_id = ? AND r.status = ?',
-        variables: [
-          Variable(invoice.id),
-          Variable(RecordStatus.ACTIVE.index),
-        ],
-      ).getSingle();
+      final paidRow = await _db
+          .customSelect(
+            'SELECT COALESCE(SUM(ra.allocated_amount), 0) AS paid '
+            'FROM receipt_allocations ra '
+            'INNER JOIN receipts r ON ra.receipt_id = r.id '
+            'WHERE ra.invoice_id = ? AND r.status = ? '
+            '${excludeReceiptId == null ? '' : 'AND r.id != ?'}',
+            variables: [
+              Variable(invoice.id),
+              Variable(RecordStatus.ACTIVE.index),
+              if (excludeReceiptId != null) Variable(excludeReceiptId),
+            ],
+          )
+          .getSingle();
 
       final paid = paidRow.read<int>('paid');
       final invoiceBalance = invoice.total - paid;
 
       if (invoiceBalance <= 0) continue;
 
-      final toAllocate = remaining < invoiceBalance ? remaining : invoiceBalance;
+      final toAllocate = remaining < invoiceBalance
+          ? remaining
+          : invoiceBalance;
 
-      allocations.add(ReceiptAllocationsCompanion(
-        id: Value(_uuid.v4()),
-        receiptId: Value.absent(),
-        invoiceId: Value(invoice.id),
-        allocatedAmount: Value(toAllocate),
-        createdAt: Value(now),
-        updatedAt: Value(now),
-      ));
+      allocations.add(
+        ReceiptAllocationsCompanion(
+          id: Value(_uuid.v4()),
+          receiptId: Value.absent(),
+          invoiceId: Value(invoice.id),
+          allocatedAmount: Value(toAllocate),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
 
       remaining -= toAllocate;
     }

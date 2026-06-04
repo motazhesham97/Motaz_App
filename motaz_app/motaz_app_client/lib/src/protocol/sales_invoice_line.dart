@@ -25,6 +25,7 @@ abstract class SalesInvoiceLine implements _i1.SerializableModel {
     required this.quantity,
     required this.unitPrice,
     required this.lineTotal,
+    this.productionDate,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -38,6 +39,7 @@ abstract class SalesInvoiceLine implements _i1.SerializableModel {
     required int quantity,
     required int unitPrice,
     required int lineTotal,
+    DateTime? productionDate,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) = _SalesInvoiceLineImpl;
@@ -66,6 +68,11 @@ abstract class SalesInvoiceLine implements _i1.SerializableModel {
       quantity: jsonSerialization['quantity'] as int,
       unitPrice: jsonSerialization['unitPrice'] as int,
       lineTotal: jsonSerialization['lineTotal'] as int,
+      productionDate: jsonSerialization['productionDate'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['productionDate'],
+            ),
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
       ),
@@ -94,6 +101,8 @@ abstract class SalesInvoiceLine implements _i1.SerializableModel {
 
   int lineTotal;
 
+  DateTime? productionDate;
+
   DateTime createdAt;
 
   DateTime updatedAt;
@@ -110,6 +119,7 @@ abstract class SalesInvoiceLine implements _i1.SerializableModel {
     int? quantity,
     int? unitPrice,
     int? lineTotal,
+    DateTime? productionDate,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -125,6 +135,7 @@ abstract class SalesInvoiceLine implements _i1.SerializableModel {
       'quantity': quantity,
       'unitPrice': unitPrice,
       'lineTotal': lineTotal,
+      if (productionDate != null) 'productionDate': productionDate?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -148,6 +159,7 @@ class _SalesInvoiceLineImpl extends SalesInvoiceLine {
     required int quantity,
     required int unitPrice,
     required int lineTotal,
+    DateTime? productionDate,
     required DateTime createdAt,
     required DateTime updatedAt,
   }) : super._(
@@ -159,6 +171,7 @@ class _SalesInvoiceLineImpl extends SalesInvoiceLine {
          quantity: quantity,
          unitPrice: unitPrice,
          lineTotal: lineTotal,
+         productionDate: productionDate,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -176,6 +189,7 @@ class _SalesInvoiceLineImpl extends SalesInvoiceLine {
     int? quantity,
     int? unitPrice,
     int? lineTotal,
+    Object? productionDate = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -190,6 +204,9 @@ class _SalesInvoiceLineImpl extends SalesInvoiceLine {
       quantity: quantity ?? this.quantity,
       unitPrice: unitPrice ?? this.unitPrice,
       lineTotal: lineTotal ?? this.lineTotal,
+      productionDate: productionDate is DateTime?
+          ? productionDate
+          : this.productionDate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

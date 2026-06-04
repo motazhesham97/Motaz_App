@@ -2,6 +2,8 @@ class: Receipt
 table: receipt
 fields:
   id: UuidValue?, defaultPersist=random
+  localRef: String?
+  officialNo: String?
   receiptType: ReceiptType
   clientId: UuidValue
   client: ClientRecord?, relation(field=clientId)
@@ -25,3 +27,6 @@ indexes:
     fields: receiptDate
   receipt_status_idx:
     fields: status
+  receipt_official_no_idx:
+    fields: officialNo
+    unique: true

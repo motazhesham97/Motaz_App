@@ -5,11 +5,14 @@ import 'products.dart';
 @TableIndex(name: 'idx_invoice_line_invoice', columns: {#invoiceId})
 class SalesInvoiceLines extends Table {
   TextColumn get id => text().withLength(min: 36, max: 36)();
-  TextColumn get invoiceId => text().withLength(min: 36, max: 36).references(SalesInvoices, #id)();
-  TextColumn get productId => text().withLength(min: 36, max: 36).references(Products, #id)();
+  TextColumn get invoiceId =>
+      text().withLength(min: 36, max: 36).references(SalesInvoices, #id)();
+  TextColumn get productId =>
+      text().withLength(min: 36, max: 36).references(Products, #id)();
   IntColumn get quantity => integer()();
   IntColumn get unitPrice => integer()();
   IntColumn get lineTotal => integer()();
+  DateTimeColumn get productionDate => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

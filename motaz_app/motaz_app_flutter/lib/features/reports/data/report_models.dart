@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/expense_category.dart';
 import '../../../core/utils/date_range.dart';
 
@@ -10,6 +13,7 @@ class SalesReportRow {
   final DateTime invoiceDate;
   final int total;
   final int discount;
+  final List<Uint8List> attachmentImages;
 
   SalesReportRow({
     required this.invoiceId,
@@ -18,7 +22,20 @@ class SalesReportRow {
     required this.invoiceDate,
     required this.total,
     required this.discount,
+    this.attachmentImages = const [],
   });
+
+  SalesReportRow copyWith({List<Uint8List>? attachmentImages}) {
+    return SalesReportRow(
+      invoiceId: invoiceId,
+      localRef: localRef,
+      clientName: clientName,
+      invoiceDate: invoiceDate,
+      total: total,
+      discount: discount,
+      attachmentImages: attachmentImages ?? this.attachmentImages,
+    );
+  }
 }
 
 class SalesReportSummary {
@@ -65,6 +82,36 @@ class ExpenseByCategoryRow {
   });
 }
 
+class ExpenseReportRow {
+  final String id;
+  final ExpenseCategory category;
+  final String categoryLabel;
+  final DateTime expenseDate;
+  final int amount;
+  final String? note;
+
+  ExpenseReportRow({
+    required this.id,
+    required this.category,
+    required this.categoryLabel,
+    required this.expenseDate,
+    required this.amount,
+    this.note,
+  });
+}
+
+class ExpenseReportData {
+  final List<ExpenseReportRow> rows;
+  final int totalAmount;
+  final String filterLabel;
+
+  ExpenseReportData({
+    required this.rows,
+    required this.totalAmount,
+    required this.filterLabel,
+  });
+}
+
 class ProfitReportData {
   final int grossSales;
   final int discounts;
@@ -99,22 +146,100 @@ class ProfitDistribution {
   });
 }
 
+class FinalReportProductSale {
+  final String productName;
+  final int quantity;
+  final int totalSales;
+
+  FinalReportProductSale({
+    required this.productName,
+    required this.quantity,
+    required this.totalSales,
+  });
+}
+
+class FinalReportPartyRow {
+  final String partyName;
+  final int profitShare;
+  final int withdrawals;
+  final int afterWithdrawals;
+  final int repayments;
+  final int openingBalance;
+  final int closingBalance;
+
+  FinalReportPartyRow({
+    required this.partyName,
+    required this.profitShare,
+    required this.withdrawals,
+    required this.afterWithdrawals,
+    required this.repayments,
+    required this.openingBalance,
+    required this.closingBalance,
+  });
+}
+
+class FinalMonthlyReportData {
+  final int year;
+  final int month;
+  final int operationalExpenses;
+  final int productionExpenses;
+  final int totalCost;
+  final List<FinalReportProductSale> productSales;
+  final int totalSales;
+  final int profit;
+  final List<FinalReportPartyRow> partyRows;
+
+  FinalMonthlyReportData({
+    required this.year,
+    required this.month,
+    required this.operationalExpenses,
+    required this.productionExpenses,
+    required this.totalCost,
+    required this.productSales,
+    required this.totalSales,
+    required this.profit,
+    required this.partyRows,
+  });
+}
+
 class ClientStatementEntry {
+  final String entityId;
+  final ParentEntityType parentEntityType;
   final StatementEntryType type;
   final DateTime date;
   final String reference;
   final String? note;
   final int amount;
   final int runningBalance;
+  final List<Uint8List> attachmentImages;
 
   ClientStatementEntry({
+    required this.entityId,
+    required this.parentEntityType,
     required this.type,
     required this.date,
     required this.reference,
     this.note,
     required this.amount,
     required this.runningBalance,
+    this.attachmentImages = const [],
   });
+
+  ClientStatementEntry copyWith({
+    List<Uint8List>? attachmentImages,
+  }) {
+    return ClientStatementEntry(
+      entityId: entityId,
+      parentEntityType: parentEntityType,
+      type: type,
+      date: date,
+      reference: reference,
+      note: note,
+      amount: amount,
+      runningBalance: runningBalance,
+      attachmentImages: attachmentImages ?? this.attachmentImages,
+    );
+  }
 }
 
 class ClientStatementData {
@@ -148,6 +273,76 @@ class ReceivablesRow {
     required this.totalPaid,
     required this.totalReturned,
     required this.remainingBalance,
+  });
+}
+
+class ClientReceivablesReportData {
+  final DateRange dateRange;
+  final String filterLabel;
+  final List<ReceivablesRow> rows;
+  final int totalInvoiced;
+  final int totalPaid;
+  final int totalReturned;
+  final int totalRemaining;
+
+  ClientReceivablesReportData({
+    required this.dateRange,
+    required this.filterLabel,
+    required this.rows,
+    required this.totalInvoiced,
+    required this.totalPaid,
+    required this.totalReturned,
+    required this.totalRemaining,
+  });
+}
+
+class ClientProductSalesRow {
+  final String productId;
+  final String productName;
+  final int totalQuantitySold;
+  final int totalQuantityReturned;
+  final int netQuantity;
+  final int totalSales;
+  final int totalReturns;
+  final int netSales;
+
+  ClientProductSalesRow({
+    required this.productId,
+    required this.productName,
+    required this.totalQuantitySold,
+    required this.totalQuantityReturned,
+    required this.netQuantity,
+    required this.totalSales,
+    required this.totalReturns,
+    required this.netSales,
+  });
+}
+
+class ClientProductSalesReportData {
+  final String clientId;
+  final String clientName;
+  final DateRange dateRange;
+  final String filterLabel;
+  final List<ClientProductSalesRow> rows;
+  final int totalQuantitySold;
+  final int totalQuantityReturned;
+  final int netQuantity;
+  final int totalSales;
+  final int totalReturns;
+  final int netSales;
+
+  ClientProductSalesReportData({
+    required this.clientId,
+    required this.clientName,
+    required this.dateRange,
+    required this.filterLabel,
+    required this.rows,
+    required this.totalQuantitySold,
+    required this.totalQuantityReturned,
+    required this.netQuantity,
+    required this.totalSales,
+    required this.totalReturns,
+    required this.netSales,
   });
 }
 

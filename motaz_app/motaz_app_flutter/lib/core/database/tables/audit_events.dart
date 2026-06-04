@@ -11,7 +11,8 @@ class AuditEvents extends Table {
   TextColumn get entityId => text().withLength(min: 36, max: 36)();
   IntColumn get operation => intEnum<AuditOperation>()();
   TextColumn get diffData => text()();
-  TextColumn get deviceId => text().withLength(min: 36, max: 36).references(Devices, #id)();
+  TextColumn get deviceId =>
+      text().withLength(min: 36, max: 36).references(Devices, #id)();
   DateTimeColumn get createdAt => dateTime()();
 
   @override

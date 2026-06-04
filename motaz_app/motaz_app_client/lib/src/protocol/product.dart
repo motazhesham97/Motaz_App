@@ -21,9 +21,9 @@ abstract class Product implements _i1.SerializableModel {
     required this.name,
     this.description,
     required this.defaultSalePrice,
-    this.costPrice,
     this.unit,
     this.sku,
+    this.shelfLifeDays,
     bool? isActive,
     required this.createdAt,
     required this.updatedAt,
@@ -40,9 +40,9 @@ abstract class Product implements _i1.SerializableModel {
     required String name,
     String? description,
     required int defaultSalePrice,
-    int? costPrice,
     String? unit,
     String? sku,
+    int? shelfLifeDays,
     bool? isActive,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -60,9 +60,9 @@ abstract class Product implements _i1.SerializableModel {
       name: jsonSerialization['name'] as String,
       description: jsonSerialization['description'] as String?,
       defaultSalePrice: jsonSerialization['defaultSalePrice'] as int,
-      costPrice: jsonSerialization['costPrice'] as int?,
       unit: jsonSerialization['unit'] as String?,
       sku: jsonSerialization['sku'] as String?,
+      shelfLifeDays: jsonSerialization['shelfLifeDays'] as int?,
       isActive: jsonSerialization['isActive'] == null
           ? null
           : _i1.BoolJsonExtension.fromJson(jsonSerialization['isActive']),
@@ -98,11 +98,11 @@ abstract class Product implements _i1.SerializableModel {
 
   int defaultSalePrice;
 
-  int? costPrice;
-
   String? unit;
 
   String? sku;
+
+  int? shelfLifeDays;
 
   bool isActive;
 
@@ -126,9 +126,9 @@ abstract class Product implements _i1.SerializableModel {
     String? name,
     String? description,
     int? defaultSalePrice,
-    int? costPrice,
     String? unit,
     String? sku,
+    int? shelfLifeDays,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -145,9 +145,9 @@ abstract class Product implements _i1.SerializableModel {
       'name': name,
       if (description != null) 'description': description,
       'defaultSalePrice': defaultSalePrice,
-      if (costPrice != null) 'costPrice': costPrice,
       if (unit != null) 'unit': unit,
       if (sku != null) 'sku': sku,
+      if (shelfLifeDays != null) 'shelfLifeDays': shelfLifeDays,
       'isActive': isActive,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
@@ -172,9 +172,9 @@ class _ProductImpl extends Product {
     required String name,
     String? description,
     required int defaultSalePrice,
-    int? costPrice,
     String? unit,
     String? sku,
+    int? shelfLifeDays,
     bool? isActive,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -187,9 +187,9 @@ class _ProductImpl extends Product {
          name: name,
          description: description,
          defaultSalePrice: defaultSalePrice,
-         costPrice: costPrice,
          unit: unit,
          sku: sku,
+         shelfLifeDays: shelfLifeDays,
          isActive: isActive,
          createdAt: createdAt,
          updatedAt: updatedAt,
@@ -208,9 +208,9 @@ class _ProductImpl extends Product {
     String? name,
     Object? description = _Undefined,
     int? defaultSalePrice,
-    Object? costPrice = _Undefined,
     Object? unit = _Undefined,
     Object? sku = _Undefined,
+    Object? shelfLifeDays = _Undefined,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -224,9 +224,9 @@ class _ProductImpl extends Product {
       name: name ?? this.name,
       description: description is String? ? description : this.description,
       defaultSalePrice: defaultSalePrice ?? this.defaultSalePrice,
-      costPrice: costPrice is int? ? costPrice : this.costPrice,
       unit: unit is String? ? unit : this.unit,
       sku: sku is String? ? sku : this.sku,
+      shelfLifeDays: shelfLifeDays is int? ? shelfLifeDays : this.shelfLifeDays,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

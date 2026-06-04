@@ -1,0 +1,19 @@
+class: Beneficiary
+table: beneficiary
+fields:
+  id: UuidValue?, defaultPersist=random
+  displayName: String
+  phone: String?
+  sourceClientId: UuidValue?
+  isActive: bool, default=true
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  beneficiary_display_name_idx:
+    fields: displayName
+  beneficiary_source_client_idx:
+    fields: sourceClientId

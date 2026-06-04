@@ -1,0 +1,48 @@
+{
+  "__className__": "serverpod.DatabaseMigration",
+  "actions": [
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "product",
+        "schema": "public",
+        "addColumns": [],
+        "deleteColumns": [
+          "costPrice"
+        ],
+        "modifyColumns": [],
+        "addIndexes": [],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": [
+          {
+            "__className__": "serverpod.DatabaseMigrationWarning",
+            "type": "columnDropped",
+            "message": "Column \"costPrice\" of table \"product\" will be dropped.",
+            "table": "product",
+            "columns": [
+              "costPrice"
+            ],
+            "destrucive": true
+          }
+        ]
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "columnDropped",
+      "message": "Column \"costPrice\" of table \"product\" will be dropped.",
+      "table": "product",
+      "columns": [
+        "costPrice"
+      ],
+      "destrucive": true
+    }
+  ],
+  "migrationApiVersion": 1
+}

@@ -18,8 +18,8 @@ class ExpenseRepository {
   final _uuid = const Uuid();
 
   static const _categoryLabels = {
-    ExpenseCategory.OWNER_DRAW: 'سحب مالك',
-    ExpenseCategory.PARTNER_DRAW: 'سحب شريك',
+    ExpenseCategory.OWNER_DRAW: 'سحب امي',
+    ExpenseCategory.PARTNER_DRAW: 'سحب معتز',
     ExpenseCategory.MARGIN_DRAW: 'سحب هامش',
     ExpenseCategory.OPERATIONAL: 'تشغيلي',
     ExpenseCategory.PRODUCTION: 'إنتاج',
@@ -55,35 +55,39 @@ class ExpenseRepository {
     });
 
     await _db.transaction(() async {
-      await _db.into(_db.expenses).insert(
-        ExpensesCompanion(
-          id: Value(id),
-          category: Value(category),
-          amount: Value(amount),
-          expenseDate: Value(expenseDate),
-          note: Value(note),
-          status: Value(RecordStatus.ACTIVE),
-          voidReason: Value.absent(),
-          createdAt: Value(now),
-          updatedAt: Value(now),
-          deviceId: Value(deviceId),
-          rowVersion: const Value(1),
-          syncStatus: Value(SyncStatus.PENDING),
-        ),
-      );
-      await _db.into(_db.syncOutbox).insert(
-        SyncOutboxCompanion.insert(
-          id: _uuid.v4(),
-          entityType: ParentEntityType.EXPENSE,
-          entityId: id,
-          operation: AuditOperation.CREATE,
-          payload: payload,
-          rowVersion: 1,
-          deviceId: deviceId,
-          createdAt: now,
-          status: Value(SyncOutboxStatus.PENDING),
-        ),
-      );
+      await _db
+          .into(_db.expenses)
+          .insert(
+            ExpensesCompanion(
+              id: Value(id),
+              category: Value(category),
+              amount: Value(amount),
+              expenseDate: Value(expenseDate),
+              note: Value(note),
+              status: Value(RecordStatus.ACTIVE),
+              voidReason: Value.absent(),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+              deviceId: Value(deviceId),
+              rowVersion: const Value(1),
+              syncStatus: Value(SyncStatus.PENDING),
+            ),
+          );
+      await _db
+          .into(_db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion.insert(
+              id: _uuid.v4(),
+              entityType: ParentEntityType.EXPENSE,
+              entityId: id,
+              operation: AuditOperation.CREATE,
+              payload: payload,
+              rowVersion: 1,
+              deviceId: deviceId,
+              createdAt: now,
+              status: Value(SyncOutboxStatus.PENDING),
+            ),
+          );
     });
 
     return await getById(id);
@@ -137,19 +141,21 @@ class ExpenseRepository {
           syncStatus: Value(SyncStatus.PENDING),
         ),
       );
-      await _db.into(_db.syncOutbox).insert(
-        SyncOutboxCompanion.insert(
-          id: _uuid.v4(),
-          entityType: ParentEntityType.EXPENSE,
-          entityId: id,
-          operation: AuditOperation.UPDATE,
-          payload: payload,
-          rowVersion: newVersion,
-          deviceId: deviceId,
-          createdAt: now,
-          status: Value(SyncOutboxStatus.PENDING),
-        ),
-      );
+      await _db
+          .into(_db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion.insert(
+              id: _uuid.v4(),
+              entityType: ParentEntityType.EXPENSE,
+              entityId: id,
+              operation: AuditOperation.UPDATE,
+              payload: payload,
+              rowVersion: existing.rowVersion,
+              deviceId: deviceId,
+              createdAt: now,
+              status: Value(SyncOutboxStatus.PENDING),
+            ),
+          );
     });
   }
 
@@ -192,44 +198,46 @@ class ExpenseRepository {
           syncStatus: Value(SyncStatus.PENDING),
         ),
       );
-      await _db.into(_db.syncOutbox).insert(
-        SyncOutboxCompanion.insert(
-          id: _uuid.v4(),
-          entityType: ParentEntityType.EXPENSE,
-          entityId: id,
-          operation: AuditOperation.UPDATE,
-          payload: payload,
-          rowVersion: newVersion,
-          deviceId: deviceId,
-          createdAt: now,
-          status: Value(SyncOutboxStatus.PENDING),
-        ),
-      );
+      await _db
+          .into(_db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion.insert(
+              id: _uuid.v4(),
+              entityType: ParentEntityType.EXPENSE,
+              entityId: id,
+              operation: AuditOperation.UPDATE,
+              payload: payload,
+              rowVersion: existing.rowVersion,
+              deviceId: deviceId,
+              createdAt: now,
+              status: Value(SyncOutboxStatus.PENDING),
+            ),
+          );
     });
   }
 
   Future<Expense> getById(String id) async {
-    return (_db.select(_db.expenses)..where((t) => t.id.equals(id)))
-        .getSingle();
+    return (_db.select(
+      _db.expenses,
+    )..where((t) => t.id.equals(id))).getSingle();
   }
 
   Stream<List<Expense>> watchAll() {
-    return (_db.select(_db.expenses)
-          ..orderBy([
-            (t) => OrderingTerm.desc(t.expenseDate),
-            (t) => OrderingTerm.desc(t.createdAt),
-          ]))
+    return (_db.select(_db.expenses)..orderBy([
+          (t) => OrderingTerm.desc(t.expenseDate),
+          (t) => OrderingTerm.desc(t.createdAt),
+        ]))
         .watch();
   }
 
   Stream<List<Expense>> searchByText(String query) {
     final q = query.trim().toLowerCase();
-    final expenseStream = (_db.select(_db.expenses)
-          ..orderBy([
-            (t) => OrderingTerm.desc(t.expenseDate),
-            (t) => OrderingTerm.desc(t.createdAt),
-          ]))
-        .watch();
+    final expenseStream =
+        (_db.select(_db.expenses)..orderBy([
+              (t) => OrderingTerm.desc(t.expenseDate),
+              (t) => OrderingTerm.desc(t.createdAt),
+            ]))
+            .watch();
 
     return expenseStream.map((expenses) {
       if (q.isEmpty) return expenses;
@@ -257,13 +265,15 @@ class ExpenseRepository {
     final monthStart = DateTime(year, month, 1);
     final monthEnd = DateTime(year, month + 1, 1);
 
-    final result = await (_db.select(_db.expenses)
-          ..where((t) =>
-              t.category.equals(category.index) &
-              t.status.equals(RecordStatus.ACTIVE.index) &
-              t.expenseDate.isBiggerOrEqualValue(monthStart) &
-              t.expenseDate.isSmallerThanValue(monthEnd)))
-        .get();
+    final result =
+        await (_db.select(_db.expenses)..where(
+              (t) =>
+                  t.category.equals(category.index) &
+                  t.status.equals(RecordStatus.ACTIVE.index) &
+                  t.expenseDate.isBiggerOrEqualValue(monthStart) &
+                  t.expenseDate.isSmallerThanValue(monthEnd),
+            ))
+            .get();
 
     return result.fold<int>(0, (sum, e) => sum + e.amount);
   }

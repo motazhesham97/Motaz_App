@@ -1,0 +1,51 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: '3.4.7'
+      SERVERPOD_PASSWORD_database: 'motaz_test_password'
+      SERVERPOD_PASSWORD_redis: 'motaz_test_redis_password'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.8'
+
+      - name: Install dependencies
+        working-directory: motaz_app
+        run: flutter pub get
+
+      - name: Start containers
+        working-directory: motaz_app/motaz_app_server
+        run: docker compose up --quiet-pull --quiet-build --build -d
+
+      - name: Install Serverpod CLI
+        working-directory: motaz_app/motaz_app_server
+        run: dart pub global activate serverpod_cli $VERSION
+
+      - name: Run Serverpod generator
+        working-directory: motaz_app/motaz_app_server
+        run: serverpod generate
+
+      - name: Run server tests
+        working-directory: motaz_app/motaz_app_server
+        run: dart test
+
+      - name: Run Flutter tests
+        working-directory: motaz_app/motaz_app_flutter
+        run: flutter test
+
+      - name: Stop containers
+        if: always()
+        working-directory: motaz_app/motaz_app_server
+        run: docker compose down -v

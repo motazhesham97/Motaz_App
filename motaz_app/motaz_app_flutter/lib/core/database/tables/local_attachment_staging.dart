@@ -9,7 +9,8 @@ class LocalAttachmentStaging extends Table {
   TextColumn get localFilePath => text()();
   TextColumn get fileType => text()();
   IntColumn get fileSize => integer().nullable()();
-  TextColumn get uploadStatus => text().withDefault(const Constant('PENDING'))();
+  TextColumn get uploadStatus =>
+      text().withDefault(const Constant('PENDING'))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

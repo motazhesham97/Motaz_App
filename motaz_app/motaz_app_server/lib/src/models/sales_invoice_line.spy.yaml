@@ -9,6 +9,7 @@ fields:
   quantity: int
   unitPrice: int
   lineTotal: int
+  productionDate: DateTime?
   createdAt: DateTime
   updatedAt: DateTime
 indexes:

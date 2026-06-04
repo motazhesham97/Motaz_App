@@ -118,13 +118,19 @@ class _DateRangePickerWidgetState extends State<DateRangePickerWidget> {
     );
     if (picked == null) return;
 
-    final newStart = isStart ? DateTime(picked.year, picked.month, picked.day) : _startDate;
-    final newEnd = isStart ? _endDate : DateTime(picked.year, picked.month, picked.day + 1);
+    final newStart = isStart
+        ? DateTime(picked.year, picked.month, picked.day)
+        : _startDate;
+    final newEnd = isStart
+        ? _endDate
+        : DateTime(picked.year, picked.month, picked.day + 1);
 
     if (!newStart.isBefore(newEnd)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تاريخ البداية يجب أن يكون قبل تاريخ النهاية')),
+          const SnackBar(
+            content: Text('تاريخ البداية يجب أن يكون قبل تاريخ النهاية'),
+          ),
         );
       }
       return;

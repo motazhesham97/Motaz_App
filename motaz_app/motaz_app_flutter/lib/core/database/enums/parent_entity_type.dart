@@ -14,6 +14,10 @@ enum ParentEntityType {
   SALES_RETURN_LINE,
   ATTACHMENT_METADATA,
   MONTHLY_DISTRIBUTION,
+  PARTY_ADJUSTMENT,
+  BENEFICIARY,
+  FREE_SAMPLE,
+  FREE_SAMPLE_LINE,
 }
 
 class ParentEntityTypeConverter extends TypeConverter<ParentEntityType, int> {

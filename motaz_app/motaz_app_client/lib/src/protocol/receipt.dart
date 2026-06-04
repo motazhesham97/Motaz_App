@@ -22,6 +22,8 @@ import 'package:motaz_app_client/src/protocol/protocol.dart' as _i8;
 abstract class Receipt implements _i1.SerializableModel {
   Receipt._({
     this.id,
+    this.localRef,
+    this.officialNo,
     required this.receiptType,
     required this.clientId,
     this.client,
@@ -44,6 +46,8 @@ abstract class Receipt implements _i1.SerializableModel {
 
   factory Receipt({
     _i1.UuidValue? id,
+    String? localRef,
+    String? officialNo,
     required _i4.ReceiptType receiptType,
     required _i1.UuidValue clientId,
     _i5.ClientRecord? client,
@@ -67,6 +71,8 @@ abstract class Receipt implements _i1.SerializableModel {
       id: jsonSerialization['id'] == null
           ? null
           : _i1.UuidValueJsonExtension.fromJson(jsonSerialization['id']),
+      localRef: jsonSerialization['localRef'] as String?,
+      officialNo: jsonSerialization['officialNo'] as String?,
       receiptType: _i4.ReceiptType.fromJson(
         (jsonSerialization['receiptType'] as String),
       ),
@@ -121,6 +127,10 @@ abstract class Receipt implements _i1.SerializableModel {
   /// the id will be null.
   _i1.UuidValue? id;
 
+  String? localRef;
+
+  String? officialNo;
+
   _i4.ReceiptType receiptType;
 
   _i1.UuidValue clientId;
@@ -158,6 +168,8 @@ abstract class Receipt implements _i1.SerializableModel {
   @_i1.useResult
   Receipt copyWith({
     _i1.UuidValue? id,
+    String? localRef,
+    String? officialNo,
     _i4.ReceiptType? receiptType,
     _i1.UuidValue? clientId,
     _i5.ClientRecord? client,
@@ -180,6 +192,8 @@ abstract class Receipt implements _i1.SerializableModel {
     return {
       '__className__': 'Receipt',
       if (id != null) 'id': id?.toJson(),
+      if (localRef != null) 'localRef': localRef,
+      if (officialNo != null) 'officialNo': officialNo,
       'receiptType': receiptType.toJson(),
       'clientId': clientId.toJson(),
       if (client != null) 'client': client?.toJson(),
@@ -210,6 +224,8 @@ class _Undefined {}
 class _ReceiptImpl extends Receipt {
   _ReceiptImpl({
     _i1.UuidValue? id,
+    String? localRef,
+    String? officialNo,
     required _i4.ReceiptType receiptType,
     required _i1.UuidValue clientId,
     _i5.ClientRecord? client,
@@ -228,6 +244,8 @@ class _ReceiptImpl extends Receipt {
     _i3.SyncStatus? syncStatus,
   }) : super._(
          id: id,
+         localRef: localRef,
+         officialNo: officialNo,
          receiptType: receiptType,
          clientId: clientId,
          client: client,
@@ -252,6 +270,8 @@ class _ReceiptImpl extends Receipt {
   @override
   Receipt copyWith({
     Object? id = _Undefined,
+    Object? localRef = _Undefined,
+    Object? officialNo = _Undefined,
     _i4.ReceiptType? receiptType,
     _i1.UuidValue? clientId,
     Object? client = _Undefined,
@@ -271,6 +291,8 @@ class _ReceiptImpl extends Receipt {
   }) {
     return Receipt(
       id: id is _i1.UuidValue? ? id : this.id,
+      localRef: localRef is String? ? localRef : this.localRef,
+      officialNo: officialNo is String? ? officialNo : this.officialNo,
       receiptType: receiptType ?? this.receiptType,
       clientId: clientId ?? this.clientId,
       client: client is _i5.ClientRecord? ? client : this.client?.copyWith(),

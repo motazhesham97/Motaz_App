@@ -11,12 +11,16 @@ class Clients extends Table {
   TextColumn get address => text().nullable()();
   TextColumn get note => text().nullable()();
   TextColumn get clientCode => text().nullable()();
+  IntColumn get creditLimit => integer().nullable()();
+  IntColumn get invoiceCheckIntervalDays => integer().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
-  TextColumn get deviceId => text().withLength(min: 36, max: 36).references(Devices, #id)();
+  TextColumn get deviceId =>
+      text().withLength(min: 36, max: 36).references(Devices, #id)();
   IntColumn get rowVersion => integer().withDefault(const Constant(1))();
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(const Constant(0))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};

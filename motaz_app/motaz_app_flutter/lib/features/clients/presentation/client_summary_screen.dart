@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/document_reference_formatter.dart';
+import '../../invoices/presentation/invoice_detail_screen.dart';
 import '../application/client_providers.dart';
 import 'client_form_screen.dart';
 
@@ -11,7 +13,8 @@ class ClientSummaryScreen extends ConsumerStatefulWidget {
   final Client client;
 
   @override
-  ConsumerState<ClientSummaryScreen> createState() => _ClientSummaryScreenState();
+  ConsumerState<ClientSummaryScreen> createState() =>
+      _ClientSummaryScreenState();
 }
 
 class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
@@ -60,17 +63,67 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
       ),
     );
     if (mounted) {
-      setState(() { _loading = true; });
+      setState(() {
+        _loading = true;
+      });
       await _loadData();
     }
   }
 
+  Future<void> _toggleClientActive() async {
+    final nextState = !_client.isActive;
+    final clientName = _client.displayName;
+    try {
+      await ref.read(clientRepositoryProvider).setActive(_client.id, nextState);
+      await _loadData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            nextState ? 'تم تنشيط $clientName' : 'تم تعطيل $clientName',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر تحديث حالة العميل: $error')),
+      );
+    }
+  }
+
+  String _transactionTitle(Map<String, dynamic> transaction) {
+    final localRef = transaction['localRef'] as String? ?? '';
+    final officialNo = transaction['officialNo'] as String?;
+    return transaction['type'] == 'INVOICE'
+        ? invoiceDisplayRef(localRef, officialNo: officialNo)
+        : receiptDisplayRef(localRef, officialNo: officialNo);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final balanceColor = _balance > 0
+        ? const Color(0xFFFF6B5F)
+        : const Color(0xFF6FCF7D);
+    final balanceBackground = Color.alphaBlend(
+      balanceColor.withValues(alpha: 0.18),
+      colorScheme.surface,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_client.displayName),
         actions: [
+          IconButton(
+            tooltip: _client.isActive ? 'تعطيل العميل' : 'تنشيط العميل',
+            icon: Icon(
+              _client.isActive
+                  ? Icons.block_rounded
+                  : Icons.check_circle_rounded,
+            ),
+            onPressed: _toggleClientActive,
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _navigateToEdit,
@@ -93,6 +146,16 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
                           Text(
                             'بيانات العميل',
                             style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 12),
+                          Chip(
+                            avatar: Icon(
+                              _client.isActive
+                                  ? Icons.check_circle_rounded
+                                  : Icons.block_rounded,
+                              size: 16,
+                            ),
+                            label: Text(_client.isActive ? 'نشط' : 'معطل'),
                           ),
                           const SizedBox(height: 12),
                           if (_client.phone != null) ...[
@@ -120,7 +183,14 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
                   ),
                   const SizedBox(height: 16),
                   Card(
-                    color: _balance > 0 ? Colors.red[50] : Colors.green[50],
+                    color: balanceBackground,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: balanceColor.withValues(alpha: 0.75),
+                        width: 1.4,
+                      ),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -135,8 +205,10 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
                             _balance == 0
                                 ? 'لا توجد مستحقات'
                                 : '${(_balance / 100).toStringAsFixed(2)} ر.ي.',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  color: _balance > 0 ? Colors.red : Colors.green,
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  color: balanceColor,
+                                  fontWeight: FontWeight.w800,
                                 ),
                           ),
                         ],
@@ -157,21 +229,34 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
                       ),
                     )
                   else
-                    ..._transactions.map((tx) => Card(
-                          child: ListTile(
-                            title: Text(
-                              tx['type'] == 'INVOICE'
-                                  ? 'فاتورة'
-                                  : 'سند قبض',
-                            ),
-                            subtitle: Text(
-                              '${((tx['amount'] as int) / 100).toStringAsFixed(2)} ر.ي.',
-                            ),
-                            trailing: Text(
-                              (tx['date'] as DateTime).toString().split(' ').first,
-                            ),
+                    ..._transactions.map(
+                      (tx) => Card(
+                        child: ListTile(
+                          title: Text(_transactionTitle(tx)),
+                          subtitle: Text(
+                            '${((tx['amount'] as int) / 100).toStringAsFixed(2)} ر.ي.',
                           ),
-                        )),
+                          trailing: Text(
+                            (tx['date'] as DateTime)
+                                .toString()
+                                .split(' ')
+                                .first,
+                          ),
+                          onTap: tx['type'] == 'INVOICE'
+                              ? () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => InvoiceDetailScreen(
+                                        invoiceId: tx['id'] as String,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              : null,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

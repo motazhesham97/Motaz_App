@@ -6,6 +6,9 @@ fields:
   platform: DevicePlatform
   deviceCode: String
   nextInvoiceSequence: int, default=1
+  nextReceiptSequence: int, default=1
+  nextReturnSequence: int, default=1
+  nextSampleSequence: int, default=1
   createdAt: DateTime
   lastActiveAt: DateTime
   syncOutboxItems: List<SyncOutbox>?, relation(name=device_sync_outbox)

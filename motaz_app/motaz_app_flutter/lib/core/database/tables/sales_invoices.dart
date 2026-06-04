@@ -11,24 +11,28 @@ class SalesInvoices extends Table {
   TextColumn get id => text().withLength(min: 36, max: 36)();
   TextColumn get localRef => text().withLength(min: 1, max: 50)();
   TextColumn get officialNo => text().nullable()();
-  TextColumn get clientId => text().withLength(min: 36, max: 36).references(Clients, #id)();
+  TextColumn get clientId =>
+      text().withLength(min: 36, max: 36).references(Clients, #id)();
   DateTimeColumn get invoiceDate => dateTime()();
   IntColumn get discount => integer().withDefault(const Constant(0))();
   IntColumn get total => integer()();
   TextColumn get note => text().nullable()();
-  IntColumn get status => intEnum<RecordStatus>().withDefault(const Constant(0))();
+  IntColumn get status =>
+      intEnum<RecordStatus>().withDefault(const Constant(0))();
   TextColumn get voidReason => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
-  TextColumn get deviceId => text().withLength(min: 36, max: 36).references(Devices, #id)();
+  TextColumn get deviceId =>
+      text().withLength(min: 36, max: 36).references(Devices, #id)();
   IntColumn get rowVersion => integer().withDefault(const Constant(1))();
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(const Constant(0))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};
 
   @override
   List<Set<Column>> get uniqueKeys => [
-    {localRef}
+    {localRef},
   ];
 }

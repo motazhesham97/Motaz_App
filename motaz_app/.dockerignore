@@ -1,0 +1,34 @@
+.dart_tool/
+**/.dart_tool/
+**/build/
+**/.codex-run/
+
+# Flutter generated platform artifacts can be huge and are not needed by the
+# backend image.
+motaz_app_flutter/.dart_tool/
+motaz_app_flutter/android/.gradle/
+motaz_app_flutter/linux/flutter/ephemeral/
+motaz_app_flutter/windows/flutter/ephemeral/
+motaz_app_flutter/build/
+
+# Local runtime files.
+**/*.log
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.db-journal
+**/*.db-shm
+**/*.db-wal
+
+# Secrets and local environment files must be mounted or provided by the
+# deployment platform, not baked into the image.
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.docker.example
+**/config/passwords.yaml
+**/config/passwords.docker.yaml
+**/*.pem
+**/*.p12
+**/*.key
+**/*.cert

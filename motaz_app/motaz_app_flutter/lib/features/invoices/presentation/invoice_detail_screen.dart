@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,8 +7,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/database/device_service.dart';
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
-import '../../../core/database/enums/receipt_type.dart';
+import '../../../core/utils/document_reference_formatter.dart';
+import '../../attachments/application/document_attachment_reader.dart';
 import '../application/invoice_providers.dart';
 import '../../clients/application/client_providers.dart';
 import '../../receipts/presentation/receipt_form_screen.dart';
@@ -34,6 +38,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
   bool _hasReturns = false;
   bool _loading = true;
   Map<String, String> _productNames = {};
+  List<Uint8List> _attachmentImages = [];
 
   @override
   void initState() {
@@ -53,6 +58,12 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       final remaining = await repo.getRemainingBalance(widget.invoiceId);
       final hasR = await repo.hasActiveReceipts(widget.invoiceId);
       final hasRet = await repo.hasActiveReturns(widget.invoiceId);
+      final attachments = await ref
+          .read(documentAttachmentReaderProvider)
+          .loadImages(
+            parentEntityType: ParentEntityType.SALES_INVOICE,
+            parentEntityId: widget.invoiceId,
+          );
 
       Client? client;
       try {
@@ -77,6 +88,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
           _hasReturns = hasRet;
           _client = client;
           _productNames = pMap;
+          _attachmentImages = attachments;
           _loading = false;
         });
       }
@@ -161,7 +173,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(invoice.localRef),
+        title: Text(
+          invoiceDisplayRef(invoice.localRef, officialNo: invoice.officialNo),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -179,9 +193,11 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
-                    if (_client != null) Text('العميل: ${_client!.displayName}'),
+                    if (_client != null)
+                      Text('العميل: ${_client!.displayName}'),
                     Text(
-                        'التاريخ: ${invoice.invoiceDate.year}-${invoice.invoiceDate.month.toString().padLeft(2, '0')}-${invoice.invoiceDate.day.toString().padLeft(2, '0')}'),
+                      'التاريخ: ${invoice.invoiceDate.year}-${invoice.invoiceDate.month.toString().padLeft(2, '0')}-${invoice.invoiceDate.day.toString().padLeft(2, '0')}',
+                    ),
                     if (invoice.note != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -194,18 +210,24 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         if (isActive)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text('نشطة',
-                                style: TextStyle(color: Colors.green)),
+                            child: const Text(
+                              'نشطة',
+                              style: TextStyle(color: Colors.green),
+                            ),
                           )
                         else
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.red.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
@@ -233,20 +255,14 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
-                    ..._lines.map((line) => ListTile(
-                          dense: true,
-                          title: Text(
-                              _productNames[line.productId] ?? 'منتج غير معروف'),
-                          subtitle: Text(
-                            '${line.quantity} × ${_formatMoney(line.unitPrice)} = ${_formatMoney(line.lineTotal)}',
-                          ),
-                        ),
-                    ),
+                    ..._lines.map(_buildInvoiceLine),
                     if (invoice.discount > 0) ...[
                       const Divider(),
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -258,13 +274,17 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                     ],
                     const Divider(),
                     Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('الإجمالي:',
-                              style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            'الإجمالي:',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                           Text(
                             _formatMoney(invoice.total),
                             style: Theme.of(context).textTheme.titleMedium,
@@ -294,22 +314,26 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         child: Text('لا توجد دفعات'),
                       )
                     else
-                      ..._receipts.map((r) => ListTile(
-                            dense: true,
-                            title: Text(
-                              r.receiptType == ReceiptType.INVOICE_LINKED
-                                  ? 'دفعة مرتبطة بفاتورة'
-                                  : 'دفعة عامة',
-                            ),
-                            subtitle: Text(
-                              '${_formatMoney(r.amount)} - ${r.receiptDate.year}-${r.receiptDate.month.toString().padLeft(2, '0')}-${r.receiptDate.day.toString().padLeft(2, '0')}',
+                      ..._receipts.map(
+                        (r) => ListTile(
+                          dense: true,
+                          title: Text(
+                            receiptDisplayRef(
+                              r.localRef,
+                              officialNo: r.officialNo,
                             ),
                           ),
+                          subtitle: Text(
+                            '${_formatMoney(r.amount)} - ${r.receiptDate.year}-${r.receiptDate.month.toString().padLeft(2, '0')}-${r.receiptDate.day.toString().padLeft(2, '0')}',
+                          ),
                         ),
+                      ),
                     const Divider(),
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -321,7 +345,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                     if (_returnAmount > 0)
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -335,7 +361,9 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       ),
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -355,76 +383,164 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                 ),
               ),
             ),
+            if (_attachmentImages.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildAttachmentSection(),
+            ],
             if (isActive) ...[
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => InvoiceFormScreen(
-                              existingInvoice: _invoice,
-                              existingLines: _lines,
-                              hasReceipts: _hasReceipts,
-                              hasReturns: _hasReturns,
-                              collectedAmount: _collectedAmount,
-                            ),
-                          ),
-                        );
-                        if (mounted) _loadData();
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('تعديل'),
-                    ),
-                  ),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        context.go('/returns/create?invoiceId=${widget.invoiceId}');
-                      },
-                      icon: const Icon(Icons.assignment_return),
-                      label: const Text('إنشاء مرتجع'),
-                    ),
-                  ),
-                  if (_remainingBalance > 0)
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ReceiptFormScreen(
-                                invoiceId: widget.invoiceId,
-                                clientId: _invoice!.clientId,
-                                maxAmount: _remainingBalance,
-                              ),
-                            ),
-                          );
-                          if (mounted) _loadData();
-                        },
-                        icon: const Icon(Icons.add_card),
-                        label: const Text('إضافة دفعة'),
-                      ),
-                    ),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _showVoidDialog,
-                      icon: const Icon(Icons.cancel),
-                      label: const Text('إلغاء الفاتورة'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              _buildActionButtons(),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInvoiceLine(SalesInvoiceLine line) {
+    final name = _productNames[line.productId] ?? 'منتج غير معروف';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                children: [
+                  Text('الكمية: ${line.quantity}'),
+                  Text('السعر: ${_formatMoney(line.unitPrice)}'),
+                  Text(
+                    'الإجمالي: ${_formatMoney(line.lineTotal)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachmentSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('صورة الفاتورة', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            ..._attachmentImages.map(
+              (bytes) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(bytes, fit: BoxFit.contain),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    final buttons = <Widget>[
+      OutlinedButton.icon(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => InvoiceFormScreen(
+                existingInvoice: _invoice,
+                existingLines: _lines,
+                hasReceipts: _hasReceipts,
+                hasReturns: _hasReturns,
+                collectedAmount: _collectedAmount,
+              ),
+            ),
+          );
+          if (mounted) _loadData();
+        },
+        icon: const Icon(Icons.edit),
+        label: const Text('تعديل'),
+      ),
+      OutlinedButton.icon(
+        onPressed: () {
+          context.go('/returns/create?invoiceId=${widget.invoiceId}');
+        },
+        icon: const Icon(Icons.assignment_return),
+        label: const Text('إنشاء مرتجع'),
+      ),
+      if (_remainingBalance > 0)
+        OutlinedButton.icon(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ReceiptFormScreen(
+                  invoiceId: widget.invoiceId,
+                  clientId: _invoice!.clientId,
+                  maxAmount: _remainingBalance,
+                ),
+              ),
+            );
+            if (mounted) _loadData();
+          },
+          icon: const Icon(Icons.add_card),
+          label: const Text('إضافة دفعة'),
+        ),
+      OutlinedButton.icon(
+        onPressed: _showVoidDialog,
+        icon: const Icon(Icons.cancel),
+        label: const Text('إلغاء الفاتورة'),
+        style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 520) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final button in buttons) ...[
+                SizedBox(height: 48, child: button),
+                if (button != buttons.last) const SizedBox(height: 8),
+              ],
+            ],
+          );
+        }
+
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.end,
+          children: [
+            for (final button in buttons)
+              SizedBox(width: 190, height: 46, child: button),
+          ],
+        );
+      },
     );
   }
 }

@@ -1,7 +1,10 @@
 String formatMoney(int minorUnits) {
-  return '${(minorUnits / 100).toStringAsFixed(2)} ر.ي.';
+  final sign = minorUnits < 0 ? '-' : '';
+  final amount = (minorUnits.abs() / 100).toStringAsFixed(2);
+  return '$sign$amount ر.ي.';
 }
 
 String formatMoneyPlain(int minorUnits) {
-  return (minorUnits / 100).toStringAsFixed(2);
+  final sign = minorUnits < 0 ? '-' : '';
+  return '$sign${(minorUnits.abs() / 100).toStringAsFixed(2)}';
 }

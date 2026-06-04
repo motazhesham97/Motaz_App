@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/audit_event.dart';
@@ -6,6 +8,10 @@ import '../generated/enums/audit_operation.dart';
 import '../generated/enums/parent_entity_type.dart';
 
 class AttachmentService {
+  static const String defaultCloudinaryUploadUrl =
+      'https://api.cloudinary.com/v1_1/dbymtaesx/auto/upload';
+  static const String defaultCloudinaryUploadPreset = 'im_default';
+
   static ParentEntityType? _parseParentEntityType(String name) {
     for (final e in ParentEntityType.values) {
       if (e.name == name) return e;
@@ -27,27 +33,30 @@ class AttachmentService {
     int fileSize,
   ) {
     if (!allowedFileTypes.contains(fileType)) {
-      return 'File type "' + fileType + '" is not allowed. Allowed: ' + allowedFileTypes.join(', ');
+      return 'File type "$fileType" is not allowed. Allowed: ${allowedFileTypes.join(', ')}';
     }
     if (fileSize > maxFileSize) {
-      return 'File size ' + fileSize.toString() + 'b exceeds maximum of ' + maxFileSize.toString() + 'b (10MB)';
+      return 'File size ${fileSize}b exceeds maximum of ${maxFileSize}b (10MB)';
     }
     return null;
   }
 
-  static Future<({String uploadUrl, String uploadPreset})> generateSignedUploadUrl(
+  static Future<({String uploadUrl, String uploadPreset})>
+  generateSignedUploadUrl(
     Session session,
     String parentEntityType,
     String parentEntityId,
   ) async {
-    final uploadUrl = const String.fromEnvironment(
-      'CLOUDINARY_UPLOAD_URL',
-      defaultValue: 'https://api.cloudinary.com/v1_1/demo/auto/upload',
-    );
-    final uploadPreset = const String.fromEnvironment(
-      'CLOUDINARY_UPLOAD_PRESET',
-      defaultValue: 'unsigned_preset',
-    );
+    final uploadUrl =
+        Platform.environment['CLOUDINARY_UPLOAD_URL']?.trim().isNotEmpty == true
+        ? Platform.environment['CLOUDINARY_UPLOAD_URL']!.trim()
+        : defaultCloudinaryUploadUrl;
+    final uploadPreset =
+        Platform.environment['CLOUDINARY_UPLOAD_PRESET']?.trim().isNotEmpty ==
+            true
+        ? Platform.environment['CLOUDINARY_UPLOAD_PRESET']!.trim()
+        : defaultCloudinaryUploadPreset;
+
     return (uploadUrl: uploadUrl, uploadPreset: uploadPreset);
   }
 
@@ -65,29 +74,29 @@ class AttachmentService {
 
     final parsedType = _parseParentEntityType(parentEntityType);
     if (parsedType == null) {
-      throw ArgumentError('Unknown parent entity type: ' + parentEntityType);
+      throw ArgumentError('Unknown parent entity type: $parentEntityType');
     }
 
     final metadata = AttachmentMetadata(
       parentEntityType: parsedType,
-      parentEntityId: UuidValue(parentEntityId),
+      parentEntityId: UuidValue.fromString(parentEntityId),
       storageReference: publicId,
       secureUrl: secureUrl,
       fileType: fileType,
       fileSize: fileSize,
       createdAt: now,
       updatedAt: now,
-      deviceId: UuidValue(deviceId),
+      deviceId: UuidValue.fromString(deviceId),
     );
 
     final inserted = await AttachmentMetadata.db.insertRow(session, metadata);
 
     final auditEvent = AuditEvent(
       entityType: parsedType,
-      entityId: UuidValue(parentEntityId),
+      entityId: UuidValue.fromString(parentEntityId),
       operation: AuditOperation.CREATE,
-      diffData: '{"attachmentId":"' + inserted.id.toString() + '","publicId":"' + publicId + '"}',
-      deviceId: UuidValue(deviceId),
+      diffData: '{"attachmentId":"${inserted.id}","publicId":"$publicId"}',
+      deviceId: UuidValue.fromString(deviceId),
       createdAt: now,
     );
     await AuditEvent.db.insertRow(session, auditEvent);

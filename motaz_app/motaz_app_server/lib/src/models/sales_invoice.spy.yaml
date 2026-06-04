@@ -22,6 +22,9 @@ indexes:
   invoice_local_ref_idx:
     fields: localRef
     unique: true
+  invoice_official_no_idx:
+    fields: officialNo
+    unique: true
   invoice_date_idx:
     fields: invoiceDate
   invoice_client_idx:

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:motaz_app_client/motaz_app_client.dart';
 
 Future<void> main(List<String> args) async {

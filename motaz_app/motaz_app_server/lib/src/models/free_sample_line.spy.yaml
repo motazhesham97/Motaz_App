@@ -1,0 +1,20 @@
+class: FreeSampleLine
+table: free_sample_line
+fields:
+  id: UuidValue?, defaultPersist=random
+  sampleId: UuidValue
+  sample: FreeSample?, relation(field=sampleId)
+  productId: UuidValue
+  product: Product?, relation(field=productId)
+  quantity: int
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  free_sample_line_sample_idx:
+    fields: sampleId
+  free_sample_line_product_idx:
+    fields: productId

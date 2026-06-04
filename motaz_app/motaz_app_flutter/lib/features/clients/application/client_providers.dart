@@ -11,20 +11,32 @@ final clientRepositoryProvider = Provider<ClientRepository>((ref) {
 
 final clientListProvider = StreamProvider<List<Client>>((ref) {
   final db = ref.watch(appDatabaseProvider);
+  return (db.select(
+    db.clients,
+  )..orderBy([(t) => OrderingTerm.asc(t.displayName)])).watch();
+});
+
+final activeClientListProvider = StreamProvider<List<Client>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
   return (db.select(db.clients)
+        ..where((t) => t.isActive.equals(true))
         ..orderBy([(t) => OrderingTerm.asc(t.displayName)]))
       .watch();
 });
 
-final clientSearchProvider =
-    StreamProvider.family<List<Client>, String>((ref, query) {
+final clientSearchProvider = StreamProvider.family<List<Client>, String>((
+  ref,
+  query,
+) {
   final db = ref.watch(appDatabaseProvider);
   final q = query.trim();
   return (db.select(db.clients)
-        ..where((t) =>
-            t.displayName.like('%$q%') |
-            t.phone.like('%$q%') |
-            t.clientCode.like('%$q%'))
+        ..where(
+          (t) =>
+              t.displayName.like('%$q%') |
+              t.phone.like('%$q%') |
+              t.clientCode.like('%$q%'),
+        )
         ..orderBy([(t) => OrderingTerm.asc(t.displayName)]))
       .watch();
 });

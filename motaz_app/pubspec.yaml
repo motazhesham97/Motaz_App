@@ -11,4 +11,6 @@ workspace:
 
 dependency_overrides:
   flutter_secure_storage: ^10.0.0
+  postgres:
+    path: third_party/postgres-3.5.9-patched
 

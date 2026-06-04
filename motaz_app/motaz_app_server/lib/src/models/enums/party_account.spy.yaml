@@ -1,0 +1,5 @@
+enum: PartyAccount
+values:
+- OWNER
+- PARTNER
+- MARGIN

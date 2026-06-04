@@ -1,10 +1,9 @@
 import 'package:serverpod/serverpod.dart';
 
-import '../generated/attachment_upload_request.dart';
 import '../generated/attachment_upload_approval.dart';
+import '../generated/attachment_upload_request.dart';
 import '../generated/attachment_confirm_request.dart';
 import '../generated/attachment_confirm_response.dart';
-import '../generated/device.dart';
 import '../services/attachment_service.dart';
 
 class AttachmentEndpoint extends Endpoint {
@@ -33,17 +32,24 @@ class AttachmentEndpoint extends Endpoint {
       );
     }
 
-    final uploadInfo = await AttachmentService.generateSignedUploadUrl(
-      session,
-      request.parentEntityType,
-      request.parentEntityId,
-    );
+    try {
+      final uploadInfo = await AttachmentService.generateSignedUploadUrl(
+        session,
+        request.parentEntityType,
+        request.parentEntityId,
+      );
 
-    return AttachmentUploadApproval(
-      approved: true,
-      uploadUrl: uploadInfo.uploadUrl,
-      uploadPreset: uploadInfo.uploadPreset,
-    );
+      return AttachmentUploadApproval(
+        approved: true,
+        uploadUrl: uploadInfo.uploadUrl,
+        uploadPreset: uploadInfo.uploadPreset,
+      );
+    } catch (e) {
+      return AttachmentUploadApproval(
+        approved: false,
+        rejectionReason: e.toString(),
+      );
+    }
   }
 
   Future<AttachmentConfirmResponse> confirmUpload(

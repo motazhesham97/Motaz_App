@@ -1,6 +1,15 @@
 class FieldClassifier {
   static const Map<String, Set<String>> autoMergeFields = {
-    'CLIENT': {'displayName', 'phone', 'note', 'clientCode', 'email', 'address'},
+    'CLIENT': {
+      'displayName',
+      'phone',
+      'note',
+      'clientCode',
+      'creditLimit',
+      'invoiceCheckIntervalDays',
+      'email',
+      'address',
+    },
     'PRODUCT': {'description', 'isActive', 'unit', 'sku'},
     'SALES_INVOICE': {'note'},
     'RECEIPT': {'note'},
@@ -15,7 +24,7 @@ class FieldClassifier {
   };
 
   static const Map<String, Set<String>> conflictRequiredFields = {
-    'PRODUCT': {'name', 'defaultSalePrice', 'costPrice'},
+    'PRODUCT': {'name', 'defaultSalePrice', 'shelfLifeDays'},
     'SALES_INVOICE': {
       'clientId',
       'invoiceDate',
@@ -30,6 +39,7 @@ class FieldClassifier {
       'quantity',
       'unitPrice',
       'lineTotal',
+      'productionDate',
     },
     'RECEIPT': {
       'receiptType',

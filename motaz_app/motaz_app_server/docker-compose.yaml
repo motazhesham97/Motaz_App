@@ -1,43 +1,83 @@
+name: motaz_app
+
 services:
-  # Development services
-  postgres:
-    image: pgvector/pgvector:pg16
+  server:
+    image: motaz-app-server:local
+    build:
+      context: ..
+      dockerfile: motaz_app_server/Dockerfile
+    environment:
+      runmode: production
+      serverid: default
+      logging: normal
+      role: monolith
+      SERVERPOD_API_HOST: ${MOTAZ_PUBLIC_HOST:-localhost}
+      SERVERPOD_API_PORT: ${MOTAZ_PUBLIC_PORT:-8080}
+      SERVERPOD_API_SCHEME: ${MOTAZ_PUBLIC_SCHEME:-http}
+      SERVERPOD_INSIGHTS_HOST: ${MOTAZ_PUBLIC_HOST:-localhost}
+      SERVERPOD_INSIGHTS_PORT: ${MOTAZ_INSIGHTS_PUBLIC_PORT:-8081}
+      SERVERPOD_INSIGHTS_SCHEME: ${MOTAZ_PUBLIC_SCHEME:-http}
+      SERVERPOD_WEB_HOST: ${MOTAZ_PUBLIC_HOST:-localhost}
+      SERVERPOD_WEB_PORT: ${MOTAZ_WEB_PUBLIC_PORT:-8082}
+      SERVERPOD_WEB_SCHEME: ${MOTAZ_PUBLIC_SCHEME:-http}
+      SERVERPOD_DATABASE_HOST: ${SERVERPOD_DATABASE_HOST}
+      SERVERPOD_DATABASE_PORT: ${SERVERPOD_DATABASE_PORT:-5432}
+      SERVERPOD_DATABASE_NAME: ${SERVERPOD_DATABASE_NAME}
+      SERVERPOD_DATABASE_USER: ${SERVERPOD_DATABASE_USER}
+      SERVERPOD_DATABASE_REQUIRE_SSL: ${SERVERPOD_DATABASE_REQUIRE_SSL:-true}
+      SERVERPOD_REDIS_HOST: redis
+      SERVERPOD_REDIS_PORT: 6379
     ports:
-      - "8090:5432"
+      - "${MOTAZ_API_PORT:-8080}:8080"
+      - "${MOTAZ_INSIGHTS_PORT:-8081}:8081"
+      - "${MOTAZ_WEB_PORT:-8082}:8082"
+    volumes:
+      - ./config/passwords.yaml:/app/config/passwords.yaml:ro
+    restart: unless-stopped
+
+  postgres:
+    profiles: ["local-db"]
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: motaz_app
-      POSTGRES_PASSWORD: "b55ZSCqjrbxFz448wNrs3-W-5yHx28Iw"
+      POSTGRES_PASSWORD: ${MOTAZ_POSTGRES_PASSWORD:-motaz_docker_password}
+    ports:
+      - "${MOTAZ_POSTGRES_PORT:-8090}:5432"
     volumes:
       - motaz_app_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d motaz_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
-  redis:
-    image: redis:6.2.6
-    ports:
-      - "8091:6379"
-    command: redis-server --requirepass "1hDO88xmFwpLU_myLLQkygNpLk1447To"
-    environment:
-      - REDIS_REPLICATION_MODE=master
-
-  # Test services
   postgres_test:
+    profiles: ["test"]
     image: pgvector/pgvector:pg16
-    ports:
-      - "9090:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: motaz_app_test
-      POSTGRES_PASSWORD: "v-y1fEnncE76TMeecnS1DfCYCAtVoyUh"
+      POSTGRES_PASSWORD: ${MOTAZ_TEST_POSTGRES_PASSWORD:-motaz_test_password}
+    ports:
+      - "${MOTAZ_TEST_POSTGRES_PORT:-9090}:5432"
     volumes:
       - motaz_app_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d motaz_app_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis_test:
+    profiles: ["test"]
     image: redis:6.2.6
     ports:
-      - "9091:6379"
-    command: redis-server --requirepass "brovKHFg9kTeBkRMCzuCacbSnoL-Fxe8"
+      - "${MOTAZ_TEST_REDIS_PORT:-9091}:6379"
+    command: redis-server --requirepass "${MOTAZ_TEST_REDIS_PASSWORD:-motaz_test_redis_password}"
     environment:
-      - REDIS_REPLICATION_MODE=master
+      REDIS_REPLICATION_MODE: master
 
 volumes:
   motaz_app_data:

@@ -24,6 +24,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
     this.address,
     this.note,
     this.clientCode,
+    this.creditLimit,
+    this.invoiceCheckIntervalDays,
     bool? isActive,
     required this.createdAt,
     required this.updatedAt,
@@ -43,6 +45,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
     String? address,
     String? note,
     String? clientCode,
+    int? creditLimit,
+    int? invoiceCheckIntervalDays,
     bool? isActive,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -63,6 +67,9 @@ abstract class ClientRecord implements _i1.SerializableModel {
       address: jsonSerialization['address'] as String?,
       note: jsonSerialization['note'] as String?,
       clientCode: jsonSerialization['clientCode'] as String?,
+      creditLimit: jsonSerialization['creditLimit'] as int?,
+      invoiceCheckIntervalDays:
+          jsonSerialization['invoiceCheckIntervalDays'] as int?,
       isActive: jsonSerialization['isActive'] == null
           ? null
           : _i1.BoolJsonExtension.fromJson(jsonSerialization['isActive']),
@@ -104,6 +111,10 @@ abstract class ClientRecord implements _i1.SerializableModel {
 
   String? clientCode;
 
+  int? creditLimit;
+
+  int? invoiceCheckIntervalDays;
+
   bool isActive;
 
   DateTime createdAt;
@@ -129,6 +140,8 @@ abstract class ClientRecord implements _i1.SerializableModel {
     String? address,
     String? note,
     String? clientCode,
+    int? creditLimit,
+    int? invoiceCheckIntervalDays,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -148,6 +161,9 @@ abstract class ClientRecord implements _i1.SerializableModel {
       if (address != null) 'address': address,
       if (note != null) 'note': note,
       if (clientCode != null) 'clientCode': clientCode,
+      if (creditLimit != null) 'creditLimit': creditLimit,
+      if (invoiceCheckIntervalDays != null)
+        'invoiceCheckIntervalDays': invoiceCheckIntervalDays,
       'isActive': isActive,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
@@ -175,6 +191,8 @@ class _ClientRecordImpl extends ClientRecord {
     String? address,
     String? note,
     String? clientCode,
+    int? creditLimit,
+    int? invoiceCheckIntervalDays,
     bool? isActive,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -190,6 +208,8 @@ class _ClientRecordImpl extends ClientRecord {
          address: address,
          note: note,
          clientCode: clientCode,
+         creditLimit: creditLimit,
+         invoiceCheckIntervalDays: invoiceCheckIntervalDays,
          isActive: isActive,
          createdAt: createdAt,
          updatedAt: updatedAt,
@@ -211,6 +231,8 @@ class _ClientRecordImpl extends ClientRecord {
     Object? address = _Undefined,
     Object? note = _Undefined,
     Object? clientCode = _Undefined,
+    Object? creditLimit = _Undefined,
+    Object? invoiceCheckIntervalDays = _Undefined,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -227,6 +249,10 @@ class _ClientRecordImpl extends ClientRecord {
       address: address is String? ? address : this.address,
       note: note is String? ? note : this.note,
       clientCode: clientCode is String? ? clientCode : this.clientCode,
+      creditLimit: creditLimit is int? ? creditLimit : this.creditLimit,
+      invoiceCheckIntervalDays: invoiceCheckIntervalDays is int?
+          ? invoiceCheckIntervalDays
+          : this.invoiceCheckIntervalDays,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

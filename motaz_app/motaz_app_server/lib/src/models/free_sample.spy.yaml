@@ -1,0 +1,31 @@
+class: FreeSample
+table: free_sample
+fields:
+  id: UuidValue?, defaultPersist=random
+  localRef: String
+  officialNo: String?
+  beneficiaryId: UuidValue
+  beneficiary: Beneficiary?, relation(field=beneficiaryId)
+  sampleDate: DateTime
+  note: String?
+  status: RecordStatus, default=ACTIVE
+  voidReason: String?
+  createdAt: DateTime
+  updatedAt: DateTime
+  deviceId: UuidValue
+  device: Device?, relation(field=deviceId)
+  rowVersion: int, default=1
+  syncStatus: SyncStatus, default=PENDING
+indexes:
+  free_sample_local_ref_idx:
+    fields: localRef
+    unique: true
+  free_sample_official_no_idx:
+    fields: officialNo
+    unique: true
+  free_sample_beneficiary_idx:
+    fields: beneficiaryId
+  free_sample_date_idx:
+    fields: sampleDate
+  free_sample_status_idx:
+    fields: status

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/utils/date_range.dart';
+import '../../../core/utils/document_reference_formatter.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../attachments/application/document_attachment_reader.dart';
 import '../application/report_providers.dart';
 import '../data/report_models.dart';
 import '../pdf/pdf_generator.dart';
@@ -36,18 +40,23 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     return AppDrawerScaffold(
       title: 'تقرير المبيعات',
       currentRoute: '/reports/sales',
+      leading: IconButton(
+        tooltip: 'الرجوع للتقارير',
+        icon: const BackButtonIcon(),
+        onPressed: () => context.go('/reports'),
+      ),
       child: Scaffold(
         floatingActionButton: reportAsync.maybeWhen(
           data: (summary) => summary.rows.isNotEmpty
               ? FloatingActionButton.extended(
                   onPressed: _isExporting ? null : () => _exportPdf(summary),
                   icon: _isExporting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.surface,
                           ),
                         )
                       : const Icon(Icons.picture_as_pdf),
@@ -100,20 +109,23 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            row.localRef,
+                                            invoiceDisplayRef(row.localRef),
                                             style: const TextStyle(
-                                                fontWeight: FontWeight.bold),
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                           Text(
                                             row.clientName,
                                             style: const TextStyle(
-                                                color: Colors.grey),
+                                              color: Colors.grey,
+                                            ),
                                           ),
                                           Text(
                                             '${row.invoiceDate.year}-${row.invoiceDate.month.toString().padLeft(2, '0')}-${row.invoiceDate.day.toString().padLeft(2, '0')}',
                                             style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey),
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -125,14 +137,16 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                                         Text(
                                           formatMoney(row.total),
                                           style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                         if (row.discount > 0)
                                           Text(
                                             '-${formatMoney(row.discount)}',
                                             style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.red),
+                                              fontSize: 12,
+                                              color: Colors.red,
+                                            ),
                                           ),
                                       ],
                                     ),
@@ -149,7 +163,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                           color: Theme.of(context).colorScheme.surface,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.shadow.withValues(alpha: 0.1),
                               blurRadius: 4,
                               offset: const Offset(0, -2),
                             ),
@@ -181,8 +197,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                     ],
                   );
                 },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(child: Text('خطأ: $e')),
               ),
             ),
@@ -195,11 +210,41 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   Future<void> _exportPdf(SalesReportSummary summary) async {
     setState(() => _isExporting = true);
     try {
+      final exportSummary = await _attachInvoiceImages(summary);
       final styles = await PdfStyles.load();
-      final doc = SalesReportPdf.generate(styles, summary, _selectedRange);
+      final doc = SalesReportPdf.generate(
+        styles,
+        exportSummary,
+        _selectedRange,
+      );
       await PdfGenerator.shareOrPrint(doc, 'sales_report.pdf');
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
+  }
+
+  Future<SalesReportSummary> _attachInvoiceImages(
+    SalesReportSummary summary,
+  ) async {
+    final reader = ref.read(documentAttachmentReaderProvider);
+    final rows = <SalesReportRow>[];
+    for (final row in summary.rows) {
+      rows.add(
+        row.copyWith(
+          attachmentImages: await reader.loadImages(
+            parentEntityType: ParentEntityType.SALES_INVOICE,
+            parentEntityId: row.invoiceId,
+          ),
+        ),
+      );
+    }
+
+    return SalesReportSummary(
+      rows: rows,
+      grossSales: summary.grossSales,
+      totalDiscounts: summary.totalDiscounts,
+      totalReturns: summary.totalReturns,
+      netSales: summary.netSales,
+    );
   }
 }

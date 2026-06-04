@@ -14,11 +14,12 @@ Future<void> showAuditTrailSheet(
   String entityId,
 ) async {
   final db = ref.read(appDatabaseProvider);
-  final events = await (db.select(db.auditEvents)
-        ..where((t) => t.entityType.equals(entityType.index))
-        ..where((t) => t.entityId.equals(entityId))
-        ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
-      .get();
+  final events =
+      await (db.select(db.auditEvents)
+            ..where((t) => t.entityType.equals(entityType.index))
+            ..where((t) => t.entityId.equals(entityId))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
 
   if (!context.mounted) return;
 
@@ -99,9 +100,9 @@ class _AuditEventListTileState extends State<_AuditEventListTile> {
 
   Future<String> _resolveDeviceName() async {
     try {
-      final device = await (widget.db.select(widget.db.devices)
-            ..where((t) => t.id.equals(widget.event.deviceId)))
-          .getSingleOrNull();
+      final device = await (widget.db.select(
+        widget.db.devices,
+      )..where((t) => t.id.equals(widget.event.deviceId))).getSingleOrNull();
       return device?.deviceName ?? 'جهاز غير معروف';
     } catch (_) {
       return 'جهاز غير معروف';

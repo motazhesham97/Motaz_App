@@ -20,6 +20,8 @@ import 'package:motaz_app_client/src/protocol/protocol.dart' as _i6;
 abstract class SalesReturn implements _i1.SerializableModel {
   SalesReturn._({
     this.id,
+    this.localRef,
+    this.officialNo,
     required this.invoiceId,
     this.invoice,
     required this.returnDate,
@@ -39,6 +41,8 @@ abstract class SalesReturn implements _i1.SerializableModel {
 
   factory SalesReturn({
     _i1.UuidValue? id,
+    String? localRef,
+    String? officialNo,
     required _i1.UuidValue invoiceId,
     _i4.SalesInvoice? invoice,
     required DateTime returnDate,
@@ -59,6 +63,8 @@ abstract class SalesReturn implements _i1.SerializableModel {
       id: jsonSerialization['id'] == null
           ? null
           : _i1.UuidValueJsonExtension.fromJson(jsonSerialization['id']),
+      localRef: jsonSerialization['localRef'] as String?,
+      officialNo: jsonSerialization['officialNo'] as String?,
       invoiceId: _i1.UuidValueJsonExtension.fromJson(
         jsonSerialization['invoiceId'],
       ),
@@ -102,6 +108,10 @@ abstract class SalesReturn implements _i1.SerializableModel {
   /// the id will be null.
   _i1.UuidValue? id;
 
+  String? localRef;
+
+  String? officialNo;
+
   _i1.UuidValue invoiceId;
 
   _i4.SalesInvoice? invoice;
@@ -133,6 +143,8 @@ abstract class SalesReturn implements _i1.SerializableModel {
   @_i1.useResult
   SalesReturn copyWith({
     _i1.UuidValue? id,
+    String? localRef,
+    String? officialNo,
     _i1.UuidValue? invoiceId,
     _i4.SalesInvoice? invoice,
     DateTime? returnDate,
@@ -152,6 +164,8 @@ abstract class SalesReturn implements _i1.SerializableModel {
     return {
       '__className__': 'SalesReturn',
       if (id != null) 'id': id?.toJson(),
+      if (localRef != null) 'localRef': localRef,
+      if (officialNo != null) 'officialNo': officialNo,
       'invoiceId': invoiceId.toJson(),
       if (invoice != null) 'invoice': invoice?.toJson(),
       'returnDate': returnDate.toJson(),
@@ -179,6 +193,8 @@ class _Undefined {}
 class _SalesReturnImpl extends SalesReturn {
   _SalesReturnImpl({
     _i1.UuidValue? id,
+    String? localRef,
+    String? officialNo,
     required _i1.UuidValue invoiceId,
     _i4.SalesInvoice? invoice,
     required DateTime returnDate,
@@ -194,6 +210,8 @@ class _SalesReturnImpl extends SalesReturn {
     _i3.SyncStatus? syncStatus,
   }) : super._(
          id: id,
+         localRef: localRef,
+         officialNo: officialNo,
          invoiceId: invoiceId,
          invoice: invoice,
          returnDate: returnDate,
@@ -215,6 +233,8 @@ class _SalesReturnImpl extends SalesReturn {
   @override
   SalesReturn copyWith({
     Object? id = _Undefined,
+    Object? localRef = _Undefined,
+    Object? officialNo = _Undefined,
     _i1.UuidValue? invoiceId,
     Object? invoice = _Undefined,
     DateTime? returnDate,
@@ -231,6 +251,8 @@ class _SalesReturnImpl extends SalesReturn {
   }) {
     return SalesReturn(
       id: id is _i1.UuidValue? ? id : this.id,
+      localRef: localRef is String? ? localRef : this.localRef,
+      officialNo: officialNo is String? ? officialNo : this.officialNo,
       invoiceId: invoiceId ?? this.invoiceId,
       invoice: invoice is _i4.SalesInvoice?
           ? invoice

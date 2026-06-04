@@ -3,6 +3,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class PdfStyles {
+  static const primaryColor = PdfColor.fromInt(0xFF657F66);
+  static const secondaryColor = PdfColor.fromInt(0xFFF8B97E);
+  static const secondaryLightColor = PdfColor.fromInt(0xFFFDEAD8);
+
   PdfStyles._({
     required this.regularFont,
     required this.boldFont,
@@ -21,8 +25,10 @@ class PdfStyles {
   }
 
   pw.TextStyle get bodyStyle => pw.TextStyle(font: regularFont, fontSize: 10);
-  pw.TextStyle get headerStyle => pw.TextStyle(font: boldFont, fontSize: 14);
-  pw.TextStyle get titleStyle => pw.TextStyle(font: boldFont, fontSize: 18);
+  pw.TextStyle get headerStyle =>
+      pw.TextStyle(font: boldFont, fontSize: 14, color: primaryColor);
+  pw.TextStyle get titleStyle =>
+      pw.TextStyle(font: boldFont, fontSize: 18, color: primaryColor);
   pw.TextStyle get tableHeaderStyle =>
       pw.TextStyle(font: boldFont, fontSize: 9, color: PdfColors.white);
   pw.TextStyle get tableCellStyle =>

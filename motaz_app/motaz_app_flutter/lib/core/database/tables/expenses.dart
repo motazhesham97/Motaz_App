@@ -13,13 +13,16 @@ class Expenses extends Table {
   IntColumn get amount => integer()();
   DateTimeColumn get expenseDate => dateTime()();
   TextColumn get note => text().nullable()();
-  IntColumn get status => intEnum<RecordStatus>().withDefault(const Constant(0))();
+  IntColumn get status =>
+      intEnum<RecordStatus>().withDefault(const Constant(0))();
   TextColumn get voidReason => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
-  TextColumn get deviceId => text().withLength(min: 36, max: 36).references(Devices, #id)();
+  TextColumn get deviceId =>
+      text().withLength(min: 36, max: 36).references(Devices, #id)();
   IntColumn get rowVersion => integer().withDefault(const Constant(1))();
-  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(const Constant(0))();
+  IntColumn get syncStatus =>
+      intEnum<SyncStatus>().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};

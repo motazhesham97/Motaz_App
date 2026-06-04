@@ -14,25 +14,26 @@ final receiptListProvider = StreamProvider<List<Receipt>>((ref) {
   return repo.watchAll();
 });
 
-final receiptSearchProvider =
-    StreamProvider.family<List<Receipt>, String>((ref, query) {
+final receiptSearchProvider = StreamProvider.family<List<Receipt>, String>((
+  ref,
+  query,
+) {
   final db = ref.watch(appDatabaseProvider);
+  final repo = ref.watch(receiptRepositoryProvider);
   final q = query.trim().toLowerCase();
 
-  final receiptStream = (db.select(db.receipts)
-        ..orderBy([
-          (t) => OrderingTerm.desc(t.receiptDate),
-          (t) => OrderingTerm.desc(t.createdAt),
-        ])).watch();
+  final receiptStream =
+      (db.select(db.receipts)..orderBy([
+            (t) => OrderingTerm.desc(t.receiptDate),
+            (t) => OrderingTerm.desc(t.createdAt),
+          ]))
+          .watch();
 
   return receiptStream.asyncMap((receipts) async {
     if (q.isEmpty) return receipts;
-    final clients = await (db.select(db.clients)).get();
-    final clientMap = {
-      for (final c in clients) c.id: c.displayName.toLowerCase(),
-    };
+    final clientNames = await repo.getClientNamesByReceiptId();
     return receipts
-        .where((r) => clientMap[r.clientId]?.contains(q) ?? false)
+        .where((r) => clientNames[r.id]?.toLowerCase().contains(q) ?? false)
         .toList();
   });
 });

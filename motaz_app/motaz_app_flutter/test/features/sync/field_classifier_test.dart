@@ -63,7 +63,14 @@ void main() {
     test('CLIENT autoMergeFields includes email and address', () {
       expect(
         FieldClassifier.autoMergeFields['CLIENT'],
-        containsAll(['displayName', 'phone', 'note', 'clientCode', 'email', 'address']),
+        containsAll([
+          'displayName',
+          'phone',
+          'note',
+          'clientCode',
+          'email',
+          'address',
+        ]),
       );
     });
   });

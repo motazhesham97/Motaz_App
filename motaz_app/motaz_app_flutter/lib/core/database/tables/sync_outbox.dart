@@ -12,9 +12,11 @@ class SyncOutbox extends Table {
   IntColumn get operation => intEnum<AuditOperation>()();
   TextColumn get payload => text()();
   IntColumn get rowVersion => integer()();
-  TextColumn get deviceId => text().withLength(min: 36, max: 36).references(Devices, #id)();
+  TextColumn get deviceId =>
+      text().withLength(min: 36, max: 36).references(Devices, #id)();
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
-  IntColumn get status => intEnum<SyncOutboxStatus>().withDefault(const Constant(0))();
+  IntColumn get status =>
+      intEnum<SyncOutboxStatus>().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
 
   @override

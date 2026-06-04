@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/conflict_log.dart';
+import '../generated/device.dart';
 import '../generated/enums/conflict_status.dart';
 import '../generated/pull_request.dart';
 import '../generated/pull_response.dart';
@@ -17,11 +18,40 @@ class SyncEndpoint extends Endpoint {
     Session session,
     PushRequest request,
   ) async {
+    try {
+      return await _push(session, request);
+    } catch (error, stackTrace) {
+      session.log(
+        'sync.push failed for ${request.entityType}/${request.operation} '
+        '${request.entityId} from device ${request.deviceId}: '
+        '$error\n$stackTrace',
+      );
+      return PushResponse(
+        success: false,
+        errorCode: 'SERVER_ERROR',
+        errorMessage:
+            '${request.entityType}/${request.operation} ${request.entityId}: '
+            '$error',
+      );
+    }
+  }
+
+  Future<PushResponse> _push(
+    Session session,
+    PushRequest request,
+  ) async {
     if (!session.isUserSignedIn) {
       return PushResponse(
         success: false,
         errorCode: 'UNAUTHENTICATED',
         errorMessage: 'Authentication required',
+      );
+    }
+    if (!SyncService.supportsEntityType(request.entityType)) {
+      return PushResponse(
+        success: false,
+        errorCode: 'UNSUPPORTED_ENTITY_TYPE',
+        errorMessage: 'Entity type is not independently syncable',
       );
     }
 
@@ -90,11 +120,13 @@ class SyncEndpoint extends Endpoint {
     );
 
     if (SyncService.applyVoidWinsRule(
-      incomingPayload['status']?.toString(),
-      existingRow['status']?.toString(),
+      incomingPayload['status'],
+      existingRow['status'],
     )) {
       final merged = Map<String, dynamic>.from(existingRow);
-      final localVoided = incomingPayload['status'] == 'VOIDED';
+      final localVoided = SyncService.isVoidedStatus(
+        incomingPayload['status'],
+      );
       if (localVoided) {
         merged['status'] = 'VOIDED';
         merged['voidReason'] = incomingPayload['voidReason'];
@@ -136,7 +168,7 @@ class SyncEndpoint extends Endpoint {
       request.entityType,
       request.entityId,
       request.payload,
-      jsonEncode(existingRow),
+      jsonEncode(_jsonSafe(existingRow)),
       '${changedFields.first}_mismatch',
       request.deviceId,
     );
@@ -155,6 +187,14 @@ class SyncEndpoint extends Endpoint {
         latestRowVersion: 0,
       );
     }
+    if (!SyncService.supportsEntityType(request.entityType)) {
+      return PullResponse(
+        entityType: request.entityType,
+        rows: [],
+        hasMore: false,
+        latestRowVersion: request.sinceRowVersion,
+      );
+    }
 
     final rows = await SyncService.queryChangedRows(
       session,
@@ -171,9 +211,9 @@ class SyncEndpoint extends Endpoint {
 
     final hasMore = totalAbove > request.limit;
 
-    final latestRowVersion = await SyncService.getLatestRowVersion(
-      session,
-      request.entityType,
+    final latestRowVersion = SyncService.latestRowVersionFromRows(
+      rows,
+      request.sinceRowVersion,
     );
 
     return PullResponse(
@@ -242,4 +282,67 @@ class SyncEndpoint extends Endpoint {
       newRowVersion: newVersion,
     );
   }
+
+  Future<List<ConflictLog>> listPendingConflicts(Session session) async {
+    if (!session.isUserSignedIn) {
+      return [];
+    }
+
+    final conflicts = await ConflictLog.db.find(
+      session,
+      where: (t) => t.resolutionStatus.equals(ConflictStatus.PENDING),
+      orderBy: (t) => t.createdAt,
+      orderDescending: true,
+      include: ConflictLog.include(device: Device.include()),
+    );
+    final latestByEntity = <String, ConflictLog>{};
+    final staleConflicts = <ConflictLog>[];
+
+    for (final conflict in conflicts) {
+      final key = '${conflict.entityType.name}:${conflict.entityId}';
+      if (latestByEntity.containsKey(key)) {
+        staleConflicts.add(conflict);
+      } else {
+        latestByEntity[key] = conflict;
+      }
+    }
+
+    for (final conflict in staleConflicts) {
+      await ConflictLog.db.updateRow(
+        session,
+        conflict.copyWith(
+          resolutionStatus: ConflictStatus.RESOLVED,
+          resolvedAt: DateTime.now().toUtc(),
+          resolutionData: 'superseded',
+        ),
+      );
+    }
+
+    return latestByEntity.values.toList();
+  }
+}
+
+Object? _jsonSafe(Object? value) {
+  if (value == null || value is String || value is num || value is bool) {
+    return value;
+  }
+  if (value is DateTime) {
+    return value.toUtc().toIso8601String();
+  }
+  if (value is UuidValue) {
+    return value.toString();
+  }
+  if (value is Enum) {
+    return value.name;
+  }
+  if (value is Iterable) {
+    return value.map(_jsonSafe).toList();
+  }
+  if (value is Map) {
+    return value.map(
+      (key, mapValue) => MapEntry(key.toString(), _jsonSafe(mapValue)),
+    );
+  }
+
+  return value.toString();
 }
