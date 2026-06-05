@@ -92,6 +92,44 @@ For production deployment, change:
 
 See `.env.docker.example` for the available variables.
 
+## Deploy on Railway
+
+Railway runs the backend as one Docker service. It does not use
+`docker-compose.yaml`, and it provides the public HTTP port through the `PORT`
+environment variable. The repository includes `../railway.toml` for Railway's
+config-as-code deployment.
+
+In Railway:
+
+1. Create a new service from the GitHub repository.
+2. Set **Root Directory** to:
+
+   ```text
+   /motaz_app
+   ```
+
+3. Let Railway use `railway.toml`. It points to:
+
+   ```text
+   motaz_app_server/Dockerfile
+   ```
+
+4. Add a Railway public domain for the backend service.
+5. Add the variables from `.env.railway.example`.
+
+Use the direct Neon host, not the `-pooler` host, because the container starts
+with `--apply-migrations`. Keep the current production auth secrets if existing
+users should keep working.
+
+After the deploy is healthy, update the Flutter app server URL to:
+
+```text
+https://<your-railway-domain>
+```
+
+The mobile app remains offline-first. Railway hosts the online sync server,
+while the phone still keeps its local SQLite database.
+
 ## Optional Local PostgreSQL
 
 Use the local PostgreSQL container only for isolated tests or a deliberate local

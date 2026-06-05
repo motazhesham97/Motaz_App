@@ -26,6 +26,7 @@ motaz_app_flutter/build/
 **/.env.*
 !**/.env.example
 !**/.env.docker.example
+!**/.env.railway.example
 **/config/passwords.yaml
 **/config/passwords.docker.yaml
 **/*.pem

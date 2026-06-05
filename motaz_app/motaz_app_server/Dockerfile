@@ -40,19 +40,9 @@ COPY --from=build /app/motaz_app_server/web/ ./web/
 COPY --from=build /app/motaz_app_server/migrations/ ./migrations/
 RUN mkdir -p ./lib/src/generated
 COPY --from=build /app/motaz_app_server/lib/src/generated/protocol.yaml ./lib/src/generated/protocol.yaml
+COPY motaz_app_server/docker/entrypoint.sh /usr/local/bin/motaz-server-entrypoint
 
-RUN printf '%s\n' \
-  '#!/bin/sh' \
-  'set -e' \
-  'RUNMODE="${runmode:-production}"' \
-  'CONFIG_FILE="/app/config/${RUNMODE}.yaml"' \
-  'if command -v envsubst >/dev/null 2>&1 && [ -f "$CONFIG_FILE" ]; then' \
-  '  TMP_CONFIG="/tmp/serverpod-${RUNMODE}.yaml"' \
-  '  envsubst < "$CONFIG_FILE" > "$TMP_CONFIG"' \
-  '  cp "$TMP_CONFIG" "$CONFIG_FILE"' \
-  'fi' \
-  'exec /app/server --mode="$RUNMODE" --server-id="${serverid:-default}" --logging="${logging:-normal}" --role="${role:-monolith}" "$@"' \
-  > /usr/local/bin/motaz-server-entrypoint \
+RUN sed -i 's/\r$//' /usr/local/bin/motaz-server-entrypoint \
   && chmod +x /usr/local/bin/motaz-server-entrypoint \
   && chown -R app:app /app
 
@@ -61,7 +51,7 @@ USER app
 EXPOSE 8080 8081 8082
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1
+  CMD sh -c 'wget -q -O /dev/null "http://127.0.0.1:${PORT:-8080}/" || exit 1'
 
 ENTRYPOINT ["/usr/local/bin/motaz-server-entrypoint"]
 CMD ["--apply-migrations"]

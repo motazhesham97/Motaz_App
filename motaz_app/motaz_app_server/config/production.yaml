@@ -1,7 +1,7 @@
 # Production configuration. Set these environment variables in the deployment
 # platform; do not commit Neon or production credentials to this file.
 apiServer:
-  port: 8080
+  port: ${SERVERPOD_API_BIND_PORT}
   publicHost: ${SERVERPOD_API_HOST}
   publicPort: ${SERVERPOD_API_PORT}
   publicScheme: ${SERVERPOD_API_SCHEME}
