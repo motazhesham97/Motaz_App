@@ -1,0 +1,30 @@
+emailIdp:
+  - startRegistration:
+  - login:
+  - verifyRegistrationCode:
+  - finishRegistration:
+  - startPasswordReset:
+  - verifyPasswordResetCode:
+  - finishPasswordReset:
+  - hasAccount:
+jwtRefresh:
+  - refreshAccessToken:
+attachment:
+  - requestUploadApproval:
+  - confirmUpload:
+auth:
+  - hasOwnerAccount:
+  - registerOwner:
+device:
+  - registerDevice:
+health:
+  - ping:
+  - serverFingerprint:
+  - authenticatedPing:
+sync:
+  - push:
+  - pull:
+  - resolveConflict:
+  - listPendingConflicts:
+greeting:
+  - hello:
