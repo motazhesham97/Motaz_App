@@ -549,148 +549,20 @@ class _ReturnListScreenState extends ConsumerState<ReturnListScreen> {
     required String returnRef,
     required String? invoiceRef,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final invoiceLabel = invoiceRef == null
-        ? 'على فاتورة غير معروفة'
-        : 'على ${invoiceDisplayRef(invoiceRef)}';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isVoided
-                    ? Colors.red.withValues(alpha: 0.1)
-                    : colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.keyboard_return_rounded,
-                color: isVoided ? Colors.red : colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        returnRef,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      if (isVoided)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.red.shade200),
-                          ),
-                          child: const Text(
-                            'ملغى',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    invoiceLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDate(ret.returnDate),
-                    textDirection: TextDirection.ltr,
-                    style: TextStyle(color: colorScheme.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (ret.note != null && ret.note!.trim().isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Text(
-            ret.note!.trim(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
-          ),
-        ],
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _formatMoney(ret.totalReturnedAmount),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: colorScheme.primary,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.history,
-                size: 20,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              tooltip: 'سجل التعديلات',
-              onPressed: () {
-                showAuditTrailSheet(
-                  context,
-                  ref,
-                  ParentEntityType.SALES_RETURN,
-                  ret.id,
-                );
-              },
-            ),
-            if (!isVoided)
-              PopupMenuButton<String>(
-                icon: Icon(
-                  Icons.more_vert,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                onSelected: (value) {
-                  if (value == 'void') _showVoidDialog(ret);
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: 'void',
-                    child: Text('إلغاء المرتجع'),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ],
+    return ReturnCompactCardContent(
+      ret: ret,
+      isVoided: isVoided,
+      returnRef: returnRef,
+      invoiceRef: invoiceRef,
+      onShowAuditTrail: () {
+        showAuditTrailSheet(
+          context,
+          ref,
+          ParentEntityType.SALES_RETURN,
+          ret.id,
+        );
+      },
+      onVoid: () => _showVoidDialog(ret),
     );
   }
 
@@ -860,4 +732,172 @@ class _ReturnListScreenState extends ConsumerState<ReturnListScreen> {
       ),
     );
   }
+}
+
+class ReturnCompactCardContent extends StatelessWidget {
+  const ReturnCompactCardContent({
+    super.key,
+    required this.ret,
+    required this.isVoided,
+    required this.returnRef,
+    required this.invoiceRef,
+    required this.onShowAuditTrail,
+    required this.onVoid,
+  });
+
+  final SalesReturn ret;
+  final bool isVoided;
+  final String returnRef;
+  final String? invoiceRef;
+  final VoidCallback onShowAuditTrail;
+  final VoidCallback onVoid;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final ref = invoiceRef;
+    final invoiceLabel = ref == null
+        ? 'على فاتورة غير معروفة'
+        : 'على ${invoiceDisplayRef(ref)}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isVoided
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.keyboard_return_rounded,
+                color: isVoided ? Colors.red : colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        returnRef,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (isVoided)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: const Text(
+                            'ملغى',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    invoiceLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatReturnCardDate(ret.returnDate),
+                    textDirection: TextDirection.ltr,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (ret.note != null && ret.note!.trim().isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(
+            ret.note!.trim(),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _formatReturnCardMoney(ret.totalReturnedAmount),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.history,
+                size: 20,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              tooltip: 'سجل التعديلات',
+              onPressed: onShowAuditTrail,
+            ),
+            if (!isVoided)
+              PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                onSelected: (value) {
+                  if (value == 'void') onVoid();
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(
+                    value: 'void',
+                    child: Text('إلغاء المرتجع'),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+String _formatReturnCardDate(DateTime d) {
+  return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
+String _formatReturnCardMoney(int minorUnits) {
+  return '${(minorUnits / 100).toStringAsFixed(2)} ر.ي';
 }

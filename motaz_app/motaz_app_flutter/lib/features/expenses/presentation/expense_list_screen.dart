@@ -11,6 +11,7 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/audit_trail_sheet.dart';
 import '../../reports/data/report_models.dart';
 import '../../reports/pdf/pdf_generator.dart';
+import '../../reports/pdf/pdf_file_names.dart';
 import '../../reports/pdf/pdf_styles.dart';
 import '../../reports/pdf/pdf_templates/expense_report_pdf.dart';
 import '../application/expense_providers.dart';
@@ -250,7 +251,12 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     try {
       final styles = await PdfStyles.load();
       final doc = ExpenseReportPdf.generate(styles, _buildReportData(expenses));
-      await PdfGenerator.shareOrPrint(doc, 'expense_report.pdf');
+      final savedPath = await PdfGenerator.shareOrPrint(
+        doc,
+        PdfReportFileNames.dated('كشف المصروفات'),
+      );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

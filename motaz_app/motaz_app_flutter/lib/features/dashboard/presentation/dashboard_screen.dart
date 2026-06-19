@@ -9,6 +9,8 @@ import '../../expenses/presentation/expense_form_screen.dart'
 import '../application/dashboard_providers.dart';
 import '../data/dashboard_models.dart';
 
+const dashboardObscuredMoneyText = '*****';
+
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
@@ -240,7 +242,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
                 child: Text(
-                  obscured ? '*' : formatMoney(value),
+                  obscured ? dashboardObscuredMoneyText : formatMoney(value),
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../../attachments/application/document_attachment_reader.dart';
 import '../application/report_providers.dart';
 import '../data/report_models.dart';
+import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
 import '../pdf/pdf_styles.dart';
 import '../pdf/pdf_templates/sales_report_pdf.dart';
@@ -217,7 +218,12 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
         exportSummary,
         _selectedRange,
       );
-      await PdfGenerator.shareOrPrint(doc, 'sales_report.pdf');
+      final savedPath = await PdfGenerator.shareOrPrint(
+        doc,
+        PdfReportFileNames.dated('تقرير المبيعات'),
+      );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

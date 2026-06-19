@@ -6,6 +6,7 @@ import '../../../core/utils/date_range.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../free_samples/application/free_sample_providers.dart';
 import '../../free_samples/data/free_sample_repository.dart';
+import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
 import '../pdf/pdf_styles.dart';
 import '../pdf/pdf_templates/free_sample_report_pdf.dart';
@@ -81,7 +82,16 @@ class _FreeSampleReportScreenState
         rows: rows,
         filterLabel: _filterLabel(),
       );
-      await PdfGenerator.shareOrPrint(doc, 'free_samples_report.pdf');
+      final subject = _beneficiaryQuery.trim();
+      final savedPath = await PdfGenerator.shareOrPrint(
+        doc,
+        PdfReportFileNames.dated(
+          'تقرير العينات المجانية',
+          subject: subject.isEmpty ? null : subject,
+        ),
+      );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

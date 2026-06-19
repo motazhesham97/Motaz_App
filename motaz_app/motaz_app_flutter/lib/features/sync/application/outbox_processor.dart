@@ -8,15 +8,23 @@ import '../../../core/database/app_database.dart' hide Client;
 import '../../../core/database/enums/enums.dart';
 import '../../../core/logging/app_logger.dart';
 
+typedef PushRequestHandler =
+    Future<server.PushResponse> Function(
+      server.PushRequest request,
+    );
+
 class OutboxProcessor {
   OutboxProcessor({
     required AppDatabase db,
     required server.Client serverClient,
+    PushRequestHandler? pushOverride,
   }) : _db = db,
-       _serverClient = serverClient;
+       _serverClient = serverClient,
+       _pushOverride = pushOverride;
 
   final AppDatabase _db;
   final server.Client _serverClient;
+  final PushRequestHandler? _pushOverride;
   static const int maxRetryCount = 5;
 
   Future<void> processPending() async {
@@ -179,7 +187,9 @@ class OutboxProcessor {
         rowVersion: entry.rowVersion,
         deviceId: entry.deviceId,
       );
-      final response = await _serverClient.sync.push(request);
+      final response = await (_pushOverride ?? _serverClient.sync.push)(
+        request,
+      );
 
       if (response.success) {
         await _markCompleted(entry);

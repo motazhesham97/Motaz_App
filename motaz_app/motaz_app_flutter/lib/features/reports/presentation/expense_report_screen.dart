@@ -11,6 +11,7 @@ import '../../expenses/application/expense_providers.dart';
 import '../../expenses/presentation/expense_form_screen.dart'
     show categoryLabel;
 import '../data/report_models.dart';
+import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
 import '../pdf/pdf_styles.dart';
 import '../pdf/pdf_templates/expense_report_pdf.dart';
@@ -82,7 +83,12 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
     try {
       final styles = await PdfStyles.load();
       final doc = ExpenseReportPdf.generate(styles, _buildReportData(expenses));
-      await PdfGenerator.shareOrPrint(doc, 'expense_report.pdf');
+      final savedPath = await PdfGenerator.shareOrPrint(
+        doc,
+        PdfReportFileNames.dated('كشف المصروفات'),
+      );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

@@ -262,8 +262,10 @@ class PartyBalanceDetailScreen extends ConsumerWidget {
       },
     );
     await Future<void>.delayed(const Duration(milliseconds: 450));
-    amountController.dispose();
-    noteController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      amountController.dispose();
+      noteController.dispose();
+    });
   }
 
   Future<void> _confirmDeleteAdjustment(

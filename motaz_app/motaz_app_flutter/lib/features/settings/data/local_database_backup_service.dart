@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../core/app_identity.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/storage/app_export_directories.dart';
 
 class LocalDatabaseBackupService {
   LocalDatabaseBackupService(this._db);
@@ -42,12 +43,22 @@ class LocalDatabaseBackupService {
   }
 
   static Future<Directory> ensureBackupDirectory() async {
-    final appFolder = Directory(
-      p.join((await _backupBaseDirectory()).path, AppIdentity.backupFolderName),
-    );
-    final backupFolder = Directory(p.join(appFolder.path, 'backup'));
-    await backupFolder.create(recursive: true);
-    return backupFolder;
+    return AppExportDirectories.backupDirectory();
+  }
+
+  static Future<void> ensureExportDirectories() async {
+    await AppExportDirectories.ensureAll();
+  }
+
+  static ({FileType type, List<String>? allowedExtensions})
+  databaseImportPickerOptions({String? operatingSystem}) {
+    return switch (operatingSystem ?? Platform.operatingSystem) {
+      'android' || 'ios' => (type: FileType.any, allowedExtensions: null),
+      _ => (
+        type: FileType.custom,
+        allowedExtensions: const ['db', 'sqlite', 'backup'],
+      ),
+    };
   }
 
   Future<String?> exportDatabase() async {
@@ -62,10 +73,10 @@ class LocalDatabaseBackupService {
     final bytes = await source.readAsBytes();
 
     if (Platform.isAndroid || Platform.isIOS) {
-      final backupFolder = await ensureBackupDirectory();
-      final target = File(p.join(backupFolder.path, fileName));
-      await target.writeAsBytes(bytes, flush: true);
-      return target.path;
+      return AppExportDirectories.saveBackupBytes(
+        fileName: fileName,
+        bytes: bytes,
+      );
     }
 
     final savedPath = await FilePicker.platform.saveFile(
@@ -86,10 +97,11 @@ class LocalDatabaseBackupService {
   }
 
   Future<ImportDatabaseResult> importDatabase() async {
+    final pickerOptions = databaseImportPickerOptions();
     final picked = await FilePicker.platform.pickFiles(
       dialogTitle: 'اختر ملف قاعدة البيانات المحلية',
-      type: FileType.custom,
-      allowedExtensions: const ['db', 'sqlite', 'backup'],
+      type: pickerOptions.type,
+      allowedExtensions: pickerOptions.allowedExtensions,
       withData: true,
     );
     final file = picked?.files.single;
@@ -184,14 +196,6 @@ class LocalDatabaseBackupService {
   static Future<File> _restoreReconcileMarkerFile() async {
     final folder = await getApplicationDocumentsDirectory();
     return File(p.join(folder.path, _restoreReconcileMarkerFileName));
-  }
-
-  static Future<Directory> _backupBaseDirectory() async {
-    if (Platform.isAndroid) {
-      final external = await getExternalStorageDirectory();
-      if (external != null) return external;
-    }
-    return getApplicationDocumentsDirectory();
   }
 
   static Future<void> _deleteSidecarFiles(String dbPath) async {

@@ -10,18 +10,47 @@ import '../../../core/database/device_service.dart';
 import '../../../core/database/enums/sync_status.dart';
 import '../../../core/logging/app_logger.dart';
 
+typedef AttachmentApprovalRequester =
+    Future<server.AttachmentUploadApproval> Function(
+      server.AttachmentUploadRequest request,
+    );
+typedef AttachmentUploadSender =
+    Future<({String publicId, String secureUrl})> Function(
+      File file,
+      String uploadUrl,
+      String uploadPreset,
+      String fileType,
+    );
+typedef AttachmentUploadConfirmer =
+    Future<server.AttachmentConfirmResponse> Function(
+      server.AttachmentConfirmRequest request,
+    );
+typedef CurrentDeviceResolver = Future<Device> Function();
+
 class AttachmentUploader {
   AttachmentUploader({
     required AppDatabase db,
     required server.Client serverClient,
     required DeviceService deviceService,
+    AttachmentApprovalRequester? requestUploadApproval,
+    AttachmentUploadSender? upload,
+    AttachmentUploadConfirmer? confirmUpload,
+    CurrentDeviceResolver? ensureCurrentDevice,
   }) : _db = db,
        _serverClient = serverClient,
-       _deviceService = deviceService;
+       _deviceService = deviceService,
+       _requestUploadApproval = requestUploadApproval,
+       _upload = upload,
+       _confirmUpload = confirmUpload,
+       _ensureCurrentDevice = ensureCurrentDevice;
 
   final AppDatabase _db;
   final server.Client _serverClient;
   final DeviceService _deviceService;
+  final AttachmentApprovalRequester? _requestUploadApproval;
+  final AttachmentUploadSender? _upload;
+  final AttachmentUploadConfirmer? _confirmUpload;
+  final CurrentDeviceResolver? _ensureCurrentDevice;
   final Map<String, int> _retryCounts = {};
   static const int maxRetryCount = 5;
 
@@ -61,9 +90,10 @@ class AttachmentUploader {
         fileType: entry.fileType,
         fileSize: entry.fileSize ?? 0,
       );
-      final approval = await _serverClient.attachment.requestUploadApproval(
-        approvalRequest,
-      );
+      final approval =
+          await (_requestUploadApproval ??
+                  _serverClient.attachment.requestUploadApproval)
+              .call(approvalRequest);
 
       if (!approval.approved) {
         AppLogger.database.warning(
@@ -89,14 +119,16 @@ class AttachmentUploader {
         return;
       }
 
-      final uploaded = await _uploadToCloudinary(
+      final uploaded = await (_upload ?? _uploadToCloudinary).call(
         file,
         uploadUrl,
         uploadPreset,
         entry.fileType,
       );
 
-      final device = await _deviceService.ensureCurrentDevice();
+      final device =
+          await (_ensureCurrentDevice ?? _deviceService.ensureCurrentDevice)
+              .call();
       final deviceId = device.id;
       final confirmRequest = server.AttachmentConfirmRequest(
         parentEntityType: entry.parentEntityType.name,
@@ -107,9 +139,10 @@ class AttachmentUploader {
         fileSize: entry.fileSize ?? 0,
         deviceId: deviceId,
       );
-      final confirmResponse = await _serverClient.attachment.confirmUpload(
-        confirmRequest,
-      );
+      final confirmResponse =
+          await (_confirmUpload ?? _serverClient.attachment.confirmUpload).call(
+            confirmRequest,
+          );
 
       if (confirmResponse.success) {
         final metadataId = confirmResponse.attachmentMetadataId;

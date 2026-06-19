@@ -1004,7 +1004,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         builder: (context) {
           return StatefulBuilder(
             builder: (context, setDialogState) {
-              final screenHeight = MediaQuery.sizeOf(context).height;
               return AlertDialog(
                 insetPadding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -1016,101 +1015,37 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                content: SizedBox(
-                  width: 420,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: (screenHeight * 0.42).clamp(240.0, 420.0),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: quantityController,
-                            focusNode: quantityFocusNode,
-                            selectAllOnFocus: true,
-                            onTap: () {
-                              if (!selectQuantityOnTap) return;
-                              selectQuantityOnTap = false;
-                              selectAll(quantityController);
-                            },
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'الكمية',
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          TextField(
-                            controller: priceController,
-                            focusNode: priceFocusNode,
-                            selectAllOnFocus: true,
-                            onTap: () {
-                              if (!selectPriceOnTap) return;
-                              selectPriceOnTap = false;
-                              selectAll(priceController);
-                            },
-                            textAlign: TextAlign.center,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
-                            decoration: const InputDecoration(
-                              labelText: 'سعر البيع',
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'تاريخ إنتاج هذا المنتج',
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    productionDate == null
-                                        ? 'غير محدد'
-                                        : _formatDate(productionDate!),
-                                  ),
-                                ),
-                                IconButton(
-                                  tooltip: 'اختيار تاريخ',
-                                  icon: const Icon(
-                                    Icons.calendar_today_rounded,
-                                  ),
-                                  onPressed: () async {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate:
-                                          productionDate ?? DateTime.now(),
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2100),
-                                    );
-                                    if (!context.mounted || picked == null) {
-                                      return;
-                                    }
-                                    setDialogState(
-                                      () => productionDate = picked,
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  tooltip: 'مسح التاريخ',
-                                  icon: const Icon(Icons.close_rounded),
-                                  onPressed: productionDate == null
-                                      ? null
-                                      : () => setDialogState(
-                                          () => productionDate = null,
-                                        ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                content: InvoiceLineEditDialogContent(
+                  quantityController: quantityController,
+                  priceController: priceController,
+                  quantityFocusNode: quantityFocusNode,
+                  priceFocusNode: priceFocusNode,
+                  productionDate: productionDate,
+                  formatDate: _formatDate,
+                  onQuantityTap: () {
+                    if (!selectQuantityOnTap) return;
+                    selectQuantityOnTap = false;
+                    selectAll(quantityController);
+                  },
+                  onPriceTap: () {
+                    if (!selectPriceOnTap) return;
+                    selectPriceOnTap = false;
+                    selectAll(priceController);
+                  },
+                  onPickProductionDate: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: productionDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (!context.mounted || picked == null) {
+                      return;
+                    }
+                    setDialogState(() => productionDate = picked);
+                  },
+                  onClearProductionDate: () =>
+                      setDialogState(() => productionDate = null),
                 ),
                 actionsAlignment: MainAxisAlignment.spaceBetween,
                 actions: [
@@ -2745,6 +2680,109 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         alignLabelWithHint: true,
       ),
       maxLines: 3,
+    );
+  }
+}
+
+class InvoiceLineEditDialogContent extends StatelessWidget {
+  const InvoiceLineEditDialogContent({
+    super.key,
+    required this.quantityController,
+    required this.priceController,
+    required this.quantityFocusNode,
+    required this.priceFocusNode,
+    required this.productionDate,
+    required this.formatDate,
+    required this.onQuantityTap,
+    required this.onPriceTap,
+    required this.onPickProductionDate,
+    required this.onClearProductionDate,
+  });
+
+  final TextEditingController quantityController;
+  final TextEditingController priceController;
+  final FocusNode quantityFocusNode;
+  final FocusNode priceFocusNode;
+  final DateTime? productionDate;
+  final String Function(DateTime date) formatDate;
+  final VoidCallback onQuantityTap;
+  final VoidCallback onPriceTap;
+  final VoidCallback onPickProductionDate;
+  final VoidCallback onClearProductionDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+    final availableHeight = (screenSize.height - keyboardHeight).clamp(
+      240.0,
+      screenSize.height,
+    );
+
+    return SizedBox(
+      width: 420,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: (availableHeight * 0.42).clamp(180.0, 420.0),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: quantityController,
+                focusNode: quantityFocusNode,
+                selectAllOnFocus: true,
+                onTap: onQuantityTap,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'الكمية'),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: priceController,
+                focusNode: priceFocusNode,
+                selectAllOnFocus: true,
+                onTap: onPriceTap,
+                textAlign: TextAlign.center,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: 'سعر البيع'),
+              ),
+              const SizedBox(height: 14),
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'تاريخ إنتاج هذا المنتج',
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        productionDate == null
+                            ? 'غير محدد'
+                            : formatDate(productionDate!),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'اختيار تاريخ',
+                      icon: const Icon(Icons.calendar_today_rounded),
+                      onPressed: onPickProductionDate,
+                    ),
+                    IconButton(
+                      tooltip: 'مسح التاريخ',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: productionDate == null
+                          ? null
+                          : onClearProductionDate,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -3,9 +3,13 @@ import 'package:motaz_app_flutter/features/sync/domain/field_classifier.dart';
 
 void main() {
   group('FieldClassifier', () {
-    test('getConflictRequiredFields for PRODUCT includes costPrice', () {
+    test('getConflictRequiredFields for PRODUCT includes pricing fields', () {
       final fields = FieldClassifier.getConflictRequiredFields('PRODUCT');
-      expect(fields, containsAll(['name', 'defaultSalePrice', 'costPrice']));
+      expect(
+        fields,
+        containsAll(['name', 'defaultSalePrice', 'shelfLifeDays']),
+      );
+      expect(fields, isNot(contains('costPrice')));
     });
 
     test('getConflictRequiredFields for CLIENT returns empty', () {
@@ -13,11 +17,11 @@ void main() {
       expect(fields, isEmpty);
     });
 
-    test('hasConflictRequiredFieldChanges detects costPrice change', () {
+    test('hasConflictRequiredFieldChanges detects sale price change', () {
       expect(
         FieldClassifier.hasConflictRequiredFieldChanges(
           'PRODUCT',
-          {'costPrice'},
+          {'defaultSalePrice'},
         ),
         isTrue,
       );

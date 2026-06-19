@@ -9,6 +9,7 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../../clients/application/client_providers.dart';
 import '../application/report_providers.dart';
 import '../data/report_models.dart';
+import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
 import '../pdf/pdf_styles.dart';
 import '../pdf/pdf_templates/client_receivables_report_pdf.dart';
@@ -438,7 +439,16 @@ class _ClientReceivablesReportScreenState
     try {
       final styles = await PdfStyles.load();
       final doc = ClientReceivablesReportPdf.generate(styles, exportData);
-      await PdfGenerator.shareOrPrint(doc, 'client_receivables_report.pdf');
+      final subject = _selectedClient?.displayName ?? _clientQuery.trim();
+      final savedPath = await PdfGenerator.shareOrPrint(
+        doc,
+        PdfReportFileNames.dated(
+          'كشف مستحقات العملاء',
+          subject: subject.isEmpty ? null : subject,
+        ),
+      );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

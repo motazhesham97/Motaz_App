@@ -211,7 +211,7 @@ class _InvoiceListScreenState extends ConsumerState<InvoiceListScreen> {
                           final clientName =
                               clientMap[invoice.clientId]?.displayName ??
                               'عميل محذوف';
-                          return _InvoiceCard(
+                          return InvoiceCard(
                             invoice: invoice,
                             clientName: clientName,
                             formattedDate: _formatDate(invoice.invoiceDate),
@@ -446,8 +446,9 @@ class _InvoiceListScreenState extends ConsumerState<InvoiceListScreen> {
   }
 }
 
-class _InvoiceCard extends StatelessWidget {
-  const _InvoiceCard({
+class InvoiceCard extends StatelessWidget {
+  const InvoiceCard({
+    super.key,
     required this.invoice,
     required this.clientName,
     required this.formattedDate,

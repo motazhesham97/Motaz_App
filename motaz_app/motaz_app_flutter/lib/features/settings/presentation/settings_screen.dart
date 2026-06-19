@@ -126,11 +126,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           .exportDatabase();
       if (!mounted) return;
 
-      final message = savedPath == null
+      final _ = savedPath == null
           ? 'تم إلغاء تصدير قاعدة البيانات'
           : 'تم تصدير قاعدة البيانات بنجاح';
+      final displayMessage = savedPath == null
+          ? 'تم إلغاء تصدير قاعدة البيانات'
+          : 'تم حفظ نسخة قاعدة البيانات:\n$savedPath';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(content: Text(displayMessage)),
       );
     } catch (error) {
       if (!mounted) return;

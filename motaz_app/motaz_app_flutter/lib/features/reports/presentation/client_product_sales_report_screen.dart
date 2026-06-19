@@ -8,6 +8,7 @@ import '../../../core/utils/money_formatter.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../clients/application/client_providers.dart';
 import '../application/report_providers.dart';
+import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
 import '../pdf/pdf_styles.dart';
 import '../pdf/pdf_templates/client_product_sales_report_pdf.dart';
@@ -441,7 +442,15 @@ class _ClientProductSalesReportScreenState
     try {
       final styles = await PdfStyles.load();
       final doc = ClientProductSalesReportPdf.generate(styles, data);
-      await PdfGenerator.shareOrPrint(doc, 'client_product_sales_report.pdf');
+      final savedPath = await PdfGenerator.shareOrPrint(
+        doc,
+        PdfReportFileNames.dated(
+          'تقرير مبيعات منتجات العميل',
+          subject: selectedClient.displayName,
+        ),
+      );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

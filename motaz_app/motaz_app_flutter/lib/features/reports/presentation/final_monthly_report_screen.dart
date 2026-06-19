@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/app_drawer.dart';
 import '../application/report_providers.dart';
+import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
 import '../pdf/pdf_styles.dart';
 import '../pdf/pdf_templates/final_monthly_report_pdf.dart';
@@ -136,10 +137,16 @@ class _FinalMonthlyReportScreenState
           .getFinalMonthlyReport(year: _selectedYear, month: _selectedMonth);
       final styles = await PdfStyles.load();
       final doc = FinalMonthlyReportPdf.generate(styles, data);
-      await PdfGenerator.shareOrPrint(
+      final savedPath = await PdfGenerator.shareOrPrint(
         doc,
-        'final_report_${_selectedYear}_${_selectedMonth.toString().padLeft(2, '0')}.pdf',
+        PdfReportFileNames.monthly(
+          'التقرير الشهري النهائي',
+          year: _selectedYear,
+          month: _selectedMonth,
+        ),
       );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

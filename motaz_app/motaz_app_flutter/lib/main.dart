@@ -25,7 +25,7 @@ void main() async {
   await AppLogger.initialize();
   await FollowUpNotificationService.initialize();
   try {
-    await LocalDatabaseBackupService.ensureBackupDirectory();
+    await LocalDatabaseBackupService.ensureExportDirectories();
     await LocalDatabaseBackupService.applyPendingImportIfAny();
   } catch (error, stackTrace) {
     AppLogger.database.warning(

@@ -10,6 +10,7 @@ import '../../attachments/application/document_attachment_reader.dart';
 import '../../clients/application/client_providers.dart';
 import '../application/report_providers.dart';
 import '../data/report_models.dart';
+import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
 import '../pdf/pdf_styles.dart';
 import '../pdf/pdf_templates/client_statement_pdf.dart';
@@ -303,13 +304,79 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
     );
   }
 
-  Widget _buildStatementEntryCard(ClientStatementEntry entry) {
+  Widget _buildStatementEntryCard(ClientStatementEntry entry) =>
+      ClientStatementEntryCard(entry: entry);
+
+  Future<void> _exportPdf() async {
+    if (_selectedClient == null) return;
+    final statementAsync = ref.read(
+      clientStatementProvider(
+        (clientId: _selectedClient!.id, range: _selectedRange),
+      ),
+    );
+    final data = statementAsync.when(
+      data: (d) => d,
+      loading: () => null,
+      error: (_, _) => null,
+    );
+    if (data == null) return;
+
+    setState(() => _isExporting = true);
+    try {
+      final exportData = await _attachStatementImages(data);
+      final styles = await PdfStyles.load();
+      final doc = ClientStatementPdf.generate(styles, exportData);
+      final savedPath = await PdfGenerator.shareOrPrint(
+        doc,
+        PdfReportFileNames.dated('كشف حساب', subject: data.clientName),
+      );
+      if (!mounted) return;
+      PdfGenerator.showSavedSnackBar(context, savedPath);
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<ClientStatementData> _attachStatementImages(
+    ClientStatementData data,
+  ) async {
+    final reader = ref.read(documentAttachmentReaderProvider);
+    final entries = <ClientStatementEntry>[];
+    for (final entry in data.entries) {
+      entries.add(
+        entry.copyWith(
+          attachmentImages: await reader.loadImages(
+            parentEntityType: entry.parentEntityType,
+            parentEntityId: entry.entityId,
+          ),
+        ),
+      );
+    }
+
+    return ClientStatementData(
+      clientName: data.clientName,
+      dateRange: data.dateRange,
+      openingBalance: data.openingBalance,
+      entries: entries,
+      closingBalance: data.closingBalance,
+    );
+  }
+}
+
+class ClientStatementEntryCard extends StatelessWidget {
+  const ClientStatementEntryCard({
+    super.key,
+    required this.entry,
+  });
+
+  final ClientStatementEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
     final amountColor = entry.type == StatementEntryType.invoice
         ? Colors.red
         : Colors.green;
-    final balanceColor = entry.runningBalance >= 0
-        ? Colors.red
-        : Colors.green;
+    final balanceColor = entry.runningBalance >= 0 ? Colors.red : Colors.green;
     final date =
         '${entry.date.year}-${entry.date.month.toString().padLeft(2, '0')}-${entry.date.day.toString().padLeft(2, '0')}';
 
@@ -328,7 +395,7 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          _typeLabel(entry.type),
+                          _statementTypeLabel(entry.type),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -398,7 +465,7 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
                 SizedBox(
                   width: 78,
                   child: Text(
-                    _typeLabel(entry.type),
+                    _statementTypeLabel(entry.type),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -442,61 +509,10 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
       ),
     );
   }
-
-  String _typeLabel(StatementEntryType type) => switch (type) {
-    StatementEntryType.invoice => 'فاتورة',
-    StatementEntryType.receipt => 'سند قبض',
-    StatementEntryType.returnItem => 'مرتجع',
-  };
-
-  Future<void> _exportPdf() async {
-    if (_selectedClient == null) return;
-    final statementAsync = ref.read(
-      clientStatementProvider(
-        (clientId: _selectedClient!.id, range: _selectedRange),
-      ),
-    );
-    final data = statementAsync.when(
-      data: (d) => d,
-      loading: () => null,
-      error: (_, _) => null,
-    );
-    if (data == null) return;
-
-    setState(() => _isExporting = true);
-    try {
-      final exportData = await _attachStatementImages(data);
-      final styles = await PdfStyles.load();
-      final doc = ClientStatementPdf.generate(styles, exportData);
-      final sanitized = data.clientName.replaceAll(RegExp(r'[^\w\s-]'), '');
-      await PdfGenerator.shareOrPrint(doc, 'client_statement_$sanitized.pdf');
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
-
-  Future<ClientStatementData> _attachStatementImages(
-    ClientStatementData data,
-  ) async {
-    final reader = ref.read(documentAttachmentReaderProvider);
-    final entries = <ClientStatementEntry>[];
-    for (final entry in data.entries) {
-      entries.add(
-        entry.copyWith(
-          attachmentImages: await reader.loadImages(
-            parentEntityType: entry.parentEntityType,
-            parentEntityId: entry.entityId,
-          ),
-        ),
-      );
-    }
-
-    return ClientStatementData(
-      clientName: data.clientName,
-      dateRange: data.dateRange,
-      openingBalance: data.openingBalance,
-      entries: entries,
-      closingBalance: data.closingBalance,
-    );
-  }
 }
+
+String _statementTypeLabel(StatementEntryType type) => switch (type) {
+  StatementEntryType.invoice => 'فاتورة',
+  StatementEntryType.receipt => 'سند قبض',
+  StatementEntryType.returnItem => 'مرتجع',
+};

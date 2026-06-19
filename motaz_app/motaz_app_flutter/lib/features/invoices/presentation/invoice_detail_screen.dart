@@ -399,43 +399,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
   Widget _buildInvoiceLine(SalesInvoiceLine line) {
     final name = _productNames[line.productId] ?? 'منتج غير معروف';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 12,
-                runSpacing: 6,
-                children: [
-                  Text('الكمية: ${line.quantity}'),
-                  Text('السعر: ${_formatMoney(line.unitPrice)}'),
-                  Text(
-                    'الإجمالي: ${_formatMoney(line.lineTotal)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    return InvoiceLineCard(
+      line: line,
+      productName: name,
+      formatMoney: _formatMoney,
     );
   }
 
@@ -446,7 +413,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('صورة الفاتورة', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'صورة الفاتورة',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 12),
             ..._attachmentImages.map(
               (bytes) => Padding(
@@ -517,6 +487,74 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
       ),
     ];
 
+    return InvoiceDetailActionButtonsLayout(buttons: buttons);
+  }
+}
+
+class InvoiceLineCard extends StatelessWidget {
+  const InvoiceLineCard({
+    super.key,
+    required this.line,
+    required this.productName,
+    required this.formatMoney,
+  });
+
+  final SalesInvoiceLine line;
+  final String productName;
+  final String Function(int minorUnits) formatMoney;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                productName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                children: [
+                  Text('الكمية: ${line.quantity}'),
+                  Text('السعر: ${formatMoney(line.unitPrice)}'),
+                  Text(
+                    'الإجمالي: ${formatMoney(line.lineTotal)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class InvoiceDetailActionButtonsLayout extends StatelessWidget {
+  const InvoiceDetailActionButtonsLayout({super.key, required this.buttons});
+
+  final List<Widget> buttons;
+
+  @override
+  Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 520) {

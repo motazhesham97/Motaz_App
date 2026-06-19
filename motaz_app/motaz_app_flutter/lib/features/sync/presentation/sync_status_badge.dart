@@ -6,7 +6,9 @@ import '../../sync/application/sync_providers.dart';
 import '../../sync/domain/sync_state.dart';
 
 class SyncStatusBadge extends ConsumerWidget {
-  const SyncStatusBadge({super.key});
+  const SyncStatusBadge({super.key, this.retryOverride});
+
+  final Future<void> Function(WidgetRef ref)? retryOverride;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -245,7 +247,12 @@ class SyncStatusBadge extends ConsumerWidget {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
-                            ref.read(syncCoordinatorProvider).retryAndSync();
+                            final retry = retryOverride;
+                            if (retry != null) {
+                              retry(ref);
+                            } else {
+                              ref.read(syncCoordinatorProvider).retryAndSync();
+                            }
                             Navigator.pop(sheetContext);
                           },
                           child: const Text('إعادة المحاولة'),

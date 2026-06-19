@@ -84,10 +84,11 @@ class HomeScreen extends ConsumerWidget {
                 spacing: 12,
                 children: const [
                   _QuickActionCard(
-                    title: 'منتج جديد',
-                    subtitle: 'إضافة صنف للبيع',
-                    icon: Icons.add_box_rounded,
-                    route: '/products',
+                    key: ValueKey('home.quickAction.expenses'),
+                    title: 'إضافة مصروف',
+                    subtitle: 'فتح قسم المصروفات',
+                    icon: Icons.account_balance_wallet_rounded,
+                    route: '/expenses',
                   ),
                   _QuickActionCard(
                     title: 'فاتورة',
@@ -378,6 +379,7 @@ class _StatusChip extends StatelessWidget {
 
 class _QuickActionCard extends StatelessWidget {
   const _QuickActionCard({
+    super.key,
     required this.title,
     required this.subtitle,
     required this.icon,
