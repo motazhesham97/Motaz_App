@@ -18,5 +18,7 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  client_sync_cursor_idx:
+    fields: rowVersion, id
   client_display_name_idx:
     fields: displayName

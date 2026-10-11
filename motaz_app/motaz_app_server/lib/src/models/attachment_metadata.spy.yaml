@@ -15,5 +15,7 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  attachment_sync_cursor_idx:
+    fields: rowVersion, id
   attachment_parent_idx:
     fields: parentEntityType, parentEntityId

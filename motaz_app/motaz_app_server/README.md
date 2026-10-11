@@ -130,6 +130,22 @@ https://<your-railway-domain>
 The mobile app remains offline-first. Railway hosts the online sync server,
 while the phone still keeps its local SQLite database.
 
+### Sync Update Rollout
+
+Deploy the server with `--apply-migrations` before releasing a Flutter build
+that sends the optional `PullRequest.afterId` cursor. The migration adds
+`(rowVersion, id)` indexes to the syncable tables and initializes separate
+PostgreSQL sequences for invoice, receipt, return, and free-sample official
+numbers after the highest existing number. The server assigns new numbers
+atomically during sync; client-supplied numbers for new records are not used.
+Check the deployment logs for a successful migration before installing the
+new client build.
+
+Sync checks run every 10 minutes while the app is online and also start after
+connectivity returns. A full reconciliation remains necessary because
+`rowVersion` is currently incremented per row, not globally per table; an
+incremental cursor alone can miss changes to an older row.
+
 ## Optional Local PostgreSQL
 
 Use the local PostgreSQL container only for isolated tests or a deliberate local

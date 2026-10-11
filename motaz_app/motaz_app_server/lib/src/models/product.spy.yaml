@@ -16,6 +16,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  product_sync_cursor_idx:
+    fields: rowVersion, id
   product_name_idx:
     fields: name
     unique: true

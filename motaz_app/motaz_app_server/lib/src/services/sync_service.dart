@@ -10,6 +10,7 @@ import '../generated/device.dart';
 import '../generated/enums/audit_operation.dart';
 import '../generated/enums/conflict_status.dart';
 import '../generated/enums/parent_entity_type.dart';
+import '../generated/pull_response.dart';
 
 class SyncService {
   static ParentEntityType? _parseParentEntityType(String name) {
@@ -433,19 +434,28 @@ class SyncService {
     String entityType,
     int sinceRowVersion,
     int limit,
+    String? afterId,
   ) async {
     final tableName = _entityTableName(entityType);
     if (tableName == null) return [];
     if (!_hasRowVersion(entityType)) return [];
     await _backfillOfficialNumbers(session, entityType, tableName);
 
+    final pageSize = limit.clamp(1, 100);
+    final afterClause = afterId == null
+        ? '"rowVersion" > @sinceRowVersion'
+        : '("rowVersion" > @sinceRowVersion OR '
+              '("rowVersion" = @sinceRowVersion AND "id" > CAST(@afterId AS uuid)))';
     final rows = await session.db.unsafeQuery(
       'SELECT row_to_json(t) FROM "' +
           tableName +
-          '" t WHERE "rowVersion" > @sinceRowVersion ORDER BY "rowVersion" ASC LIMIT @limit',
+          '" t WHERE ' +
+          afterClause +
+          ' ORDER BY "rowVersion" ASC, "id" ASC LIMIT @limit',
       parameters: QueryParameters.named({
         'sinceRowVersion': sinceRowVersion,
-        'limit': limit,
+        'limit': pageSize + 1,
+        if (afterId != null) 'afterId': afterId,
       }),
     );
     return rows.map((row) {
@@ -453,6 +463,25 @@ class SyncService {
       if (value is String) return value;
       return jsonEncode(value);
     }).toList();
+  }
+
+  static PullResponse buildPullResponse(
+    String entityType,
+    List<String> fetchedRows,
+    int sinceRowVersion,
+    int requestedLimit,
+  ) {
+    final pageSize = requestedLimit.clamp(1, 100);
+    final pageRows = fetchedRows.take(pageSize).toList();
+    return PullResponse(
+      entityType: entityType,
+      rows: pageRows,
+      hasMore: fetchedRows.length > pageSize,
+      latestRowVersion: latestRowVersionFromRows(
+        pageRows,
+        sinceRowVersion,
+      ),
+    );
   }
 
   static Future<int> getLatestRowVersion(
@@ -485,25 +514,6 @@ class SyncService {
       }
     }
     return latest;
-  }
-
-  static Future<int> countRowsAboveVersion(
-    Session session,
-    String entityType,
-    int sinceRowVersion,
-  ) async {
-    final tableName = _entityTableName(entityType);
-    if (tableName == null) return 0;
-    if (!_hasRowVersion(entityType)) return 0;
-
-    final rows = await session.db.unsafeQuery(
-      'SELECT COUNT(*) FROM "' +
-          tableName +
-          '" WHERE "rowVersion" > @sinceRowVersion',
-      parameters: QueryParameters.named({'sinceRowVersion': sinceRowVersion}),
-    );
-    if (rows.isEmpty) return 0;
-    return (rows.first.first as num).toInt();
   }
 
   static Future<List<ConflictLog>> getPendingConflicts(
@@ -561,28 +571,19 @@ class SyncService {
       return;
     }
 
-    final incomingOfficial = payload['officialNo']?.toString().trim();
-    if (incomingOfficial != null && incomingOfficial.isNotEmpty) return;
-
-    final tableName = _entityTableName(entityType);
-    if (tableName == null) return;
-
+    final sequenceName = _officialNumberSequenceMap[entityType]!;
     payload['officialNo'] = (await _nextOfficialNumber(
       session,
-      tableName,
+      sequenceName,
     )).toString();
   }
 
   static Future<int> _nextOfficialNumber(
     Session session,
-    String tableName,
+    String sequenceName,
   ) async {
     final rows = await session.db.unsafeQuery(
-      'SELECT COALESCE(MAX(CAST("officialNo" AS INTEGER)), 0) + 1 '
-              'FROM "' +
-          tableName +
-          '" WHERE "officialNo" ~ ' +
-          r"'^[0-9]+$'",
+      "SELECT nextval('" + sequenceName + "')",
     );
     return (rows.first.first as num).toInt();
   }
@@ -593,15 +594,17 @@ class SyncService {
     String tableName,
   ) async {
     if (!_officialNumberedEntityTypes.contains(entityType)) return;
+    final sequenceName = _officialNumberSequenceMap[entityType]!;
+
+    final missing = await session.db.unsafeQuery(
+      'SELECT 1 FROM "' +
+          tableName +
+          '" WHERE "officialNo" IS NULL OR "officialNo" = \'\' LIMIT 1',
+    );
+    if (missing.isEmpty) return;
 
     await session.db.unsafeExecute(
-      'WITH base AS ('
-              '  SELECT COALESCE(MAX(CAST("officialNo" AS INTEGER)), 0) AS max_no '
-              '  FROM "' +
-          tableName +
-          '" WHERE "officialNo" ~ ' +
-          r"'^[0-9]+$'" +
-          '), version_base AS ('
+      'WITH version_base AS ('
               '  SELECT COALESCE(MAX("rowVersion"), 0) AS max_version '
               '  FROM "' +
           tableName +
@@ -609,17 +612,22 @@ class SyncService {
               '  SELECT "id", ROW_NUMBER() OVER (ORDER BY "createdAt", "id") AS seq '
               '  FROM "' +
           tableName +
-          '" WHERE "officialNo" IS NULL OR "officialNo" = \'\''
+          '" WHERE "officialNo" IS NULL OR "officialNo" = \'\'' +
+          '), numbered AS MATERIALIZED ('
+              '  SELECT "id", seq, nextval(\'' +
+          sequenceName +
+          '\') AS official_no FROM missing ORDER BY seq'
               ') '
               'UPDATE "' +
           tableName +
           '" t SET '
-              '"officialNo" = (base.max_no + missing.seq)::text, '
-              '"rowVersion" = version_base.max_version + missing.seq, '
+              '"officialNo" = numbered.official_no::text, '
+              '"rowVersion" = version_base.max_version + numbered.seq, '
               '"syncStatus" = \'SYNCED\', '
               '"updatedAt" = NOW() '
-              'FROM missing, base, version_base '
-              'WHERE t."id" = missing."id"',
+              'FROM numbered, version_base '
+              'WHERE t."id" = numbered."id" '
+              'AND (t."officialNo" IS NULL OR t."officialNo" = \'\')',
     );
   }
 
@@ -662,12 +670,15 @@ class SyncService {
     'SALES_RETURN_LINE',
   };
 
-  static const Set<String> _officialNumberedEntityTypes = {
-    'SALES_INVOICE',
-    'RECEIPT',
-    'SALES_RETURN',
-    'FREE_SAMPLE',
+  static const Map<String, String> _officialNumberSequenceMap = {
+    'SALES_INVOICE': 'sales_invoice_official_no_seq',
+    'RECEIPT': 'receipt_official_no_seq',
+    'SALES_RETURN': 'sales_return_official_no_seq',
+    'FREE_SAMPLE': 'free_sample_official_no_seq',
   };
+
+  static final Set<String> _officialNumberedEntityTypes =
+      _officialNumberSequenceMap.keys.toSet();
 
   static Object? _jsonSafe(Object? value) {
     if (value == null || value is String || value is num || value is bool) {

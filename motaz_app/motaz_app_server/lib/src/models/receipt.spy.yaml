@@ -21,6 +21,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  receipt_sync_cursor_idx:
+    fields: rowVersion, id
   receipt_client_idx:
     fields: clientId
   receipt_date_idx:

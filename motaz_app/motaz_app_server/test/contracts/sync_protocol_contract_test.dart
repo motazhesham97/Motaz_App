@@ -70,6 +70,7 @@ void main() {
       final request = PullRequest(
         entityType: 'PRODUCT',
         sinceRowVersion: 42,
+        afterId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         deviceId: 'device-1',
         limit: 100,
       );
@@ -78,6 +79,7 @@ void main() {
         '__className__': 'PullRequest',
         'entityType': 'PRODUCT',
         'sinceRowVersion': 42,
+        'afterId': 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         'deviceId': 'device-1',
         'limit': 100,
       });
@@ -85,8 +87,11 @@ void main() {
       final roundTrip = PullRequest.fromJson(request.toJsonForProtocol());
       expect(roundTrip.entityType, request.entityType);
       expect(roundTrip.sinceRowVersion, request.sinceRowVersion);
+      expect(roundTrip.afterId, request.afterId);
       expect(roundTrip.deviceId, request.deviceId);
       expect(roundTrip.limit, request.limit);
+      final legacyJson = request.toJsonForProtocol()..remove('afterId');
+      expect(PullRequest.fromJson(legacyJson).afterId, isNull);
     });
 
     test('PullResponse protocol JSON keeps rows and pagination metadata', () {

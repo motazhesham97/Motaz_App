@@ -15,6 +15,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  party_adjustment_sync_cursor_idx:
+    fields: rowVersion, id
   party_adjustment_party_idx:
     fields: party
   party_adjustment_date_idx:

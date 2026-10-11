@@ -17,6 +17,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  monthly_distribution_sync_cursor_idx:
+    fields: rowVersion, id
   monthly_distribution_year_month_idx:
     fields: year, month
     unique: true

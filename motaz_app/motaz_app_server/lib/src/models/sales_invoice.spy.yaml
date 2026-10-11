@@ -19,6 +19,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  invoice_sync_cursor_idx:
+    fields: rowVersion, id
   invoice_local_ref_idx:
     fields: localRef
     unique: true

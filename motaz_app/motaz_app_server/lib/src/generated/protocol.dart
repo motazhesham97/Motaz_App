@@ -227,6 +227,23 @@ class Protocol extends _i1.SerializationManagerServer {
           isPrimary: true,
         ),
         _i2.IndexDefinition(
+          indexName: 'attachment_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
           indexName: 'attachment_parent_idx',
           tableSpace: null,
           elements: [
@@ -453,6 +470,23 @@ class Protocol extends _i1.SerializationManagerServer {
           isPrimary: true,
         ),
         _i2.IndexDefinition(
+          indexName: 'beneficiary_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
           indexName: 'beneficiary_display_name_idx',
           tableSpace: null,
           elements: [
@@ -607,6 +641,23 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'client_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
         _i2.IndexDefinition(
           indexName: 'client_display_name_idx',
@@ -971,6 +1022,23 @@ class Protocol extends _i1.SerializationManagerServer {
           isPrimary: true,
         ),
         _i2.IndexDefinition(
+          indexName: 'expense_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
           indexName: 'expense_date_idx',
           tableSpace: null,
           elements: [
@@ -1136,6 +1204,23 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'free_sample_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
         _i2.IndexDefinition(
           indexName: 'free_sample_local_ref_idx',
@@ -1314,6 +1399,23 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'free_sample_line_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
         _i2.IndexDefinition(
           indexName: 'free_sample_line_sample_idx',
@@ -1560,6 +1662,23 @@ class Protocol extends _i1.SerializationManagerServer {
           isPrimary: true,
         ),
         _i2.IndexDefinition(
+          indexName: 'monthly_distribution_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
           indexName: 'monthly_distribution_year_month_idx',
           tableSpace: null,
           elements: [
@@ -1779,6 +1898,23 @@ class Protocol extends _i1.SerializationManagerServer {
           isPrimary: true,
         ),
         _i2.IndexDefinition(
+          indexName: 'party_adjustment_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
           indexName: 'party_adjustment_party_idx',
           tableSpace: null,
           elements: [
@@ -1934,6 +2070,23 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'product_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
         _i2.IndexDefinition(
           indexName: 'product_name_idx',
@@ -2103,6 +2256,23 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'receipt_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
         _i2.IndexDefinition(
           indexName: 'receipt_client_idx',
@@ -2405,6 +2575,23 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'invoice_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
         _i2.IndexDefinition(
           indexName: 'invoice_local_ref_idx',
@@ -2718,6 +2905,23 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'return_sync_cursor_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'rowVersion',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
         _i2.IndexDefinition(
           indexName: 'return_invoice_idx',

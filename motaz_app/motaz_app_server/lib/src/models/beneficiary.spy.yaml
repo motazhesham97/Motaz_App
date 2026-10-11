@@ -13,6 +13,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  beneficiary_sync_cursor_idx:
+    fields: rowVersion, id
   beneficiary_display_name_idx:
     fields: displayName
   beneficiary_source_client_idx:

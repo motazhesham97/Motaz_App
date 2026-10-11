@@ -17,6 +17,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  free_sample_sync_cursor_idx:
+    fields: rowVersion, id
   free_sample_local_ref_idx:
     fields: localRef
     unique: true

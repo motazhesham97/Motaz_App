@@ -15,21 +15,24 @@ class PullProcessor {
   PullProcessor({
     required AppDatabase db,
     required server.Client serverClient,
+    Future<server.PullResponse> Function(server.PullRequest)? pullOverride,
   }) : _db = db,
-       _serverClient = serverClient;
+       _serverClient = serverClient,
+       _pullOverride = pullOverride;
 
   final AppDatabase _db;
   final server.Client _serverClient;
+  final Future<server.PullResponse> Function(server.PullRequest)? _pullOverride;
   static const int _defaultLimit = 100;
   static final _uuid = const Uuid();
 
-  Future<void> pullAllEntityTypes() async {
+  Future<void> pullAllEntityTypes({bool forceFull = false}) async {
     final detectRestoreConflicts =
         await LocalDatabaseBackupService.hasRestoreReconcileMarker();
     for (final entityType in _syncableEntityTypes) {
       await _pullForEntityType(
         entityType,
-        forceFull: detectRestoreConflicts,
+        forceFull: forceFull || detectRestoreConflicts,
         detectRestoreConflicts: detectRestoreConflicts,
       );
     }
@@ -38,15 +41,11 @@ class PullProcessor {
     }
   }
 
-  Future<void> reconcileAllEntityTypes() async {
-    AppLogger.sync.info('Starting full server reconciliation');
-    for (final entityType in _syncableEntityTypes) {
-      await _pullForEntityType(entityType, forceFull: true);
-    }
-  }
-
-  Future<void> pullEntityType(ParentEntityType entityType) async {
-    await _pullForEntityType(entityType);
+  Future<void> pullEntityType(
+    ParentEntityType entityType, {
+    bool forceFull = false,
+  }) async {
+    await _pullForEntityType(entityType, forceFull: forceFull);
   }
 
   Future<void> pullPendingConflicts() async {
@@ -71,7 +70,7 @@ class PullProcessor {
     final device = await _currentDevice();
     if (device == null) return;
 
-    var currentCursor =
+    final currentCursor =
         await (_db.select(
                 _db.syncCursor,
               )
@@ -80,18 +79,24 @@ class PullProcessor {
               ..limit(1))
             .getSingleOrNull();
     var sinceRowVersion = forceFull ? 0 : currentCursor?.lastRowVersion ?? 0;
+    String? afterId;
     var hasMore = true;
+    var receivedRows = false;
 
     while (hasMore) {
       final request = server.PullRequest(
         entityType: entityType.name,
         sinceRowVersion: sinceRowVersion,
+        afterId: afterId,
         deviceId: device.id,
         limit: _defaultLimit,
       );
-      final response = await _serverClient.sync.pull(request);
+      final response = await (_pullOverride?.call(request) ??
+          _serverClient.sync.pull(request));
       if (response.rows.isEmpty) {
-        hasMore = false;
+        if (response.hasMore) {
+          throw StateError('Server returned an empty pull page with hasMore');
+        }
         break;
       }
 
@@ -103,11 +108,25 @@ class PullProcessor {
           detectRestoreConflicts: detectRestoreConflicts,
         );
       }
+      final nextAfterId =
+          (jsonDecode(response.rows.last) as Map<String, dynamic>)['id']
+              ?.toString();
+      if (response.hasMore &&
+          (nextAfterId == null ||
+              (response.latestRowVersion == sinceRowVersion &&
+                  nextAfterId == afterId))) {
+        throw StateError('Server pull cursor did not advance');
+      }
       sinceRowVersion = response.latestRowVersion;
+      afterId = nextAfterId;
       hasMore = response.hasMore;
-      currentCursor = await _upsertCursor(
+      receivedRows = true;
+    }
+    if (receivedRows) {
+      final savedVersion = currentCursor?.lastRowVersion ?? 0;
+      await _upsertCursor(
         entityType,
-        sinceRowVersion,
+        sinceRowVersion > savedVersion ? sinceRowVersion : savedVersion,
         currentCursor,
       );
     }

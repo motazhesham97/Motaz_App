@@ -201,26 +201,14 @@ class SyncEndpoint extends Endpoint {
       request.entityType,
       request.sinceRowVersion,
       request.limit,
+      request.afterId,
     );
 
-    final totalAbove = await SyncService.countRowsAboveVersion(
-      session,
+    return SyncService.buildPullResponse(
       request.entityType,
-      request.sinceRowVersion,
-    );
-
-    final hasMore = totalAbove > request.limit;
-
-    final latestRowVersion = SyncService.latestRowVersionFromRows(
       rows,
       request.sinceRowVersion,
-    );
-
-    return PullResponse(
-      entityType: request.entityType,
-      rows: rows,
-      hasMore: hasMore,
-      latestRowVersion: latestRowVersion,
+      request.limit,
     );
   }
 

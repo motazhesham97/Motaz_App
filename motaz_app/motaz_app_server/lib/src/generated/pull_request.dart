@@ -17,6 +17,7 @@ abstract class PullRequest
   PullRequest._({
     required this.entityType,
     required this.sinceRowVersion,
+    this.afterId,
     required this.deviceId,
     required this.limit,
   });
@@ -24,6 +25,7 @@ abstract class PullRequest
   factory PullRequest({
     required String entityType,
     required int sinceRowVersion,
+    String? afterId,
     required String deviceId,
     required int limit,
   }) = _PullRequestImpl;
@@ -32,6 +34,7 @@ abstract class PullRequest
     return PullRequest(
       entityType: jsonSerialization['entityType'] as String,
       sinceRowVersion: jsonSerialization['sinceRowVersion'] as int,
+      afterId: jsonSerialization['afterId'] as String?,
       deviceId: jsonSerialization['deviceId'] as String,
       limit: jsonSerialization['limit'] as int,
     );
@@ -40,6 +43,8 @@ abstract class PullRequest
   String entityType;
 
   int sinceRowVersion;
+
+  String? afterId;
 
   String deviceId;
 
@@ -51,6 +56,7 @@ abstract class PullRequest
   PullRequest copyWith({
     String? entityType,
     int? sinceRowVersion,
+    String? afterId,
     String? deviceId,
     int? limit,
   });
@@ -60,6 +66,7 @@ abstract class PullRequest
       '__className__': 'PullRequest',
       'entityType': entityType,
       'sinceRowVersion': sinceRowVersion,
+      if (afterId != null) 'afterId': afterId,
       'deviceId': deviceId,
       'limit': limit,
     };
@@ -71,6 +78,7 @@ abstract class PullRequest
       '__className__': 'PullRequest',
       'entityType': entityType,
       'sinceRowVersion': sinceRowVersion,
+      if (afterId != null) 'afterId': afterId,
       'deviceId': deviceId,
       'limit': limit,
     };
@@ -82,15 +90,19 @@ abstract class PullRequest
   }
 }
 
+class _Undefined {}
+
 class _PullRequestImpl extends PullRequest {
   _PullRequestImpl({
     required String entityType,
     required int sinceRowVersion,
+    String? afterId,
     required String deviceId,
     required int limit,
   }) : super._(
          entityType: entityType,
          sinceRowVersion: sinceRowVersion,
+         afterId: afterId,
          deviceId: deviceId,
          limit: limit,
        );
@@ -102,12 +114,14 @@ class _PullRequestImpl extends PullRequest {
   PullRequest copyWith({
     String? entityType,
     int? sinceRowVersion,
+    Object? afterId = _Undefined,
     String? deviceId,
     int? limit,
   }) {
     return PullRequest(
       entityType: entityType ?? this.entityType,
       sinceRowVersion: sinceRowVersion ?? this.sinceRowVersion,
+      afterId: afterId is String? ? afterId : this.afterId,
       deviceId: deviceId ?? this.deviceId,
       limit: limit ?? this.limit,
     );

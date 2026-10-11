@@ -18,6 +18,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  return_sync_cursor_idx:
+    fields: rowVersion, id
   return_invoice_idx:
     fields: invoiceId
   return_date_idx:

@@ -2,5 +2,6 @@ class: PullRequest
 fields:
   entityType: String
   sinceRowVersion: int
+  afterId: String?
   deviceId: String
   limit: int

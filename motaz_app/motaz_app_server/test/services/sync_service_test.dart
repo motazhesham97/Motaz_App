@@ -92,5 +92,48 @@ void main() {
       expect(latest, 5);
       expect(SyncService.latestRowVersionFromRows(const [], 9), 9);
     });
+
+    test('pull page keeps the lookahead row for the next request', () {
+      final firstPage = SyncService.buildPullResponse(
+        'PRODUCT',
+        const [
+          '{"id":"a","rowVersion":11}',
+          '{"id":"b","rowVersion":12}',
+          '{"id":"c","rowVersion":13}',
+        ],
+        10,
+        2,
+      );
+
+      expect(firstPage.rows, hasLength(2));
+      expect(firstPage.hasMore, isTrue);
+      expect(firstPage.latestRowVersion, 12);
+
+      final lastPage = SyncService.buildPullResponse(
+        'PRODUCT',
+        const ['{"id":"c","rowVersion":13}'],
+        firstPage.latestRowVersion,
+        2,
+      );
+      expect(lastPage.rows, hasLength(1));
+      expect(lastPage.hasMore, isFalse);
+      expect(lastPage.latestRowVersion, 13);
+    });
+
+    test('pull page reports more rows when versions are equal', () {
+      final page = SyncService.buildPullResponse(
+        'PRODUCT',
+        const [
+          '{"id":"a","rowVersion":8}',
+          '{"id":"b","rowVersion":8}',
+        ],
+        7,
+        1,
+      );
+
+      expect(page.rows, ['{"id":"a","rowVersion":8}']);
+      expect(page.hasMore, isTrue);
+      expect(page.latestRowVersion, 8);
+    });
   });
 }

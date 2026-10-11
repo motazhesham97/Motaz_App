@@ -15,6 +15,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  expense_sync_cursor_idx:
+    fields: rowVersion, id
   expense_date_idx:
     fields: expenseDate
   expense_category_idx:

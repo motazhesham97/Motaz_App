@@ -14,6 +14,8 @@ fields:
   rowVersion: int, default=1
   syncStatus: SyncStatus, default=PENDING
 indexes:
+  free_sample_line_sync_cursor_idx:
+    fields: rowVersion, id
   free_sample_line_sample_idx:
     fields: sampleId
   free_sample_line_product_idx:

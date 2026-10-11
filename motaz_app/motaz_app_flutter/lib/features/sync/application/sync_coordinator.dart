@@ -230,9 +230,12 @@ class SyncCoordinator {
       _emitState(_state.copyWith(status: SyncPhase.pushing));
       await _outboxProcessor.processPending();
       _emitState(_state.copyWith(status: SyncPhase.pulling));
-      await _pullProcessor.pullAllEntityTypes();
+      final fullReconcileDue = _isFullReconcileDue();
+      await _pullProcessor.pullAllEntityTypes(forceFull: fullReconcileDue);
+      if (fullReconcileDue) {
+        _lastFullReconcile = DateTime.now();
+      }
       await _pullProcessor.pullPendingConflicts();
-      await _reconcileFromServerIfNeeded();
       await _distributionRepository.ensurePreviousMonthDistributed(
         deviceId: device.id,
       );
@@ -338,15 +341,10 @@ class SyncCoordinator {
     await syncNow();
   }
 
-  Future<void> _reconcileFromServerIfNeeded() async {
+  bool _isFullReconcileDue() {
     final now = DateTime.now();
-    final shouldReconcile =
-        _lastFullReconcile == null ||
+    return _lastFullReconcile == null ||
         now.difference(_lastFullReconcile!) > const Duration(minutes: 15);
-    if (!shouldReconcile) return;
-
-    await _pullProcessor.reconcileAllEntityTypes();
-    _lastFullReconcile = DateTime.now();
   }
 
   void _onConnectivityChanged(ConnectivityStatus status) {
@@ -357,7 +355,7 @@ class SyncCoordinator {
         unawaited(_startServerAndSync());
       });
       _periodicTimer?.cancel();
-      _periodicTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      _periodicTimer = Timer.periodic(const Duration(minutes: 10), (_) {
         unawaited(_startServerAndSync());
       });
     } else {
