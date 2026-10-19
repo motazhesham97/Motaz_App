@@ -51,7 +51,9 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
             Expanded(
               child: reportAsync.when(
                 data: (data) {
-                  if (data.grossSales == 0 && data.netProfit == 0) {
+                  if (data.grossSales == 0 &&
+                      data.netProfit == 0 &&
+                      data.monthlyProfit == null) {
                     return const Center(
                       child: Text(
                         'لا توجد بيانات',
@@ -96,8 +98,28 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                                   amountMinorUnits: -data.productionExpenses,
                                 ),
                                 const Divider(),
+                                if (data.monthlyProfit case final profit?) ...[
+                                  ReportSummaryRow(
+                                    label: 'نتيجة نشاط الشهر',
+                                    amountMinorUnits: profit.profitBeforeCarry,
+                                  ),
+                                  ReportSummaryRow(
+                                    label: 'خسارة الشهر الحالي',
+                                    amountMinorUnits: profit.currentMonthLoss,
+                                  ),
+                                  ReportSummaryRow(
+                                    label: 'الخسارة المرحلة السابقة',
+                                    amountMinorUnits: profit.carriedLossIn,
+                                  ),
+                                  ReportSummaryRow(
+                                    label: 'الخسارة المرحلة للشهر التالي',
+                                    amountMinorUnits: profit.carriedLossOut,
+                                  ),
+                                ],
                                 ReportSummaryRow(
-                                  label: 'صافي الربح',
+                                  label: data.monthlyProfit != null
+                                      ? 'صافي الربح بعد الترحيل'
+                                      : 'نتيجة النشاط للفترة',
                                   amountMinorUnits: data.netProfit,
                                   isGrandTotal: true,
                                 ),
@@ -113,9 +135,13 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'توزيع الأرباح',
-                                    style: TextStyle(
+                                  Text(
+                                    data.needsReview
+                                        ? 'توزيع سابق يحتاج إعادة اعتماد'
+                                        : data.isApproved
+                                        ? 'توزيع الأرباح المعتمد'
+                                        : 'معاينة الحصص',
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -168,11 +194,6 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
   }
 
   bool _isNonMonthly(DateRange range) {
-    final s = range.start;
-    final e = range.end;
-    return !(s.year == e.year &&
-        s.month == e.month &&
-        s.day == 1 &&
-        e.day >= 28);
+    return !range.isFullMonth;
   }
 }

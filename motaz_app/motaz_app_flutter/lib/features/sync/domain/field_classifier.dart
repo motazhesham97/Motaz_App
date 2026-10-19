@@ -24,6 +24,23 @@ class FieldClassifier {
   };
 
   static const Map<String, Set<String>> conflictRequiredFields = {
+    'MONTHLY_DISTRIBUTION': {
+      'year',
+      'month',
+      'netSales',
+      'operationalExpenses',
+      'productionExpenses',
+      'profitBeforeCarry',
+      'currentMonthLoss',
+      'carriedLossIn',
+      'carriedLossOut',
+      'netProfit',
+      'ownerShare',
+      'partnerShare',
+      'marginShare',
+      'status',
+      'voidReason',
+    },
     'PRODUCT': {'name', 'defaultSalePrice', 'shelfLifeDays'},
     'SALES_INVOICE': {
       'clientId',

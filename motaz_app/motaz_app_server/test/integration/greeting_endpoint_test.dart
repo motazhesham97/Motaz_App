@@ -2,6 +2,7 @@ import 'package:test/test.dart';
 
 // Import the generated test helper file, it contains everything you need.
 import 'test_tools/serverpod_test_tools.dart';
+import 'test_tools/local_test_config.dart';
 
 void main() {
   // This is an example test that uses the `withServerpod` test helper.
@@ -20,5 +21,5 @@ void main() {
         expect(greeting.message, 'Hello Bob');
       },
     );
-  });
+  }, configOverride: localTestConfig);
 }

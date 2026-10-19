@@ -42,6 +42,20 @@ class OutboxProcessor {
         _entityPriority(b.entityType),
       );
       if (priorityCompare != 0) return priorityCompare;
+      if (a.entityType == ParentEntityType.MONTHLY_DISTRIBUTION &&
+          b.entityType == ParentEntityType.MONTHLY_DISTRIBUTION) {
+        final left = jsonDecode(a.payload) as Map<String, dynamic>;
+        final right = jsonDecode(b.payload) as Map<String, dynamic>;
+        final periodCompare =
+            ((left['year'] as int) * 12 + (left['month'] as int)).compareTo(
+              (right['year'] as int) * 12 + (right['month'] as int),
+            );
+        if (periodCompare != 0) return periodCompare;
+        final operationCompare = a.operation.index.compareTo(b.operation.index);
+        if (operationCompare != 0) return operationCompare;
+        final versionCompare = a.rowVersion.compareTo(b.rowVersion);
+        if (versionCompare != 0) return versionCompare;
+      }
       final createdCompare = a.createdAt.compareTo(b.createdAt);
       if (createdCompare != 0) return createdCompare;
       return a.id.compareTo(b.id);
@@ -144,9 +158,10 @@ class OutboxProcessor {
         return 6;
       case ParentEntityType.EXPENSE:
       case ParentEntityType.ATTACHMENT_METADATA:
-      case ParentEntityType.MONTHLY_DISTRIBUTION:
       case ParentEntityType.PARTY_ADJUSTMENT:
         return 7;
+      case ParentEntityType.MONTHLY_DISTRIBUTION:
+        return 8;
     }
   }
 
@@ -263,12 +278,50 @@ class OutboxProcessor {
   }
 
   Future<bool> _hasBlockingDependency(SyncOutboxData entry) async {
+    if (entry.entityType == ParentEntityType.MONTHLY_DISTRIBUTION) {
+      final unresolved =
+          await (_db.select(_db.conflictLogs)
+                ..where(
+                  (t) =>
+                      t.resolutionStatus.equals(ConflictStatus.PENDING.index),
+                )
+                ..limit(1))
+              .get();
+      if (unresolved.isNotEmpty) return true;
+      final open =
+          await (_db.select(_db.syncOutbox)..where(
+                (t) =>
+                    t.status.isNotValue(SyncOutboxStatus.COMPLETED.index) &
+                    t.id.isNotValue(entry.id),
+              ))
+              .get();
+      final payload = jsonDecode(entry.payload) as Map<String, dynamic>;
+      final period = (payload['year'] as int) * 12 + (payload['month'] as int);
+      for (final other in open) {
+        if ({
+          ParentEntityType.SALES_INVOICE,
+          ParentEntityType.SALES_INVOICE_LINE,
+          ParentEntityType.SALES_RETURN,
+          ParentEntityType.SALES_RETURN_LINE,
+          ParentEntityType.EXPENSE,
+        }.contains(other.entityType)) {
+          return true;
+        }
+        if (other.entityType == ParentEntityType.MONTHLY_DISTRIBUTION) {
+          final previous = jsonDecode(other.payload) as Map<String, dynamic>;
+          if ((previous['year'] as int) * 12 + (previous['month'] as int) <
+              period) {
+            return true;
+          }
+        }
+      }
+    }
     try {
       final payload = jsonDecode(entry.payload) as Map<String, dynamic>;
       if (entry.entityType == ParentEntityType.FREE_SAMPLE) {
         final beneficiaryId = payload['beneficiaryId']?.toString();
         if (beneficiaryId == null || beneficiaryId.isEmpty) return false;
-        return _hasOpenOutboxFor(
+        return await _hasOpenOutboxFor(
           ParentEntityType.BENEFICIARY,
           beneficiaryId,
           blockFailed: false,

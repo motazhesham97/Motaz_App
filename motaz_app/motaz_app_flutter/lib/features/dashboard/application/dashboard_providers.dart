@@ -40,6 +40,13 @@ final dashboardNetProfitProvider = FutureProvider<int>((ref) {
   return ref.watch(dashboardQueriesProvider).getThisMonthNetProfit();
 });
 
+final dashboardMonthlySettlementProvider = FutureProvider((ref) async {
+  ref.watch(dashboardRefreshProvider);
+  final now = DateTime.now();
+  return (await ref.watch(profitEngineProvider).timeline(now.year, now.month))
+      .last;
+});
+
 final dashboardPartyBalancesProvider =
     FutureProvider<({int ownerBalance, int partnerBalance, int marginBalance})>(
       (ref) {

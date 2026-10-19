@@ -58,20 +58,47 @@ class FinalMonthlyReportPdf {
                     );
                   }),
                 pw.SizedBox(height: 6),
+                pw.Text(
+                  'الخصومات = ${_money(data.discounts)}',
+                  style: styles.bodyStyle,
+                ),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.end,
                   children: [
-                    pw.Text('المجموع = ', style: _bold(styles)),
+                    pw.Text('المجموع بعد الخصومات = ', style: _bold(styles)),
                     _amountBox(styles, data.totalSales),
                   ],
                 ),
                 pw.SizedBox(height: 16),
                 _sectionTitle(styles, 'الأرباح'),
+                pw.Text(
+                  data.needsReview
+                      ? 'تحتاج التسوية إعادة اعتماد'
+                      : data.isApproved
+                      ? 'تسوية معتمدة'
+                      : 'معاينة غير معتمدة',
+                  style: styles.bodyStyle,
+                ),
+                pw.Text(
+                  'المرتجعات = ${_money(data.returns)}',
+                  style: styles.bodyStyle,
+                ),
+                if (data.monthlyProfit case final profit?) ...[
+                  pw.Text(
+                    'خسارة الشهر الحالي = ${_signed(profit.currentMonthLoss)}',
+                    style: styles.bodyStyle,
+                  ),
+                  pw.Text(
+                    'الخسارة المرحلة للشهر التالي = ${_signed(profit.carriedLossOut)}',
+                    style: styles.bodyStyle,
+                  ),
+                ],
                 _inlineFormula(
                   styles,
                   [
-                    'المبيعات = ${_money(data.totalSales)}',
+                    'صافي المبيعات = ${_money(data.totalSales - data.returns)}',
                     'التكلفة = ${_money(data.totalCost)}',
+                    'الخسارة السابقة = ${_money(data.monthlyProfit?.carriedLossIn.abs() ?? 0)}',
                   ],
                   data.profit,
                   operatorLabel: '-',
@@ -188,7 +215,7 @@ class FinalMonthlyReportPdf {
   static String _money(int value) => formatMoneyPlain(value);
 
   static String _signed(int value) {
-    if (value < 0) return '(${formatMoneyPlain(value)})';
+    if (value < 0) return '(${formatMoneyPlain(value.abs())})';
     return formatMoneyPlain(value);
   }
 

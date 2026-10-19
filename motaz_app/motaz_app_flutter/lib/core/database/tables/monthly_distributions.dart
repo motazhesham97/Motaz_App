@@ -13,6 +13,15 @@ class MonthlyDistributions extends Table {
   TextColumn get id => text().withLength(min: 36, max: 36)();
   IntColumn get year => integer()();
   IntColumn get month => integer()();
+  IntColumn get netSales => integer().withDefault(const Constant(0))();
+  IntColumn get operationalExpenses =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get productionExpenses =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get profitBeforeCarry => integer().withDefault(const Constant(0))();
+  IntColumn get currentMonthLoss => integer().withDefault(const Constant(0))();
+  IntColumn get carriedLossIn => integer().withDefault(const Constant(0))();
+  IntColumn get carriedLossOut => integer().withDefault(const Constant(0))();
   IntColumn get netProfit => integer()();
   IntColumn get ownerShare => integer()();
   IntColumn get partnerShare => integer()();

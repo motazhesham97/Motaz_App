@@ -1,8 +1,8 @@
 # Motaz_App — Master Implementation Plan v2
 
-**Version**: 2.0.0
-**Date**: 2026-03-16
-**Constitution**: v1.3.0
+**Version**: 2.1.0
+**Date**: 2026-10-19
+**Constitution**: v1.4.0
 **Status**: Approved baseline
 
 ---
@@ -29,13 +29,14 @@ The MVP must deliver:
 
 ## 2. Frozen Decisions
 
-These decisions are fixed and documented in the constitution v1.3.0.
+These decisions are documented in the constitution v1.4.0. Historical delivery phases below retain their original context.
 
 ### Product / Business
 - Single-owner only in MVP — one user, no staff, no sharing
 - Periodic accounting model, not per-unit cost accounting
-- Monthly net profit = Net Sales − Operational Expenses − Production Expenses
-- Net profit distributed equally across Owner, Partner, The Margin (integer shares, remainder to Margin)
+- Monthly net profit = Net Sales − Operational Expenses − Production Expenses + Signed Opening Carried Loss
+- Only positive recovered profit is distributed across Owner, Partner, The Margin; loss/break-even months record zero shares and carry any uncovered loss forward.
+- Owner and Partner shares round down to 1000 minor-unit multiples; the remainder belongs to Margin.
 - Official profit distribution is monthly only; other periods are reporting views only
 - Draws (OWNER_DRAW, PARTNER_DRAW, MARGIN_DRAW) affect only the corresponding internal account balance
 - Currency: YER only (2 decimal places, minor-unit integer storage)
@@ -204,11 +205,12 @@ Each invoice has two identifiers:
 |---|---|
 | `id` (UUID) | True internal primary key |
 | `local_ref` | Human-readable local reference: `INV-<deviceCode>-<localSequence>` |
-| `official_no` | Null in MVP — reserved for future authoritative numbering |
+| `official_no` | Assigned sequentially by the server after sync; null while awaiting first sync |
 
 - `deviceCode` is fixed per device
 - `localSequence` increments locally per device
 - Local creation never depends on an online central sequence
+- Official numbering also applies to receipts, returns and free samples through the existing sync path.
 
 ---
 
@@ -218,20 +220,21 @@ Each invoice has two identifiers:
 
 | Concern | Approach |
 |---|---|
-| Source of truth | Raw transactional tables only |
+| Source of truth | Transactions for live calculations; approved monthly snapshots for booked party shares |
 | Local reports | Computed from SQLite via Drift queries |
 | Server reports | Computed from PostgreSQL queries/views (minimal in MVP) |
 | Synced projections | None — no synced materialized reporting entities in MVP |
 
 **Explicitly stored (not derived caches):**
 - ReceiptAllocation — real business record
+- MonthlyDistribution — approved financial snapshot, signed losses and party shares; not an arbitrary reporting cache
 - AuditEvent — immutable audit log
 - ConflictLog — real conflict record
 
 **Computed on read:**
 - Client balance
 - Monthly net profit
-- Monthly party shares
+- Monthly party share previews (booked balances use stored approved shares)
 - Party balances
 - Sales by product
 - Receivables aging
@@ -243,27 +246,37 @@ Each invoice has two identifiers:
 
 ### 10.1 Net Sales
 ```
-Net Sales = Active Invoice Totals − Invoice Discounts − Active Financial Returns
+Gross Sales = Active Invoice Totals + Invoice Discounts
+Net Sales = Active Invoice Totals − Active Financial Returns
 ```
+Invoice totals already contain the invoice discount. Never subtract it a second time.
 
 ### 10.2 Net Profit
 ```
-Net Profit = Net Sales − Operational Expenses − Production Expenses
+Operating Profit = Net Sales − Operational Expenses − Production Expenses
+Net Profit = Operating Profit + Signed Opening Carried Loss
+Current Month Loss = min(Operating Profit, 0)
+Closing Carried Loss = min(Net Profit, 0)
+Distributable Profit = max(Net Profit, 0)
 ```
 
 ### 10.3 Monthly Distribution
 ```
-owner_share  = trunc(net_profit / 3)
-partner_share = trunc(net_profit / 3)
-margin_share  = net_profit − owner_share − partner_share
+owner_share = floor(distributable_profit / 3 / 1000) * 1000
+partner_share = owner_share
+margin_share = distributable_profit − owner_share − partner_share
 ```
-trunc means round toward zero.
+Amounts are minor-unit integers. These share formulas apply to nonnegative distributable profit only.
 
 Distribution is performed monthly only. Other periods are reporting views only.
 
+Feature 010 supersedes the earlier negative-share rule. Start from a fresh database (owner confirmation, 2026-10-19). Store monthly financial snapshots and incoming/current/outgoing losses in MonthlyDistribution. Missing completed months are processed chronologically; retroactive financial edits require explicit reapproval. Reports do not mutate settlements or deduct the same carry repeatedly across multi-month ranges. Implementation details and acceptance cases: specs/010-loss-carryforward/.
+
+Current implemented extensions also include automatic previous-month distribution, server-assigned official document numbers after sync, party balance additions, free samples/beneficiaries, follow-up tasks, and device backup/report export. These retain their existing behavior; the original phase documents describe the historical baseline.
+
 ### 10.4 Party Balances
 ```
-Party Balance = Accumulated Monthly Shares − Draws ± Valid Reversals
+Party Balance = Accumulated Approved Monthly Shares + Manual Additions − Draws ± Valid Reversals
 ```
 Balances may go negative with no minimum floor.
 
@@ -371,17 +384,19 @@ Optional quick filters: Today, This Week, This Month, This Year, All Time.
 
 ## 14. Dashboard Specification
 
-The MVP dashboard contains exactly these cards:
+The dashboard includes the baseline cards plus the Feature 010 loss cards:
 
 | Card | Data |
 |---|---|
 | Today Net Sales | Sum of today's active invoice totals minus returns |
 | This Month Net Sales | Sum of current month's active invoice totals minus returns |
-| This Month Net Profit | Net sales minus operational and production expenses for current month |
+| This Month Net Profit | Operating profit plus signed opening carried loss; current month is a preview |
+| Current Month Loss | min(current month operating profit, 0) |
+| Closing Carried Loss | min(current month net profit after carry, 0) |
 | Outstanding Receivables Total | Total remaining unpaid balances across all active invoices |
-| Owner Balance | Accumulated shares minus draws |
-| Partner Balance | Accumulated shares minus draws |
-| Margin Balance | Accumulated shares minus draws plus remainders |
+| Owner Balance | Approved shares plus manual additions minus draws |
+| Partner Balance | Approved shares plus manual additions minus draws |
+| Margin Balance | Approved shares (including remainders) plus manual additions minus draws |
 | This Month Expense Summary by Type | Breakdown of current month expenses by the 5 categories |
 | Recent Activity Feed | Latest 10 actions: invoice, receipt, expense, return, void |
 
@@ -428,7 +443,7 @@ All synced operations must be authenticated through the owner account.
 **Goal**: Lock all decisions before coding.
 
 **Deliverables:**
-- Constitution frozen (v1.3.0) ✓
+- Constitution baseline frozen (v1.3.0); amended by Feature 010 to v1.4.0 ✓
 - Master Implementation Plan v2 (this document) ✓
 - Spec extraction map
 - Tech stack summary ✓
@@ -726,4 +741,4 @@ This implementation plan is considered complete when it can be converted into sp
 
 ---
 
-*Constitution reference: `.specify/memory/constitution.md` v1.3.0*
+*Current constitution reference: `.specify/memory/constitution.md` v1.4.0. The original phase checklist is historical, not a fresh test or completion claim.*

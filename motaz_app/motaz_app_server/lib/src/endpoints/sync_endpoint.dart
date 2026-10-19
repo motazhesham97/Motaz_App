@@ -12,6 +12,7 @@ import '../generated/push_response.dart';
 import '../generated/conflict_resolution_request.dart';
 import '../generated/conflict_resolution_response.dart';
 import '../services/sync_service.dart';
+import '../services/monthly_settlement_rules.dart';
 
 class SyncEndpoint extends Endpoint {
   Future<PushResponse> push(
@@ -73,6 +74,35 @@ class SyncEndpoint extends Endpoint {
       request.entityId,
     );
 
+    if (request.entityType == 'MONTHLY_DISTRIBUTION' &&
+        request.operation == 'CREATE' &&
+        currentVersion != null) {
+      final incoming = jsonDecode(request.payload) as Map<String, dynamic>;
+      final existing = await SyncService.loadEntityRow(
+        session,
+        request.entityType,
+        request.entityId,
+      );
+      if (existing != null &&
+          MonthlySettlementRules.sameFinancials(incoming, existing)) {
+        return PushResponse(success: true, newRowVersion: currentVersion);
+      }
+      final conflictId = await SyncService.emitConflict(
+        session,
+        request.entityType,
+        request.entityId,
+        request.payload,
+        jsonEncode(_jsonSafe(existing)),
+        'MONTHLY_CREATE_MISMATCH',
+        request.deviceId,
+      );
+      return PushResponse(
+        success: false,
+        conflictId: conflictId,
+        errorCode: 'CONFLICT',
+        errorMessage: 'Monthly settlement differs between devices',
+      );
+    }
     if (currentVersion == null) {
       final payload = jsonDecode(request.payload) as Map<String, dynamic>;
       final newVersion = await SyncService.acceptMutation(
@@ -82,6 +112,7 @@ class SyncEndpoint extends Endpoint {
         payload,
         request.operation,
         request.deviceId,
+        expectedRowVersion: currentVersion,
       );
       return PushResponse(success: true, newRowVersion: newVersion);
     }
@@ -95,6 +126,7 @@ class SyncEndpoint extends Endpoint {
         payload,
         request.operation,
         request.deviceId,
+        expectedRowVersion: currentVersion,
       );
       return PushResponse(success: true, newRowVersion: newVersion);
     }

@@ -2,6 +2,9 @@ class DateRange {
   final DateTime start;
   final DateTime end;
   final DateRangeType type;
+  bool get isFullMonth =>
+      start == DateTime(start.year, start.month) &&
+      end == DateTime(start.year, start.month + 1);
 
   /// [start] is inclusive (midnight of the first day).
   /// [end] is exclusive (midnight of the day after the last day).

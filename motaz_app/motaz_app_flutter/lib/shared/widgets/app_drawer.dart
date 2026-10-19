@@ -6,6 +6,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/auth/auth_state.dart';
 import '../../features/follow_up/application/follow_up_providers.dart';
 import '../../features/sync/presentation/sync_status_badge.dart';
+import '../../features/profit_distribution/presentation/settlement_review_notice.dart';
 import 'connectivity_badge.dart';
 
 class AppDestination {
@@ -98,6 +99,12 @@ class AppShell extends StatelessWidget {
     final isDesktop = MediaQuery.sizeOf(context).width >= 840;
     final currentRoute = GoRouterState.of(context).uri.path;
     final drawer = _DrawerContent(currentRoute: currentRoute);
+    final content = Column(
+      children: [
+        if (currentRoute != '/distributions') const SettlementReviewNotice(),
+        Expanded(child: child),
+      ],
+    );
 
     if (isDesktop) {
       return Scaffold(
@@ -118,7 +125,7 @@ class AppShell extends StatelessWidget {
             ),
             Expanded(
               child: ClipRRect(
-                child: child,
+                child: content,
               ),
             ),
           ],
@@ -133,7 +140,7 @@ class AppShell extends StatelessWidget {
         ),
         child: drawer,
       ),
-      body: child,
+      body: content,
     );
   }
 }

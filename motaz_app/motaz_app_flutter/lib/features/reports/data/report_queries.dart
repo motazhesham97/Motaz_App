@@ -6,6 +6,7 @@ import '../../../core/database/enums/party_account.dart';
 import '../../../core/database/enums/record_status.dart';
 import '../../../core/utils/date_range.dart';
 import 'report_models.dart';
+import '../../profit_distribution/data/profit_engine.dart';
 
 class ReportQueries {
   ReportQueries(this._db);
@@ -59,7 +60,7 @@ class ReportQueries {
     int grossSales = 0;
     int totalDiscounts = 0;
     for (final row in rows) {
-      grossSales += row.total;
+      grossSales += row.total + row.discount;
       totalDiscounts += row.discount;
     }
 
@@ -75,7 +76,7 @@ class ReportQueries {
   Future<ProfitReportData> getProfitReport(DateRange range) async {
     final grossRow = await _db
         .customSelect(
-          'SELECT COALESCE(SUM(total), 0) AS gross, COALESCE(SUM(discount), 0) AS disc '
+          'SELECT COALESCE(SUM(total + discount), 0) AS gross, COALESCE(SUM(discount), 0) AS disc '
           'FROM sales_invoices '
           'WHERE status = ? AND invoice_date >= ? AND invoice_date < ?',
           variables: [
@@ -131,16 +132,18 @@ class ReportQueries {
     final netSales = grossSales - discounts - returns;
     final operationalExpenses = opRow.read<int>('total');
     final productionExpenses = prodRow.read<int>('total');
-    final netProfit = netSales - operationalExpenses - productionExpenses;
+    final settlement = range.isFullMonth
+        ? (await ProfitEngine(
+            _db,
+          ).timeline(range.start.year, range.start.month)).last
+        : null;
+    final netProfit =
+        settlement?.profit.netProfit ??
+        netSales - operationalExpenses - productionExpenses;
 
     ProfitDistribution? distribution;
     final start = range.start;
-    final end = range.end;
-    final isMonthly =
-        start.year == end.year &&
-        start.month == end.month &&
-        start.day == 1 &&
-        end.day >= 28;
+    final isMonthly = range.isFullMonth;
 
     if (isMonthly) {
       final distRows = await _db
@@ -166,7 +169,18 @@ class ReportQueries {
       }
     }
 
+    if (distribution == null && settlement != null) {
+      final shares = settlement.profit.shares;
+      distribution = ProfitDistribution(
+        ownerShare: shares.ownerShare,
+        partnerShare: shares.partnerShare,
+        marginShare: shares.marginShare,
+      );
+    }
     return ProfitReportData(
+      monthlyProfit: settlement?.profit,
+      needsReview: settlement?.needsReview ?? false,
+      isApproved: settlement?.recorded?.status == RecordStatus.ACTIVE,
       grossSales: grossSales,
       discounts: discounts,
       returns: returns,
@@ -226,11 +240,32 @@ class ReportQueries {
         )
         .toList();
 
-    final totalSales = productSales.fold<int>(
-      0,
-      (sum, row) => sum + row.totalSales,
-    );
-    final profit = totalSales - totalCost;
+    final totalSalesRow = await _db
+        .customSelect(
+          'SELECT COALESCE(SUM(total), 0) AS total_sales '
+          'FROM sales_invoices '
+          'WHERE status = ? AND invoice_date >= ? AND invoice_date < ?',
+          variables: [
+            Variable(RecordStatus.ACTIVE.index),
+            Variable<DateTime>(start),
+            Variable<DateTime>(end),
+          ],
+        )
+        .getSingle();
+    final totalSales = totalSalesRow.read<int>('total_sales');
+    final settlement = (await ProfitEngine(_db).timeline(year, month)).last;
+    final profit = settlement.profit.netProfit;
+    final discountRow = await _db
+        .customSelect(
+          'SELECT COALESCE(SUM(discount), 0) AS amount FROM sales_invoices '
+          'WHERE status = ? AND invoice_date >= ? AND invoice_date < ?',
+          variables: [
+            Variable(RecordStatus.ACTIVE.index),
+            Variable<DateTime>(start),
+            Variable<DateTime>(end),
+          ],
+        )
+        .getSingle();
 
     final partyRows = <FinalReportPartyRow>[
       await _getPartyFinalRow(PartyAccount.PARTNER, year, month, start, end),
@@ -239,6 +274,11 @@ class ReportQueries {
     ];
 
     return FinalMonthlyReportData(
+      monthlyProfit: settlement.profit,
+      needsReview: settlement.needsReview,
+      isApproved: settlement.recorded?.status == RecordStatus.ACTIVE,
+      returns: totalSales - settlement.profit.netSales,
+      discounts: discountRow.read<int>('amount'),
       year: year,
       month: month,
       operationalExpenses: operationalExpenses,

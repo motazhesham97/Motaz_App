@@ -4,6 +4,13 @@ fields:
   id: UuidValue?, defaultPersist=random
   year: int
   month: int
+  netSales: int, default=0
+  operationalExpenses: int, default=0
+  productionExpenses: int, default=0
+  profitBeforeCarry: int, default=0
+  currentMonthLoss: int, default=0
+  carriedLossIn: int, default=0
+  carriedLossOut: int, default=0
   netProfit: int
   ownerShare: int
   partnerShare: int

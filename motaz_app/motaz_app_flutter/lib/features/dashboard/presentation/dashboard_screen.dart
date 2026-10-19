@@ -28,6 +28,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       dashboardThisMonthNetSalesProvider,
     );
     final netProfitAsync = ref.watch(dashboardNetProfitProvider);
+    final settlementAsync = ref.watch(dashboardMonthlySettlementProvider);
     final receivablesAsync = ref.watch(dashboardReceivablesTotalProvider);
     final balancesAsync = ref.watch(dashboardPartyBalancesProvider);
     final expensesAsync = ref.watch(dashboardExpenseSummaryProvider);
@@ -92,6 +93,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         'إجمالي المستحقات',
                         receivablesAsync,
                         Icons.account_balance_wallet_rounded,
+                      ),
+                      _buildKpiCard(
+                        context,
+                        'خسارة الشهر الحالي',
+                        settlementAsync.whenData(
+                          (entry) => entry.profit.currentMonthLoss,
+                        ),
+                        Icons.trending_down_rounded,
+                        obscured: !_showNetProfit,
+                      ),
+                      _buildKpiCard(
+                        context,
+                        'الخسارة المرحلة للشهر التالي',
+                        settlementAsync.whenData(
+                          (entry) => entry.profit.carriedLossOut,
+                        ),
+                        Icons.next_plan_outlined,
+                        obscured: !_showNetProfit,
                       ),
                     ],
                   ),

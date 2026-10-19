@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/expense_category.dart';
 import '../../../core/utils/date_range.dart';
+import '../../profit_distribution/domain/monthly_profit.dart';
 
 enum StatementEntryType { invoice, receipt, returnItem }
 
@@ -113,6 +114,9 @@ class ExpenseReportData {
 }
 
 class ProfitReportData {
+  final MonthlyProfit? monthlyProfit;
+  final bool needsReview;
+  final bool isApproved;
   final int grossSales;
   final int discounts;
   final int returns;
@@ -123,6 +127,9 @@ class ProfitReportData {
   final ProfitDistribution? distribution;
 
   ProfitReportData({
+    this.monthlyProfit,
+    this.needsReview = false,
+    this.isApproved = false,
     required this.grossSales,
     required this.discounts,
     required this.returns,
@@ -179,6 +186,11 @@ class FinalReportPartyRow {
 }
 
 class FinalMonthlyReportData {
+  final MonthlyProfit? monthlyProfit;
+  final int returns;
+  final int discounts;
+  final bool needsReview;
+  final bool isApproved;
   final int year;
   final int month;
   final int operationalExpenses;
@@ -190,6 +202,11 @@ class FinalMonthlyReportData {
   final List<FinalReportPartyRow> partyRows;
 
   FinalMonthlyReportData({
+    this.monthlyProfit,
+    this.returns = 0,
+    this.discounts = 0,
+    this.needsReview = false,
+    this.isApproved = false,
     required this.year,
     required this.month,
     required this.operationalExpenses,

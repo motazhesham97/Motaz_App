@@ -9,6 +9,45 @@ final profitEngineProvider = Provider<ProfitEngine>((ref) {
   return ProfitEngine(ref.watch(appDatabaseProvider));
 });
 
+final financialChangesProvider = StreamProvider<int>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  var tick = 0;
+  return db
+      .customSelect(
+        'SELECT 1',
+        readsFrom: {
+          db.salesInvoices,
+          db.salesReturns,
+          db.expenses,
+          db.monthlyDistributions,
+        },
+      )
+      .watch()
+      .map((_) => tick++);
+});
+
+final monthlySettlementProvider =
+    FutureProvider.family<MonthSettlement, ({int year, int month})>((
+      ref,
+      period,
+    ) async {
+      ref.watch(financialChangesProvider);
+      return (await ref
+              .watch(profitEngineProvider)
+              .timeline(period.year, period.month))
+          .last;
+    });
+
+final settlementReviewProvider = FutureProvider<List<MonthSettlement>>((
+  ref,
+) async {
+  ref.watch(financialChangesProvider);
+  final timeline = await ref
+      .watch(distributionRepositoryProvider)
+      .reviewTimeline();
+  return timeline.where((entry) => entry.needsReview).toList();
+});
+
 final distributionRepositoryProvider = Provider<DistributionRepository>((ref) {
   return DistributionRepository(
     ref.watch(appDatabaseProvider),

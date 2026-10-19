@@ -9,6 +9,7 @@ import 'package:motaz_app_flutter/features/dashboard/data/dashboard_models.dart'
 import 'package:motaz_app_flutter/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:motaz_app_flutter/features/sync/application/sync_providers.dart';
 import 'package:motaz_app_flutter/features/sync/domain/sync_state.dart';
+import 'package:motaz_app_flutter/features/profit_distribution/domain/monthly_profit.dart';
 
 void main() {
   testWidgets('net profit starts obscured with five stars', (tester) async {
@@ -20,6 +21,20 @@ void main() {
           dashboardTodayNetSalesProvider.overrideWith((ref) async => 0),
           dashboardThisMonthNetSalesProvider.overrideWith((ref) async => 0),
           dashboardNetProfitProvider.overrideWith((ref) async => netProfit),
+          dashboardMonthlySettlementProvider.overrideWith(
+            (ref) async => (
+              profit: MonthlyProfit(
+                year: 2026,
+                month: 1,
+                netSales: netProfit,
+                operationalExpenses: 0,
+                productionExpenses: 0,
+                carriedLossIn: 0,
+              ),
+              recorded: null,
+              needsReview: false,
+            ),
+          ),
           dashboardReceivablesTotalProvider.overrideWith((ref) async => 0),
           dashboardPartyBalancesProvider.overrideWith(
             (ref) async => (
@@ -57,7 +72,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(dashboardObscuredMoneyText), findsOneWidget);
+    expect(find.text(dashboardObscuredMoneyText), findsNWidgets(3));
     expect(find.text('*'), findsNothing);
     expect(find.text(formatMoney(netProfit)), findsNothing);
 

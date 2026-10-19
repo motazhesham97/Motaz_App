@@ -91,8 +91,9 @@ class PullProcessor {
         deviceId: device.id,
         limit: _defaultLimit,
       );
-      final response = await (_pullOverride?.call(request) ??
-          _serverClient.sync.pull(request));
+      final response =
+          await (_pullOverride?.call(request) ??
+              _serverClient.sync.pull(request));
       if (response.rows.isEmpty) {
         if (response.hasMore) {
           throw StateError('Server returned an empty pull page with hasMore');

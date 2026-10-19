@@ -63,7 +63,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
@@ -280,6 +280,36 @@ FROM clients;
             await m.addColumn(
               salesInvoiceLines,
               salesInvoiceLines.productionDate,
+            );
+          }
+          if (from < 13) {
+            await m.addColumn(
+              monthlyDistributions,
+              monthlyDistributions.netSales,
+            );
+            await m.addColumn(
+              monthlyDistributions,
+              monthlyDistributions.operationalExpenses,
+            );
+            await m.addColumn(
+              monthlyDistributions,
+              monthlyDistributions.productionExpenses,
+            );
+            await m.addColumn(
+              monthlyDistributions,
+              monthlyDistributions.profitBeforeCarry,
+            );
+            await m.addColumn(
+              monthlyDistributions,
+              monthlyDistributions.currentMonthLoss,
+            );
+            await m.addColumn(
+              monthlyDistributions,
+              monthlyDistributions.carriedLossIn,
+            );
+            await m.addColumn(
+              monthlyDistributions,
+              monthlyDistributions.carriedLossOut,
             );
           }
           if (backupFile.existsSync()) {

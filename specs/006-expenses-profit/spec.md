@@ -1,5 +1,7 @@
 # Feature Specification: Expenses & Monthly Profit Distribution
 
+> Accounting amendment 2026-10-19: Feature 010 supersedes negative shares, the profit formula, rounding examples, and month ordering below. Loss months now have zero shares and carry signed losses forward. Historical acceptance cases below describe the original implementation; use specs/010-loss-carryforward/spec.md for current acceptance.
+
 **Feature Branch**: `006-expenses-profit`  
 **Created**: 2026-04-07  
 **Status**: Draft  

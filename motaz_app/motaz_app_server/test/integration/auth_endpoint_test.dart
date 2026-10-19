@@ -3,6 +3,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart';
 import 'package:test/test.dart';
 
 import 'test_tools/serverpod_test_tools.dart';
+import 'test_tools/local_test_config.dart';
 
 void main() {
   withServerpod('Given Auth endpoint', (sessionBuilder, endpoints) {
@@ -83,5 +84,5 @@ void main() {
         );
       },
     );
-  });
+  }, configOverride: localTestConfig);
 }

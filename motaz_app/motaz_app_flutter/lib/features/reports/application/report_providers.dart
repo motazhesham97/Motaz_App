@@ -6,8 +6,10 @@ import '../data/client_reports_queries.dart';
 import '../data/client_statement_queries.dart';
 import '../data/report_models.dart';
 import '../data/report_queries.dart';
+import '../../profit_distribution/application/profit_providers.dart';
 
 final reportQueriesProvider = Provider<ReportQueries>((ref) {
+  ref.watch(financialChangesProvider);
   return ReportQueries(ref.watch(appDatabaseProvider));
 });
 

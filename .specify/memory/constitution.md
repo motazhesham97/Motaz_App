@@ -1,16 +1,16 @@
 <!--
 Sync Impact Report
-- Version change: 1.2.0 -> 1.3.0
+- Version change: 1.3.0 -> 1.4.0
 - Modified principles:
-  I. Product Truth: Added taxes out of scope and inventory out of scope.
-     Added monetary precision rule (2 decimal places, minor-unit integer storage).
-  II. Non-negotiables: Added void-wins conflict resolution rule.
-      Added attachment preservation on void rule.
-  VI. Security Rules: Clarified authentication as email+password through Serverpod.
-- Added sections: none
+  I. Product Truth: Signed monthly losses carry forward; only positive recovered
+     surplus is distributed. Historical edits require chronological reapproval.
+     Documented existing positive-share rounding (1000 minor units).
+  II. Non-negotiables: Official numbers are assigned after sync without blocking
+      local creation.
+- Added sections: Feature 010 amendment and fresh-database assumption.
 - Removed sections: none
-- Templates requiring updates: implementation plan must reference v1.3.0
-- Follow-up TODOs: Finalize Master Implementation Plan v2
+- Updated documents: implementation plan v2.1.0 and specs/010-loss-carryforward.
+- Follow-up verification: native two-device E2E and production rollout; local PostgreSQL migration verified.
 -->
 
 # Motaz_App Constitution
@@ -21,9 +21,12 @@ Sync Impact Report
 - The app is a custom Business Management and Accounting application for a single business entity.
 - The system is single-owner in MVP. One user only. No staff roles. No sharing.
 - The core accounting model is periodic, not per-unit cost accounting.
-- Monthly net profit is calculated as: Net Sales - Operational Expenses - Production Expenses.
+- Monthly operating profit is Net Sales - Operational Expenses - Production Expenses. Net Sales uses invoice totals already net of invoice discounts, less active returns.
+- Monthly net profit after recovery is operating profit plus the signed carried loss from preceding months. Current-month loss is min(operating profit, 0); outgoing carried loss is min(net profit, 0).
+- Only max(net profit, 0) is distributable. Loss and break-even months record zero shares for all three parties. Losses carry across calendar years.
+- Monthly settlements follow chronological order. Financial changes to approved months require a visible warning and explicit reapproval of affected months from oldest to newest; approved shares are not silently rewritten.
 - Net profit is distributed across exactly three internal accounts: Owner, Partner, and The Margin.
-- Profit is split into 3 equal parts. Owner share and Partner share must always be whole integers. Any remainder goes to The Margin.
+- Positive distributable profit is split into thirds. Owner and Partner shares round down to multiples of 1000 minor units (10 YER); The Margin receives the remainder. Draw-related negative party balances remain allowed.
 - Profit distribution into Owner, Partner, and The Margin is performed only on monthly periods. Daily, weekly, yearly, and custom-range profit reports are reporting views only and do not create distributable share entries.
 - Owner Draw, Partner Draw, and Margin Draw do not affect net profit. They affect only the balance of their respective internal accounts.
 - Draws are manual monetary entries that can happen at any time. They are not restricted to after monthly distribution.
@@ -42,7 +45,7 @@ Sync Impact Report
 - Every sales invoice must belong to exactly one client. Anonymous cash sales are not allowed in MVP.
 - Financial conflicts must never be silently auto-merged across devices.
 - If one device voids a financial record while another device edits the same record before sync, void takes precedence.
-- Invoice numbering is non-authoritative in MVP. Local creation must not depend on online sequential numbering.
+- Local invoice references are non-authoritative. Official sequential document numbers are assigned by the server after synchronization; local creation must never depend on online numbering.
 - Attachments are allowed only for sales invoices and receipts.
 - Attachment files must not be stored inside PostgreSQL binary fields. Files must live in Cloudinary, while metadata and storage references are stored in the database.
 - Attachments selected while offline must be staged locally and uploaded later through the approved sync/upload pipeline when connectivity returns.
@@ -138,4 +141,6 @@ Sync Impact Report
 - **Versioning policy**: MAJOR for backward-incompatible governance changes, MINOR for new principles or material expansions, PATCH for clarifications.
 - **Compliance review**: All feature specs and plans must pass a Constitution Check gate before implementation.
 
-**Version**: 1.3.0 | **Ratified**: 2026-03-14 | **Last Amended**: 2026-03-16
+**Version**: 1.4.0 | **Ratified**: 2026-03-14 | **Last Amended**: 2026-10-19
+
+Amendment 1.4.0: Introduces chronological loss carryforward and explicit reapproval, replacing negative profit shares. Feature 010 assumes a fresh business database, as confirmed by the owner; no legacy accounting conversion is required. See specs/010-loss-carryforward/spec.md.

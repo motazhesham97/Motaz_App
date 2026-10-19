@@ -11,6 +11,7 @@ import '../generated/enums/audit_operation.dart';
 import '../generated/enums/conflict_status.dart';
 import '../generated/enums/parent_entity_type.dart';
 import '../generated/pull_response.dart';
+import 'monthly_settlement_rules.dart';
 
 class SyncService {
   static ParentEntityType? _parseParentEntityType(String name) {
@@ -60,14 +61,19 @@ class SyncService {
   static Future<Map<String, dynamic>?> loadEntityRow(
     Session session,
     String entityType,
-    String entityId,
-  ) async {
+    String entityId, {
+    Transaction? transaction,
+  }) async {
     final tableName = _entityTableName(entityType);
     if (tableName == null) return null;
 
     final rows = await session.db.unsafeQuery(
-      'SELECT * FROM "' + tableName + '" WHERE "id" = @entityId',
+      'SELECT * FROM "' +
+          tableName +
+          '" WHERE "id" = @entityId' +
+          (transaction != null ? ' FOR UPDATE' : ''),
       parameters: QueryParameters.named({'entityId': entityId}),
+      transaction: transaction,
     );
     if (rows.isEmpty) return null;
 
@@ -221,8 +227,27 @@ class SyncService {
     String entityId,
     Map<String, dynamic> payload,
     String operation,
-    String deviceId,
-  ) async {
+    String deviceId, {
+    Transaction? transaction,
+    int? expectedRowVersion,
+  }) async {
+    if (entityType == 'MONTHLY_DISTRIBUTION') {
+      MonthlySettlementRules.validate(payload);
+      if (transaction == null) {
+        return session.db.transaction(
+          (tx) => acceptMutation(
+            session,
+            entityType,
+            entityId,
+            payload,
+            operation,
+            deviceId,
+            transaction: tx,
+            expectedRowVersion: expectedRowVersion,
+          ),
+        );
+      }
+    }
     final tableName = _entityTableName(entityType);
     if (tableName == null) {
       throw ArgumentError('Unknown entity type: ' + entityType);
@@ -236,7 +261,59 @@ class SyncService {
     final now = DateTime.now().toUtc();
     final hasRowVersion = _hasRowVersion(entityType);
 
-    final existingRow = await loadEntityRow(session, entityType, entityId);
+    final existingRow = await loadEntityRow(
+      session,
+      entityType,
+      entityId,
+      transaction: transaction,
+    );
+    if (entityType == 'MONTHLY_DISTRIBUTION') {
+      if (existingRow != null && operation == 'CREATE') {
+        if (MonthlySettlementRules.sameFinancials(payload, existingRow)) {
+          return existingRow['rowVersion'] as int;
+        }
+        throw StateError(
+          'Concurrent monthly creation requires conflict resolution',
+        );
+      }
+      if (existingRow != null &&
+          expectedRowVersion != null &&
+          existingRow['rowVersion'] != expectedRowVersion) {
+        throw StateError(
+          'Settlement changed during approval; retry to resolve conflict',
+        );
+      }
+      if (!isVoidedStatus(payload['status'])) {
+        final previous = await session.db.unsafeQuery(
+          'SELECT "year", "month", "carriedLossOut", "status" '
+          'FROM "monthly_distribution" WHERE ("year" < @year OR '
+          '("year" = @year AND "month" < @month)) '
+          'ORDER BY "year" DESC, "month" DESC LIMIT 1 FOR UPDATE',
+          parameters: QueryParameters.named({
+            'year': payload['year'],
+            'month': payload['month'],
+          }),
+          transaction: transaction,
+        );
+        final expectedMonth = DateTime(
+          payload['year'] as int,
+          (payload['month'] as int) - 1,
+        );
+        if (previous.isEmpty) {
+          if (payload['carriedLossIn'] != 0) {
+            throw StateError('Missing previous loss settlement');
+          }
+        } else {
+          final row = previous.first;
+          if (row[0] != expectedMonth.year ||
+              row[1] != expectedMonth.month ||
+              row[2] != payload['carriedLossIn'] ||
+              isVoidedStatus(row[3])) {
+            throw StateError('Previous settlement must be approved first');
+          }
+        }
+      }
+    }
     _ensureDocumentReference(entityType, entityId, payload);
     await _ensureOfficialNumber(session, entityType, payload, existingRow);
     await _ensureServerSideReferences(
@@ -297,6 +374,7 @@ class SyncService {
             setClauses.join(', ') +
             ' WHERE "id" = @entityId',
         parameters: QueryParameters.named(params),
+        transaction: transaction,
       );
     } else {
       final columns = payload.keys
@@ -338,6 +416,7 @@ class SyncService {
             insertVals.join(', ') +
             ')',
         parameters: QueryParameters.named(params),
+        transaction: transaction,
       );
     }
 
@@ -361,7 +440,11 @@ class SyncService {
       deviceId: UuidValue.fromString(deviceId),
       createdAt: now,
     );
-    await AuditEvent.db.insertRow(session, auditEvent);
+    await AuditEvent.db.insertRow(
+      session,
+      auditEvent,
+      transaction: transaction,
+    );
 
     return newVersion;
   }
@@ -455,7 +538,7 @@ class SyncService {
       parameters: QueryParameters.named({
         'sinceRowVersion': sinceRowVersion,
         'limit': pageSize + 1,
-        if (afterId != null) 'afterId': afterId,
+        'afterId': ?afterId,
       }),
     );
     return rows.map((row) {
@@ -843,6 +926,13 @@ class SyncService {
     'MONTHLY_DISTRIBUTION': {
       'year',
       'month',
+      'netSales',
+      'operationalExpenses',
+      'productionExpenses',
+      'profitBeforeCarry',
+      'currentMonthLoss',
+      'carriedLossIn',
+      'carriedLossOut',
       'netProfit',
       'ownerShare',
       'partnerShare',
@@ -966,6 +1056,13 @@ class SyncService {
     'MONTHLY_DISTRIBUTION': {
       'year',
       'month',
+      'netSales',
+      'operationalExpenses',
+      'productionExpenses',
+      'profitBeforeCarry',
+      'currentMonthLoss',
+      'carriedLossIn',
+      'carriedLossOut',
       'netProfit',
       'ownerShare',
       'partnerShare',

@@ -23,6 +23,13 @@ abstract class MonthlyDistribution
     this.id,
     required this.year,
     required this.month,
+    int? netSales,
+    int? operationalExpenses,
+    int? productionExpenses,
+    int? profitBeforeCarry,
+    int? currentMonthLoss,
+    int? carriedLossIn,
+    int? carriedLossOut,
     required this.netProfit,
     required this.ownerShare,
     required this.partnerShare,
@@ -35,7 +42,14 @@ abstract class MonthlyDistribution
     this.device,
     int? rowVersion,
     _i3.SyncStatus? syncStatus,
-  }) : status = status ?? _i2.RecordStatus.ACTIVE,
+  }) : netSales = netSales ?? 0,
+       operationalExpenses = operationalExpenses ?? 0,
+       productionExpenses = productionExpenses ?? 0,
+       profitBeforeCarry = profitBeforeCarry ?? 0,
+       currentMonthLoss = currentMonthLoss ?? 0,
+       carriedLossIn = carriedLossIn ?? 0,
+       carriedLossOut = carriedLossOut ?? 0,
+       status = status ?? _i2.RecordStatus.ACTIVE,
        rowVersion = rowVersion ?? 1,
        syncStatus = syncStatus ?? _i3.SyncStatus.PENDING;
 
@@ -43,6 +57,13 @@ abstract class MonthlyDistribution
     _i1.UuidValue? id,
     required int year,
     required int month,
+    int? netSales,
+    int? operationalExpenses,
+    int? productionExpenses,
+    int? profitBeforeCarry,
+    int? currentMonthLoss,
+    int? carriedLossIn,
+    int? carriedLossOut,
     required int netProfit,
     required int ownerShare,
     required int partnerShare,
@@ -64,6 +85,13 @@ abstract class MonthlyDistribution
           : _i1.UuidValueJsonExtension.fromJson(jsonSerialization['id']),
       year: jsonSerialization['year'] as int,
       month: jsonSerialization['month'] as int,
+      netSales: jsonSerialization['netSales'] as int?,
+      operationalExpenses: jsonSerialization['operationalExpenses'] as int?,
+      productionExpenses: jsonSerialization['productionExpenses'] as int?,
+      profitBeforeCarry: jsonSerialization['profitBeforeCarry'] as int?,
+      currentMonthLoss: jsonSerialization['currentMonthLoss'] as int?,
+      carriedLossIn: jsonSerialization['carriedLossIn'] as int?,
+      carriedLossOut: jsonSerialization['carriedLossOut'] as int?,
       netProfit: jsonSerialization['netProfit'] as int,
       ownerShare: jsonSerialization['ownerShare'] as int,
       partnerShare: jsonSerialization['partnerShare'] as int,
@@ -104,6 +132,20 @@ abstract class MonthlyDistribution
 
   int month;
 
+  int netSales;
+
+  int operationalExpenses;
+
+  int productionExpenses;
+
+  int profitBeforeCarry;
+
+  int currentMonthLoss;
+
+  int carriedLossIn;
+
+  int carriedLossOut;
+
   int netProfit;
 
   int ownerShare;
@@ -138,6 +180,13 @@ abstract class MonthlyDistribution
     _i1.UuidValue? id,
     int? year,
     int? month,
+    int? netSales,
+    int? operationalExpenses,
+    int? productionExpenses,
+    int? profitBeforeCarry,
+    int? currentMonthLoss,
+    int? carriedLossIn,
+    int? carriedLossOut,
     int? netProfit,
     int? ownerShare,
     int? partnerShare,
@@ -158,6 +207,13 @@ abstract class MonthlyDistribution
       if (id != null) 'id': id?.toJson(),
       'year': year,
       'month': month,
+      'netSales': netSales,
+      'operationalExpenses': operationalExpenses,
+      'productionExpenses': productionExpenses,
+      'profitBeforeCarry': profitBeforeCarry,
+      'currentMonthLoss': currentMonthLoss,
+      'carriedLossIn': carriedLossIn,
+      'carriedLossOut': carriedLossOut,
       'netProfit': netProfit,
       'ownerShare': ownerShare,
       'partnerShare': partnerShare,
@@ -180,6 +236,13 @@ abstract class MonthlyDistribution
       if (id != null) 'id': id?.toJson(),
       'year': year,
       'month': month,
+      'netSales': netSales,
+      'operationalExpenses': operationalExpenses,
+      'productionExpenses': productionExpenses,
+      'profitBeforeCarry': profitBeforeCarry,
+      'currentMonthLoss': currentMonthLoss,
+      'carriedLossIn': carriedLossIn,
+      'carriedLossOut': carriedLossOut,
       'netProfit': netProfit,
       'ownerShare': ownerShare,
       'partnerShare': partnerShare,
@@ -232,6 +295,13 @@ class _MonthlyDistributionImpl extends MonthlyDistribution {
     _i1.UuidValue? id,
     required int year,
     required int month,
+    int? netSales,
+    int? operationalExpenses,
+    int? productionExpenses,
+    int? profitBeforeCarry,
+    int? currentMonthLoss,
+    int? carriedLossIn,
+    int? carriedLossOut,
     required int netProfit,
     required int ownerShare,
     required int partnerShare,
@@ -248,6 +318,13 @@ class _MonthlyDistributionImpl extends MonthlyDistribution {
          id: id,
          year: year,
          month: month,
+         netSales: netSales,
+         operationalExpenses: operationalExpenses,
+         productionExpenses: productionExpenses,
+         profitBeforeCarry: profitBeforeCarry,
+         currentMonthLoss: currentMonthLoss,
+         carriedLossIn: carriedLossIn,
+         carriedLossOut: carriedLossOut,
          netProfit: netProfit,
          ownerShare: ownerShare,
          partnerShare: partnerShare,
@@ -270,6 +347,13 @@ class _MonthlyDistributionImpl extends MonthlyDistribution {
     Object? id = _Undefined,
     int? year,
     int? month,
+    int? netSales,
+    int? operationalExpenses,
+    int? productionExpenses,
+    int? profitBeforeCarry,
+    int? currentMonthLoss,
+    int? carriedLossIn,
+    int? carriedLossOut,
     int? netProfit,
     int? ownerShare,
     int? partnerShare,
@@ -287,6 +371,13 @@ class _MonthlyDistributionImpl extends MonthlyDistribution {
       id: id is _i1.UuidValue? ? id : this.id,
       year: year ?? this.year,
       month: month ?? this.month,
+      netSales: netSales ?? this.netSales,
+      operationalExpenses: operationalExpenses ?? this.operationalExpenses,
+      productionExpenses: productionExpenses ?? this.productionExpenses,
+      profitBeforeCarry: profitBeforeCarry ?? this.profitBeforeCarry,
+      currentMonthLoss: currentMonthLoss ?? this.currentMonthLoss,
+      carriedLossIn: carriedLossIn ?? this.carriedLossIn,
+      carriedLossOut: carriedLossOut ?? this.carriedLossOut,
       netProfit: netProfit ?? this.netProfit,
       ownerShare: ownerShare ?? this.ownerShare,
       partnerShare: partnerShare ?? this.partnerShare,
@@ -314,6 +405,41 @@ class MonthlyDistributionUpdateTable
 
   _i1.ColumnValue<int, int> month(int value) => _i1.ColumnValue(
     table.month,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> netSales(int value) => _i1.ColumnValue(
+    table.netSales,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> operationalExpenses(int value) => _i1.ColumnValue(
+    table.operationalExpenses,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> productionExpenses(int value) => _i1.ColumnValue(
+    table.productionExpenses,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> profitBeforeCarry(int value) => _i1.ColumnValue(
+    table.profitBeforeCarry,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> currentMonthLoss(int value) => _i1.ColumnValue(
+    table.currentMonthLoss,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> carriedLossIn(int value) => _i1.ColumnValue(
+    table.carriedLossIn,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> carriedLossOut(int value) => _i1.ColumnValue(
+    table.carriedLossOut,
     value,
   );
 
@@ -392,6 +518,41 @@ class MonthlyDistributionTable extends _i1.Table<_i1.UuidValue?> {
       'month',
       this,
     );
+    netSales = _i1.ColumnInt(
+      'netSales',
+      this,
+      hasDefault: true,
+    );
+    operationalExpenses = _i1.ColumnInt(
+      'operationalExpenses',
+      this,
+      hasDefault: true,
+    );
+    productionExpenses = _i1.ColumnInt(
+      'productionExpenses',
+      this,
+      hasDefault: true,
+    );
+    profitBeforeCarry = _i1.ColumnInt(
+      'profitBeforeCarry',
+      this,
+      hasDefault: true,
+    );
+    currentMonthLoss = _i1.ColumnInt(
+      'currentMonthLoss',
+      this,
+      hasDefault: true,
+    );
+    carriedLossIn = _i1.ColumnInt(
+      'carriedLossIn',
+      this,
+      hasDefault: true,
+    );
+    carriedLossOut = _i1.ColumnInt(
+      'carriedLossOut',
+      this,
+      hasDefault: true,
+    );
     netProfit = _i1.ColumnInt(
       'netProfit',
       this,
@@ -449,6 +610,20 @@ class MonthlyDistributionTable extends _i1.Table<_i1.UuidValue?> {
 
   late final _i1.ColumnInt month;
 
+  late final _i1.ColumnInt netSales;
+
+  late final _i1.ColumnInt operationalExpenses;
+
+  late final _i1.ColumnInt productionExpenses;
+
+  late final _i1.ColumnInt profitBeforeCarry;
+
+  late final _i1.ColumnInt currentMonthLoss;
+
+  late final _i1.ColumnInt carriedLossIn;
+
+  late final _i1.ColumnInt carriedLossOut;
+
   late final _i1.ColumnInt netProfit;
 
   late final _i1.ColumnInt ownerShare;
@@ -491,6 +666,13 @@ class MonthlyDistributionTable extends _i1.Table<_i1.UuidValue?> {
     id,
     year,
     month,
+    netSales,
+    operationalExpenses,
+    productionExpenses,
+    profitBeforeCarry,
+    currentMonthLoss,
+    carriedLossIn,
+    carriedLossOut,
     netProfit,
     ownerShare,
     partnerShare,

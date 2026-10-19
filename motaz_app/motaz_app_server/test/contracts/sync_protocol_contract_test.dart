@@ -3,6 +3,42 @@ import 'package:test/test.dart';
 
 void main() {
   group('Sync protocol contract', () {
+    test('monthly settlement DTO preserves the signed loss snapshot', () {
+      final data = {
+        'year': 2026,
+        'month': 1,
+        'netSales': 100000,
+        'operationalExpenses': 200000,
+        'productionExpenses': 0,
+        'profitBeforeCarry': -100000,
+        'currentMonthLoss': -100000,
+        'carriedLossIn': -50000,
+        'carriedLossOut': -150000,
+        'netProfit': -150000,
+        'ownerShare': 0,
+        'partnerShare': 0,
+        'marginShare': 0,
+        'createdAt': '2026-02-01T00:00:00.000Z',
+        'updatedAt': '2026-02-01T00:00:00.000Z',
+        'deviceId': 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      };
+      final roundTrip = MonthlyDistribution.fromJson(data).toJsonForProtocol();
+      for (final field in [
+        'netSales',
+        'operationalExpenses',
+        'productionExpenses',
+        'profitBeforeCarry',
+        'currentMonthLoss',
+        'carriedLossIn',
+        'carriedLossOut',
+        'netProfit',
+        'ownerShare',
+        'partnerShare',
+        'marginShare',
+      ]) {
+        expect(roundTrip[field], data[field], reason: field);
+      }
+    });
     test('PushRequest protocol JSON keeps every outbox field', () {
       final request = PushRequest(
         outboxId: 'outbox-1',

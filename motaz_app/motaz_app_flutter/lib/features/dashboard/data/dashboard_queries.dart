@@ -59,7 +59,7 @@ class DashboardQueries {
 
     final invoiceRow = await _db
         .customSelect(
-          'SELECT COALESCE(SUM(total), 0) - COALESCE(SUM(discount), 0) AS net '
+          'SELECT COALESCE(SUM(total), 0) AS net '
           'FROM sales_invoices '
           'WHERE status = ? AND invoice_date >= ? AND invoice_date < ?',
           variables: [
