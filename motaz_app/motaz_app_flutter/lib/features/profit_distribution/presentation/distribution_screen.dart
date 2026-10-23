@@ -7,10 +7,14 @@ import '../../../core/database/enums/record_status.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../application/profit_providers.dart';
+import '../data/profit_engine.dart';
 import 'monthly_profit_summary.dart';
 
 class DistributionScreen extends ConsumerStatefulWidget {
-  const DistributionScreen({super.key});
+  const DistributionScreen({super.key, this.initialPeriod});
+
+  final DateTime? initialPeriod;
+
   @override
   ConsumerState<DistributionScreen> createState() => _DistributionScreenState();
 }
@@ -19,6 +23,7 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
   late int _year;
   late int _month;
   bool _saving = false;
+  bool _periodSelected = false;
   static const _months = [
     'يناير',
     'فبراير',
@@ -37,9 +42,39 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
   @override
   void initState() {
     super.initState();
-    final previous = DateTime(DateTime.now().year, DateTime.now().month - 1);
+    final previous =
+        widget.initialPeriod ??
+        DateTime(DateTime.now().year, DateTime.now().month - 1);
     _year = previous.year;
     _month = previous.month;
+    _periodSelected = widget.initialPeriod != null;
+    ref.listenManual(settlementReviewProvider, (_, next) {
+      final reviews = next.asData?.value;
+      if (_periodSelected || reviews == null || reviews.isEmpty) return;
+      final periods =
+          reviews
+              .map((entry) => DateTime(entry.profit.year, entry.profit.month))
+              .toList()
+            ..sort();
+      _selectPeriod(periods.first);
+    }, fireImmediately: true);
+  }
+
+  void _selectPeriod(DateTime period) {
+    setState(() {
+      _year = period.year;
+      _month = period.month;
+      _periodSelected = true;
+    });
+  }
+
+  @override
+  void didUpdateWidget(DistributionScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialPeriod != null &&
+        widget.initialPeriod != oldWidget.initialPeriod) {
+      _selectPeriod(widget.initialPeriod!);
+    }
   }
 
   Future<void> _save(Future<void> Function(String deviceId) action) async {
@@ -70,13 +105,18 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
     }
   }
 
-  Future<void> _reapprove(int count) async {
+  Future<void> _reapprove(List<MonthSettlement> reviews) async {
+    final periods = reviews
+        .map(
+          (entry) => '${_months[entry.profit.month - 1]} ${entry.profit.year}',
+        )
+        .join('، ');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('إعادة اعتماد التسويات'),
         content: Text(
-          'سيعاد حساب $count من الأشهر المتأثرة بالترتيب، ثم استدراك الأشهر المغلقة المفقودة. قد تتغير أرصدة الأطراف، وتبقى السحوبات السابقة محفوظة.',
+          'سيعاد حساب الأشهر التالية بالترتيب: $periods، ثم استدراك الأشهر المغلقة المفقودة. قد تتغير أرصدة الأطراف، وتبقى السحوبات السابقة محفوظة.',
         ),
         actions: [
           TextButton(
@@ -159,14 +199,29 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
         children: [
           if (reviews.isNotEmpty) ...[
             Text(
-              'تحتاج ${reviews.length} من الأشهر إعادة اعتماد',
+              'تحتاج ${reviews.length} من الأشهر إعادة اعتماد بالترتيب التالي:',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.error,
                 fontWeight: FontWeight.bold,
               ),
             ),
+            for (final entry in reviews)
+              ListTile(
+                leading: const Icon(Icons.event_repeat_rounded),
+                title: Text(
+                  '${_months[entry.profit.month - 1]} ${entry.profit.year}',
+                ),
+                selected:
+                    _year == entry.profit.year && _month == entry.profit.month,
+                trailing: const Icon(Icons.chevron_left),
+                onTap: _saving
+                    ? null
+                    : () => _selectPeriod(
+                        DateTime(entry.profit.year, entry.profit.month),
+                      ),
+              ),
             FilledButton.icon(
-              onPressed: _saving ? null : () => _reapprove(reviews.length),
+              onPressed: _saving ? null : () => _reapprove(reviews),
               icon: const Icon(Icons.fact_check_outlined),
               label: const Text('مراجعة واعتماد الأشهر'),
             ),
@@ -176,11 +231,14 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
+                  key: ValueKey('settlement-year-$_year'),
                   initialValue: _year,
                   decoration: const InputDecoration(labelText: 'السنة'),
                   items: [
                     for (
-                      var year = DateTime.now().year - 8;
+                      var year = _year < DateTime.now().year - 8
+                          ? _year
+                          : DateTime.now().year - 8;
                       year <= DateTime.now().year;
                       year++
                     )
@@ -189,13 +247,16 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
                   onChanged: _saving
                       ? null
                       : (value) {
-                          if (value != null) setState(() => _year = value);
+                          if (value != null) {
+                            _selectPeriod(DateTime(value, _month));
+                          }
                         },
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<int>(
+                  key: ValueKey('settlement-month-$_month'),
                   initialValue: _month,
                   decoration: const InputDecoration(labelText: 'الشهر'),
                   items: [
@@ -208,7 +269,9 @@ class _DistributionScreenState extends ConsumerState<DistributionScreen> {
                   onChanged: _saving
                       ? null
                       : (value) {
-                          if (value != null) setState(() => _month = value);
+                          if (value != null) {
+                            _selectPeriod(DateTime(_year, value));
+                          }
                         },
                 ),
               ),

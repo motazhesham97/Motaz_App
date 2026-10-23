@@ -99,48 +99,48 @@ class AppShell extends StatelessWidget {
     final isDesktop = MediaQuery.sizeOf(context).width >= 840;
     final currentRoute = GoRouterState.of(context).uri.path;
     final drawer = _DrawerContent(currentRoute: currentRoute);
-    final content = Column(
-      children: [
-        if (currentRoute != '/distributions') const SettlementReviewNotice(),
-        Expanded(child: child),
-      ],
-    );
-
-    if (isDesktop) {
-      return Scaffold(
-        body: Row(
-          children: [
-            Container(
-              width: 280,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                border: Border(
-                  left: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 1.5,
+    final content = isDesktop
+        ? Row(
+            children: [
+              Container(
+                width: 280,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border(
+                    left: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.5,
+                    ),
                   ),
                 ),
+                child: drawer,
               ),
-              child: drawer,
-            ),
-            Expanded(
-              child: ClipRRect(
-                child: content,
+              Expanded(
+                child: ClipRRect(
+                  child: child,
+                ),
               ),
-            ),
-          ],
-        ),
-      );
-    }
+            ],
+          )
+        : child;
 
-    return Scaffold(
-      drawer: Drawer(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(left: Radius.circular(24)),
-        ),
-        child: drawer,
+    return SettlementReviewNotice(
+      suppressed: currentRoute == '/distributions',
+      child: Scaffold(
+        // Each page handles its own keyboard insets, not the surrounding shell.
+        resizeToAvoidBottomInset: false,
+        drawer: isDesktop
+            ? null
+            : Drawer(
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.horizontal(
+                    left: Radius.circular(24),
+                  ),
+                ),
+                child: drawer,
+              ),
+        body: content,
       ),
-      body: content,
     );
   }
 }

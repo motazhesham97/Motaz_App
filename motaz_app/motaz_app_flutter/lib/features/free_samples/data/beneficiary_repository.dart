@@ -8,6 +8,7 @@ import '../../../core/database/enums/audit_operation.dart';
 import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/sync_outbox_status.dart';
 import '../../../core/database/enums/sync_status.dart';
+import '../domain/sample_name_search.dart';
 
 class BeneficiaryRepository {
   BeneficiaryRepository(this._db);
@@ -23,7 +24,7 @@ class BeneficiaryRepository {
   }
 
   Future<List<Beneficiary>> search(String query) async {
-    final text = query.trim().toLowerCase();
+    final text = normalizeSampleName(query);
     if (text.isEmpty) return const [];
     final rows =
         await (_db.select(_db.beneficiaries)
@@ -31,8 +32,7 @@ class BeneficiaryRepository {
               ..orderBy([(t) => OrderingTerm.asc(t.displayName)]))
             .get();
     return rows
-        .where((row) => _matchesWordPrefix(row.displayName, text))
-        .take(12)
+        .where((row) => matchesSampleName(row.displayName, text))
         .toList();
   }
 
@@ -86,12 +86,13 @@ class BeneficiaryRepository {
   }
 
   Future<Beneficiary?> findByName(String displayName) {
-    final normalized = displayName.trim().toLowerCase();
+    final normalized = normalizeSampleName(displayName);
     return (_db.select(
       _db.beneficiaries,
     )..where((t) => t.isActive.equals(true))).get().then(
       (rows) => rows.cast<Beneficiary?>().firstWhere(
-        (row) => row?.displayName.trim().toLowerCase() == normalized,
+        (row) =>
+            row != null && normalizeSampleName(row.displayName) == normalized,
         orElse: () => null,
       ),
     );
@@ -155,15 +156,6 @@ class BeneficiaryRepository {
         });
       }
     }
-  }
-
-  bool _matchesWordPrefix(String value, String query) {
-    return value
-        .trim()
-        .toLowerCase()
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .any((word) => word.startsWith(query));
   }
 
   Future<void> _enqueue({

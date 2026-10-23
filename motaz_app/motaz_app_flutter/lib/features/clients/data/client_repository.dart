@@ -352,13 +352,19 @@ class ClientRepository {
     String clientId, {
     int limit = 20,
   }) async {
+    if (limit <= 0) return [];
     try {
       final transactions = <Map<String, dynamic>>[];
 
       final invoices =
           await (_db.select(_db.salesInvoices)
-                ..where((t) => t.clientId.equals(clientId) & t.status.equals(0))
-                ..orderBy([(t) => OrderingTerm.desc(t.invoiceDate)]))
+                ..where(
+                  (t) =>
+                      t.clientId.equals(clientId) &
+                      t.status.equals(RecordStatus.ACTIVE.index),
+                )
+                ..orderBy([(t) => OrderingTerm.desc(t.invoiceDate)])
+                ..limit(limit))
               .get();
 
       for (final invoice in invoices) {
@@ -375,8 +381,13 @@ class ClientRepository {
 
       final receipts =
           await (_db.select(_db.receipts)
-                ..where((t) => t.clientId.equals(clientId) & t.status.equals(0))
-                ..orderBy([(t) => OrderingTerm.desc(t.receiptDate)]))
+                ..where(
+                  (t) =>
+                      t.clientId.equals(clientId) &
+                      t.status.equals(RecordStatus.ACTIVE.index),
+                )
+                ..orderBy([(t) => OrderingTerm.desc(t.receiptDate)])
+                ..limit(limit))
               .get();
 
       for (final receipt in receipts) {
@@ -388,6 +399,33 @@ class ClientRepository {
           'date': receipt.receiptDate,
           'amount': receipt.amount,
           'status': receipt.status,
+        });
+      }
+
+      final returns =
+          await (_db.select(_db.salesReturns).join([
+                  innerJoin(
+                    _db.salesInvoices,
+                    _db.salesInvoices.id.equalsExp(_db.salesReturns.invoiceId),
+                  ),
+                ])
+                ..where(
+                  _db.salesInvoices.clientId.equals(clientId) &
+                      _db.salesReturns.status.equals(RecordStatus.ACTIVE.index),
+                )
+                ..orderBy([OrderingTerm.desc(_db.salesReturns.returnDate)])
+                ..limit(limit))
+              .get();
+      for (final row in returns) {
+        final salesReturn = row.readTable(_db.salesReturns);
+        transactions.add({
+          'type': 'RETURN',
+          'id': salesReturn.id,
+          'localRef': salesReturn.localRef,
+          'officialNo': salesReturn.officialNo,
+          'date': salesReturn.returnDate,
+          'amount': salesReturn.totalReturnedAmount,
+          'status': salesReturn.status,
         });
       }
 

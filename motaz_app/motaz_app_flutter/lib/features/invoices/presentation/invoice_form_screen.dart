@@ -188,6 +188,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   }
 
   void _addProductToInvoice(Product product) {
+    _productSearchFocusNode.unfocus();
     setState(() {
       final existingIndex = _lines.indexWhere(
         (line) => line.productId == product.id,
@@ -209,10 +210,13 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           ),
         );
       }
-      _productSearchController.clear();
       _quickProductQuery = '';
     });
-    _productSearchFocusNode.requestFocus();
+    // RawAutocomplete ignores controller changes during its selection callback.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _productSearchController.clear();
+    });
   }
 
   Future<void> _addProductFromSearchText() async {
@@ -602,6 +606,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     final primary = theme.colorScheme.primary;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('فاتورة بيع جديدة'),
       ),
@@ -649,12 +654,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                   sku.startsWith(normalized));
         });
       },
-      onSelected: (product) {
-        _addProductToInvoice(product);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _productSearchController.clear();
-        });
-      },
+      onSelected: _addProductToInvoice,
       fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
         final showMissingPrompt = _shouldShowQuickMissingProductPrompt();
         return Column(
@@ -1662,10 +1662,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   }
 
   void _resetQuickInvoiceForm() {
+    _productSearchFocusNode.unfocus();
     setState(() {
       _selectedClient = null;
       _clientNameController.clear();
       _productSearchController.clear();
+      _quickProductQuery = '';
       _lines.clear();
       _discountController.clear();
       _paidAmountController.clear();
@@ -1674,7 +1676,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       _loadedAttachmentPath = null;
       _invoiceDate = DateTime.now();
     });
-    _productSearchFocusNode.requestFocus();
   }
 
   Widget _buildClientSelector() {

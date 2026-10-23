@@ -95,9 +95,11 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
   String _transactionTitle(Map<String, dynamic> transaction) {
     final localRef = transaction['localRef'] as String? ?? '';
     final officialNo = transaction['officialNo'] as String?;
-    return transaction['type'] == 'INVOICE'
-        ? invoiceDisplayRef(localRef, officialNo: officialNo)
-        : receiptDisplayRef(localRef, officialNo: officialNo);
+    return switch (transaction['type']) {
+      'INVOICE' => invoiceDisplayRef(localRef, officialNo: officialNo),
+      'RETURN' => returnDisplayRef(localRef, officialNo: officialNo),
+      _ => receiptDisplayRef(localRef, officialNo: officialNo),
+    };
   }
 
   @override
@@ -232,6 +234,11 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
                     ..._transactions.map(
                       (tx) => Card(
                         child: ListTile(
+                          leading: Icon(switch (tx['type']) {
+                            'INVOICE' => Icons.receipt_long_outlined,
+                            'RETURN' => Icons.assignment_return_outlined,
+                            _ => Icons.payments_outlined,
+                          }),
                           title: Text(_transactionTitle(tx)),
                           subtitle: Text(
                             '${((tx['amount'] as int) / 100).toStringAsFixed(2)} ر.ي.',

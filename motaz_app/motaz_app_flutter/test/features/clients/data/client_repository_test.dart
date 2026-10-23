@@ -50,6 +50,103 @@ void main() {
   });
 
   group('ClientRepository offline-first behavior', () {
+    test(
+      'recent transactions include only the client active returns in date order',
+      () async {
+        final client = await repository.createAndReturn(
+          const ClientsCompanion(
+            displayName: Value('Dubai Chocolate Store'),
+            deviceId: Value(_deviceId),
+          ),
+        );
+        final otherClient = await repository.createAndReturn(
+          const ClientsCompanion(
+            displayName: Value('Another Store'),
+            deviceId: Value(_deviceId),
+          ),
+        );
+        const invoiceIds = [
+          '00000000-0000-4000-8000-000000000021',
+          '00000000-0000-4000-8000-000000000022',
+        ];
+        for (var index = 0; index < 2; index++) {
+          await db
+              .into(db.salesInvoices)
+              .insert(
+                SalesInvoicesCompanion.insert(
+                  id: invoiceIds[index],
+                  localRef: 'INV-test-$index',
+                  clientId: index == 0 ? client.id : otherClient.id,
+                  invoiceDate: DateTime(2026, 8, 11),
+                  total: 250000,
+                  createdAt: _now,
+                  updatedAt: _now,
+                  deviceId: _deviceId,
+                ),
+              );
+        }
+        await db
+            .into(db.receipts)
+            .insert(
+              ReceiptsCompanion.insert(
+                id: '00000000-0000-4000-8000-000000000023',
+                localRef: const Value('REC-test-1'),
+                receiptType: ReceiptType.GENERAL,
+                clientId: client.id,
+                amount: 50000,
+                receiptDate: DateTime(2026, 8, 12),
+                createdAt: _now,
+                updatedAt: _now,
+                deviceId: _deviceId,
+              ),
+            );
+        for (var index = 0; index < 3; index++) {
+          await db
+              .into(db.salesReturns)
+              .insert(
+                SalesReturnsCompanion.insert(
+                  id: '00000000-0000-4000-8000-00000000002${index + 4}',
+                  localRef: Value('RET-test-$index'),
+                  officialNo: const Value('7'),
+                  invoiceId: index == 2 ? invoiceIds[1] : invoiceIds[0],
+                  returnDate: DateTime(2026, 8, 13 + index),
+                  totalReturnedAmount: 20000,
+                  status: Value(
+                    index == 1 ? RecordStatus.VOIDED : RecordStatus.ACTIVE,
+                  ),
+                  createdAt: _now,
+                  updatedAt: _now,
+                  deviceId: _deviceId,
+                ),
+              );
+        }
+        final pendingBeforeRead = await db.select(db.syncOutbox).get();
+
+        final transactions = await repository.getRecentTransactions(client.id);
+
+        expect(transactions.map((row) => row['type']), [
+          'RETURN',
+          'RECEIPT',
+          'INVOICE',
+        ]);
+        expect(
+          transactions.first['id'],
+          '00000000-0000-4000-8000-000000000024',
+        );
+        expect(transactions.first['localRef'], 'RET-test-0');
+        expect(transactions.first['officialNo'], '7');
+        expect(transactions.first['amount'], 20000);
+        expect(transactions.first['date'], DateTime(2026, 8, 13));
+        expect(await repository.getOutstandingBalance(client.id), 180000);
+        final latest = await repository.getRecentTransactions(
+          client.id,
+          limit: 2,
+        );
+        expect(latest.map((row) => row['type']), ['RETURN', 'RECEIPT']);
+        expect(await db.select(db.syncOutbox).get(), pendingBeforeRead);
+      },
+    );
+
     test('saves client locally and enqueues sync before remote work', () async {
       final client = await repository.createAndReturn(
         const ClientsCompanion(

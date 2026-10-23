@@ -4,15 +4,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/device_service.dart';
 import '../../../core/database/enums/expense_category.dart';
+import '../../../shared/widgets/app_drawer.dart';
 import '../application/expense_providers.dart';
 import '../data/expense_category_labels.dart';
+import 'expense_list_screen.dart';
 
 String categoryLabel(ExpenseCategory cat) => expenseCategoryLabel(cat);
 
 class ExpenseFormScreen extends ConsumerStatefulWidget {
-  const ExpenseFormScreen({super.key, this.existingExpense});
+  const ExpenseFormScreen({
+    super.key,
+    this.existingExpense,
+    this.isSectionEntry = false,
+  });
 
   final Expense? existingExpense;
+  final bool isSectionEntry;
 
   @override
   ConsumerState<ExpenseFormScreen> createState() => _ExpenseFormScreenState();
@@ -27,6 +34,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   bool _saving = false;
 
   bool get _isEditing => widget.existingExpense != null;
+  bool get _keepOpen => widget.isSectionEntry && !_isEditing;
 
   @override
   void initState() {
@@ -54,7 +62,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _expenseDate = picked);
     }
   }
@@ -102,7 +110,17 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         );
       }
 
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      if (_keepOpen) {
+        FocusScope.of(context).unfocus();
+        _amountController.clear();
+        _noteController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ المصروف')),
+        );
+      } else {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -116,42 +134,68 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final body = SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_keepOpen) ...[
+              OutlinedButton.icon(
+                onPressed: _saving
+                    ? null
+                    : () {
+                        FocusScope.of(context).unfocus();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ExpenseListScreen(),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: const Text('سجل المصروفات'),
+              ),
+              const SizedBox(height: 16),
+            ],
+            _buildNoteField(),
+            const SizedBox(height: 12),
+            _buildAmountField(),
+            const SizedBox(height: 12),
+            _buildDateField(),
+            const SizedBox(height: 12),
+            _buildCategoryDropdown(),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Theme.of(context).colorScheme.surface,
+                      ),
+                    )
+                  : const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (_keepOpen) {
+      return AppDrawerScaffold(
+        title: 'المصروفات',
+        currentRoute: '/expenses',
+        child: body,
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'تعديل مصروف' : 'إضافة مصروف'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildNoteField(),
-              const SizedBox(height: 12),
-              _buildAmountField(),
-              const SizedBox(height: 12),
-              _buildDateField(),
-              const SizedBox(height: 12),
-              _buildCategoryDropdown(),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.surface,
-                        ),
-                      )
-                    : const Text('حفظ'),
-              ),
-            ],
-          ),
-        ),
-      ),
+      body: body,
     );
   }
 

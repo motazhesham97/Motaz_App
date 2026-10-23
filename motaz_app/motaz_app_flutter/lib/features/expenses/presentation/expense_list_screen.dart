@@ -7,7 +7,6 @@ import '../../../core/database/enums/expense_category.dart';
 import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
 import '../../../core/utils/money_formatter.dart';
-import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/audit_trail_sheet.dart';
 import '../../reports/data/report_models.dart';
 import '../../reports/pdf/pdf_generator.dart';
@@ -371,111 +370,102 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   Widget build(BuildContext context) {
     final expensesAsync = ref.watch(expenseListProvider);
 
-    return AppDrawerScaffold(
-      title: 'المصروفات',
-      currentRoute: '/expenses',
-      child: Scaffold(
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: _buildActiveSearchSummary()),
-                      const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        tooltip: 'بحث',
-                        onPressed: () {
-                          setState(() => _showSearchPanel = !_showSearchPanel);
-                        },
-                        icon: Icon(
-                          _showSearchPanel ? Icons.close : Icons.search,
-                        ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('سجل المصروفات')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _buildActiveSearchSummary()),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      tooltip: 'بحث',
+                      onPressed: () {
+                        setState(() => _showSearchPanel = !_showSearchPanel);
+                      },
+                      icon: Icon(
+                        _showSearchPanel ? Icons.close : Icons.search,
                       ),
-                    ],
-                  ),
-                  if (_showSearchPanel) ...[
-                    const SizedBox(height: 10),
-                    _buildSearchPanel(),
+                    ),
                   ],
+                ),
+                if (_showSearchPanel) ...[
+                  const SizedBox(height: 10),
+                  _buildSearchPanel(),
                 ],
-              ),
+              ],
             ),
-            Expanded(
-              child: expensesAsync.when(
-                data: (expenses) {
-                  final filteredExpenses = _filterExpenses(expenses);
-                  if (filteredExpenses.isEmpty) {
-                    return Center(
-                      child: Text(
-                        _hasActiveFilter
-                            ? 'لا توجد مصروفات مطابقة للبحث'
-                            : 'لا توجد مصروفات',
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: [
-                      if (_hasActiveFilter)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'الإجمالي: ${formatMoney(_totalAmount(filteredExpenses))}',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                              ),
-                              FilledButton.icon(
-                                onPressed: _isExporting
-                                    ? null
-                                    : () => _exportPdf(filteredExpenses),
-                                icon: _isExporting
-                                    ? SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.surface,
-                                        ),
-                                      )
-                                    : const Icon(Icons.picture_as_pdf),
-                                label: Text(
-                                  _isExporting ? 'جاري...' : 'تصدير PDF',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Expanded(child: _buildExpenseList(filteredExpenses)),
-                    ],
+          ),
+          Expanded(
+            child: expensesAsync.when(
+              data: (expenses) {
+                final filteredExpenses = _filterExpenses(expenses);
+                if (filteredExpenses.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _hasActiveFilter
+                          ? 'لا توجد مصروفات مطابقة للبحث'
+                          : 'لا توجد مصروفات',
+                    ),
                   );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Center(child: Text('خطأ: $error')),
-              ),
+                }
+
+                return Column(
+                  children: [
+                    if (_hasActiveFilter)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'الإجمالي: ${formatMoney(_totalAmount(filteredExpenses))}',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleMedium,
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: _isExporting
+                                  ? null
+                                  : () => _exportPdf(filteredExpenses),
+                              icon: _isExporting
+                                  ? SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.surface,
+                                      ),
+                                    )
+                                  : const Icon(Icons.picture_as_pdf),
+                              label: Text(
+                                _isExporting ? 'جاري...' : 'تصدير PDF',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(child: _buildExpenseList(filteredExpenses)),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(child: Text('خطأ: $error')),
             ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ExpenseFormScreen(),
-              ),
-            );
-          },
-          child: const Icon(Icons.add),
-        ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'إضافة مصروف',
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Icon(Icons.add),
       ),
     );
   }

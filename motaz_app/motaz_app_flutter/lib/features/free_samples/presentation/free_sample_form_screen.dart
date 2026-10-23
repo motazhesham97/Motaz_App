@@ -9,6 +9,7 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../../products/application/product_providers.dart';
 import '../application/free_sample_providers.dart';
 import '../data/free_sample_repository.dart';
+import '../domain/sample_name_search.dart';
 
 class FreeSampleFormScreen extends ConsumerStatefulWidget {
   const FreeSampleFormScreen({super.key, this.sampleId});
@@ -44,17 +45,6 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
     _productController.dispose();
     _noteController.dispose();
     super.dispose();
-  }
-
-  bool _matchesWordPrefix(String value, String query) {
-    final normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) return false;
-    return value
-        .trim()
-        .toLowerCase()
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .any((word) => word.startsWith(normalized));
   }
 
   Future<void> _loadForEdit() async {
@@ -221,10 +211,9 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
     }
     if (!mounted) return;
 
-    final beneficiaries = await ref
-        .read(beneficiaryRepositoryProvider)
-        .watchAll()
-        .first;
+    final beneficiaries = <Beneficiary>[
+      ...await ref.read(beneficiaryRepositoryProvider).watchAll().first,
+    ];
     if (!mounted) return;
 
     final beneficiaryController = TextEditingController(
@@ -240,21 +229,21 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final suggestions = beneficiaryQuery.trim().isEmpty
+            final suggestions =
+                selectedBeneficiary != null || beneficiaryQuery.trim().isEmpty
                 ? <Beneficiary>[]
                 : beneficiaries
                       .where(
-                        (beneficiary) => _matchesWordPrefix(
+                        (beneficiary) => matchesSampleName(
                           beneficiary.displayName,
                           beneficiaryQuery,
                         ),
                       )
-                      .take(6)
                       .toList();
             final exactExists = beneficiaries.any(
               (beneficiary) =>
-                  beneficiary.displayName.trim().toLowerCase() ==
-                  beneficiaryQuery.trim().toLowerCase(),
+                  normalizeSampleName(beneficiary.displayName) ==
+                  normalizeSampleName(beneficiaryQuery),
             );
 
             return AlertDialog(
@@ -266,6 +255,7 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
                     TextField(
                       controller: beneficiaryController,
                       autofocus: true,
+                      enabled: !creatingBeneficiary,
                       decoration: const InputDecoration(
                         labelText: 'اسم المستفيد',
                         prefixIcon: Icon(Icons.person_search_rounded),
@@ -273,7 +263,15 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
                       onChanged: (value) {
                         setDialogState(() {
                           beneficiaryQuery = value;
-                          selectedBeneficiary = null;
+                          selectedBeneficiary = beneficiaries
+                              .where(
+                                (beneficiary) =>
+                                    normalizeSampleName(
+                                      beneficiary.displayName,
+                                    ) ==
+                                    normalizeSampleName(value),
+                              )
+                              .firstOrNull;
                         });
                       },
                     ),
@@ -322,6 +320,11 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
                                             );
                                         if (!context.mounted) return;
                                         setDialogState(() {
+                                          if (!beneficiaries.any(
+                                            (row) => row.id == beneficiary.id,
+                                          )) {
+                                            beneficiaries.add(beneficiary);
+                                          }
                                           selectedBeneficiary = beneficiary;
                                           beneficiaryQuery =
                                               beneficiary.displayName;
@@ -376,9 +379,7 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
                       : () async {
                           final navigator = Navigator.of(context);
                           FocusScope.of(context).unfocus();
-                          await Future<void>.delayed(
-                            const Duration(milliseconds: 260),
-                          );
+                          await WidgetsBinding.instance.endOfFrame;
                           if (navigator.mounted) navigator.pop();
                         },
                   child: const Text('إلغاء'),
@@ -391,9 +392,7 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
                           if (beneficiary == null) return;
                           final navigator = Navigator.of(context);
                           FocusScope.of(context).unfocus();
-                          await Future<void>.delayed(
-                            const Duration(milliseconds: 260),
-                          );
+                          await WidgetsBinding.instance.endOfFrame;
                           if (!navigator.mounted) return;
                           navigator.pop(
                             _FreeSampleSaveRequest(
@@ -489,14 +488,13 @@ class _FreeSampleFormScreenState extends ConsumerState<FreeSampleFormScreen> {
         ? <Product>[]
         : products
               .where(
-                (product) => _matchesWordPrefix(product.name, _productQuery),
+                (product) => matchesSampleName(product.name, _productQuery),
               )
-              .take(6)
               .toList();
     final productExists = products.any(
       (product) =>
-          product.name.trim().toLowerCase() ==
-          _productQuery.trim().toLowerCase(),
+          normalizeSampleName(product.name) ==
+          normalizeSampleName(_productQuery),
     );
 
     return AppDrawerScaffold(

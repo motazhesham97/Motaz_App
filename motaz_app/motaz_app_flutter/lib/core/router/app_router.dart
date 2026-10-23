@@ -6,7 +6,7 @@ import '../../features/auth/presentation/registration_screen.dart';
 import '../../features/auth/presentation/sign_in_screen.dart';
 import '../../features/clients/presentation/client_list_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
-import '../../features/expenses/presentation/expense_list_screen.dart';
+import '../../features/expenses/presentation/expense_form_screen.dart';
 import '../../features/free_samples/presentation/free_sample_form_screen.dart';
 import '../../features/free_samples/presentation/free_sample_list_screen.dart';
 import '../../features/follow_up/presentation/follow_up_tasks_screen.dart';
@@ -112,7 +112,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/expenses',
-            builder: (context, state) => const ExpenseListScreen(),
+            builder: (context, state) =>
+                const ExpenseFormScreen(isSectionEntry: true),
           ),
           GoRoute(
             path: '/returns',
@@ -197,7 +198,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/distributions',
-            builder: (context, state) => const DistributionScreen(),
+            builder: (context, state) {
+              final year = int.tryParse(
+                state.uri.queryParameters['year'] ?? '',
+              );
+              final month = int.tryParse(
+                state.uri.queryParameters['month'] ?? '',
+              );
+              final period =
+                  year != null &&
+                      year >= 1 &&
+                      year <= DateTime.now().year &&
+                      month != null &&
+                      month >= 1 &&
+                      month <= 12
+                  ? DateTime(year, month)
+                  : null;
+              return DistributionScreen(initialPeriod: period);
+            },
           ),
           GoRoute(
             path: '/settings',
