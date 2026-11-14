@@ -257,6 +257,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ],
             ),
             async.when(
+              skipLoadingOnReload: true,
               data: (value) => FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
@@ -351,6 +352,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(width: 10),
           Flexible(
             child: async.when(
+              skipLoadingOnReload: true,
               data: (balances) {
                 final amount = selector(balances);
                 return FittedBox(
@@ -399,6 +401,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 20),
             async.when(
+              skipLoadingOnReload: true,
               data: (expenses) {
                 final entries = expenses.entries.toList();
                 int total = 0;
@@ -510,6 +513,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             async.when(
+              skipLoadingOnReload: true,
               data: (items) {
                 if (items.isEmpty) {
                   return const Padding(

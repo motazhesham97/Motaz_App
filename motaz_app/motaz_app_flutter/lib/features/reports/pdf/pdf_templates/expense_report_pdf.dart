@@ -13,40 +13,32 @@ class ExpenseReportPdf {
     final totals = _ExpenseTotals.fromRows(data.rows);
 
     doc.addPage(
-      pw.MultiPage(
+      styles.multiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(24),
         textDirection: pw.TextDirection.rtl,
         build: (context) => [
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                pw.Text(
-                  'كشف المصروفات',
-                  style: styles.titleStyle,
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 6),
-                pw.Text(
-                  data.filterLabel,
-                  style: styles.bodyStyle,
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 14),
-                if (data.rows.isEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      'لا توجد مصروفات',
-                      style: styles.headerStyle,
-                    ),
-                  )
-                else
-                  _expenseTable(styles, groups, totals),
-              ],
-            ),
+          pw.Text(
+            'كشف المصروفات',
+            style: styles.titleStyle,
+            textAlign: pw.TextAlign.center,
           ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            data.filterLabel,
+            style: styles.bodyStyle,
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 14),
+          if (data.rows.isEmpty)
+            pw.Center(
+              child: pw.Text(
+                'لا توجد مصروفات',
+                style: styles.headerStyle,
+              ),
+            )
+          else
+            _expenseTable(styles, groups, totals),
         ],
       ),
     );
@@ -82,6 +74,7 @@ class ExpenseReportPdf {
       },
       children: [
         pw.TableRow(
+          repeat: true,
           decoration: const pw.BoxDecoration(color: PdfStyles.primaryColor),
           children: [
             _headerCell(styles, 'التاريخ'),
@@ -324,7 +317,22 @@ class ExpenseReportPdf {
       }
     }
 
-    return groups.values.toList();
+    final pages = <_ExpenseDayGroup>[];
+    for (final group in groups.values) {
+      final columns = [group.operational, group.production, group.draws];
+      final length = columns
+          .map((rows) => rows.length)
+          .reduce((a, b) => a > b ? a : b);
+      for (var offset = 0; offset < length; offset += 3) {
+        final part = _ExpenseDayGroup(group.date);
+        final targets = [part.operational, part.production, part.draws];
+        for (var index = 0; index < columns.length; index++) {
+          targets[index].addAll(columns[index].skip(offset).take(3));
+        }
+        pages.add(part);
+      }
+    }
+    return pages;
   }
 
   static String _noteFor(ExpenseReportRow row) {

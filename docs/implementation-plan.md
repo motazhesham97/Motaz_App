@@ -538,6 +538,13 @@ All synced operations must be authenticated through the owner account.
 ### Phase 5 — Invoices & Receipts
 **Goal**: Launch the core commercial transaction engine.
 
+**Payment workflow update (2026-11-11)**: Invoice paid amounts may exceed the
+invoice total. Record received money once, settle the source invoice, then older
+client debt, and retain remaining credit. Separate paper receipts remain GENERAL
+records with photos; internal invoice payments are not shown in the paper receipt
+list. See `specs/005-invoices-receipts/spec.md` and
+`docs/reviews/invoice-payment-credit-2026-11-11.md` for the superseding rules.
+
 **Invoices:**
 - Create invoice with product autocomplete, line editing, invoice-level discount
 - Mandatory client selection, local save

@@ -15,6 +15,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final device = ref.watch(currentDeviceProvider);
     final headerDeviceName = device.when(
+      skipLoadingOnReload: true,
       data: (value) {
         final name = value?.deviceName.trim() ?? '';
         return name.isEmpty ? 'جهاز غير معروف' : name;
@@ -65,9 +66,9 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           _SyncOverviewCard(
-            pending: pending.asData?.value ?? 0,
-            failed: failed.asData?.value ?? 0,
-            conflicts: conflicts.asData?.value ?? 0,
+            pending: pending.value ?? 0,
+            failed: failed.value ?? 0,
+            conflicts: conflicts.value ?? 0,
           ),
           const SizedBox(height: 16),
           Text('إجراءات سريعة', style: Theme.of(context).textTheme.titleLarge),
@@ -274,6 +275,7 @@ class _MetricCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   asyncValue.when(
+                    skipLoadingOnReload: true,
                     data: (value) => Text(
                       formatMoney(value),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(

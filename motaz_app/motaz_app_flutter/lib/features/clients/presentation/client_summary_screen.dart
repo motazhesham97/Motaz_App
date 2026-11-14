@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/enums/receipt_type.dart';
 import '../../../core/utils/document_reference_formatter.dart';
 import '../../invoices/presentation/invoice_detail_screen.dart';
 import '../application/client_providers.dart';
@@ -93,6 +94,13 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
   }
 
   String _transactionTitle(Map<String, dynamic> transaction) {
+    if (transaction['receiptType'] == ReceiptType.INVOICE_LINKED) {
+      final reference = invoiceDisplayRef(
+        transaction['invoiceRef'] as String? ?? '',
+        officialNo: transaction['invoiceOfficialNo'] as String?,
+      );
+      return 'دفعة على $reference';
+    }
     final localRef = transaction['localRef'] as String? ?? '';
     final officialNo = transaction['officialNo'] as String?;
     return switch (transaction['type']) {
@@ -249,13 +257,19 @@ class _ClientSummaryScreenState extends ConsumerState<ClientSummaryScreen> {
                                 .split(' ')
                                 .first,
                           ),
-                          onTap: tx['type'] == 'INVOICE'
+                          onTap:
+                              tx['type'] == 'INVOICE' ||
+                                  (tx['receiptType'] ==
+                                          ReceiptType.INVOICE_LINKED &&
+                                      tx['invoiceId'] is String)
                               ? () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => InvoiceDetailScreen(
-                                        invoiceId: tx['id'] as String,
+                                        invoiceId: tx['type'] == 'INVOICE'
+                                            ? tx['id'] as String
+                                            : tx['invoiceId'] as String,
                                       ),
                                     ),
                                   );

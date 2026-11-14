@@ -6,9 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/device_service.dart';
 import '../../../core/database/enums/parent_entity_type.dart';
+import '../../../core/database/enums/record_status.dart';
 import '../../attachments/application/document_attachment_service.dart';
 import '../../attachments/presentation/document_photo_field.dart';
 import '../../clients/application/client_providers.dart';
+import '../../invoices/application/invoice_providers.dart';
+import '../../invoices/presentation/invoice_form_screen.dart';
 import '../application/receipt_providers.dart';
 
 class ReceiptFormScreen extends ConsumerStatefulWidget {
@@ -41,6 +44,7 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
   String? _loadedAttachmentPath;
   bool _saving = false;
   bool _loadingClient = true;
+  bool _openingInvoice = false;
 
   bool get _isEditing => widget.existingReceipt != null;
   String? get _invoiceId =>
@@ -77,9 +81,11 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
 
   Future<void> _loadClient() async {
     try {
-      final client = await ref
-          .read(clientRepositoryProvider)
-          .getById(_clientId!);
+      final clientId = _isInvoiceLinked
+          ? (await ref.read(invoiceRepositoryProvider).getById(_invoiceId!))
+                .clientId
+          : _clientId!;
+      final client = await ref.read(clientRepositoryProvider).getById(clientId);
       if (mounted) {
         setState(() {
           _selectedClient = client;
@@ -91,6 +97,48 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
       if (mounted) {
         setState(() => _loadingClient = false);
       }
+    }
+  }
+
+  Future<void> _editLinkedInvoice() async {
+    if (_openingInvoice || _saving) return;
+    setState(() => _openingInvoice = true);
+    try {
+      final repository = ref.read(invoiceRepositoryProvider);
+      final invoice = await repository.getById(_invoiceId!);
+      final lines = await repository.getLinesForInvoice(invoice.id);
+      final hasReturns = await repository.hasActiveReturns(invoice.id);
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => InvoiceFormScreen(
+            existingInvoice: invoice,
+            existingLines: lines,
+            hasReturns: hasReturns,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      final receipt = await ref
+          .read(receiptRepositoryProvider)
+          .getById(widget.existingReceipt!.id);
+      if (!mounted) return;
+      if (receipt.status == RecordStatus.VOIDED) {
+        Navigator.of(context).pop();
+        return;
+      }
+      _amountController.text = (receipt.amount / 100).toStringAsFixed(2);
+      _noteController.text = receipt.note ?? '';
+      _receiptDate = receipt.receiptDate;
+      await _loadClient();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _openingInvoice = false);
     }
   }
 
@@ -128,8 +176,8 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
 
     final typedClientName = _clientNameController.text.trim();
     final selectedClient = _selectedClient;
-    if (!_isInvoiceLinked &&
-        (selectedClient == null ||
+    if (selectedClient == null ||
+        (!_isInvoiceLinked &&
             selectedClient.displayName.trim() != typedClientName)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('هذا العميل غير مسجل أو غير موجود')),
@@ -159,9 +207,7 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
       if (_isEditing) {
         await repo.updateReceipt(
           id: widget.existingReceipt!.id,
-          clientId: _isInvoiceLinked
-              ? widget.existingReceipt!.clientId
-              : _selectedClient!.id,
+          clientId: _selectedClient!.id,
           amount: _amount,
           receiptDate: _receiptDate,
           note: note.isEmpty ? null : note,
@@ -170,7 +216,7 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
         receiptId = widget.existingReceipt!.id;
       } else if (_isInvoiceLinked) {
         final created = await repo.createInvoiceLinked(
-          clientId: _clientId!,
+          clientId: _selectedClient!.id,
           invoiceId: _invoiceId!,
           amount: _amount,
           receiptDate: _receiptDate,
@@ -269,11 +315,12 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
       );
     }
 
-    final title = _isEditing
-        ? 'تعديل سند قبض'
-        : _isInvoiceLinked
-        ? 'إضافة دفعة مرتبطة بفاتورة'
-        : 'إضافة دفعة عامة';
+    final title = switch ((_isInvoiceLinked, _isEditing)) {
+      (true, true) => 'تعديل دفعة على فاتورة',
+      (true, false) => 'إضافة دفعة على فاتورة',
+      (false, true) => 'تعديل سند قبض',
+      (false, false) => 'إضافة سند قبض',
+    };
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
@@ -293,22 +340,23 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    'المتبقي على الفاتورة: ${(widget.maxAmount! / 100).toStringAsFixed(2)} ر.ي. ويمكن تسجيل مبلغ أكبر كرصيد له للعميل.',
+                    'المتبقي على الفاتورة: ${(widget.maxAmount! / 100).toStringAsFixed(2)} ر.ي.',
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ),
               const SizedBox(height: 12),
               _buildNoteField(),
               const SizedBox(height: 12),
-              DocumentPhotoField(
-                label: 'إضافة صورة السند',
-                localPath: _attachmentPath,
-                onCapture: _captureReceiptPhoto,
-                onRemove: () => setState(() => _attachmentPath = null),
-              ),
+              if (!_isInvoiceLinked)
+                DocumentPhotoField(
+                  label: 'إضافة صورة السند',
+                  localPath: _attachmentPath,
+                  onCapture: _captureReceiptPhoto,
+                  onRemove: () => setState(() => _attachmentPath = null),
+                ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: _saving ? null : _save,
+                onPressed: _saving || _openingInvoice ? null : _save,
                 child: _saving
                     ? SizedBox(
                         height: 20,
@@ -331,7 +379,19 @@ class _ReceiptFormScreenState extends ConsumerState<ReceiptFormScreen> {
     if (_isInvoiceLinked) {
       return InputDecorator(
         decoration: const InputDecoration(labelText: 'العميل'),
-        child: Text(_selectedClient?.displayName ?? '---'),
+        child: Row(
+          children: [
+            Expanded(child: Text(_selectedClient?.displayName ?? '---')),
+            if (_isEditing)
+              IconButton(
+                tooltip: 'تعديل الفاتورة المرتبطة',
+                icon: const Icon(Icons.edit_note_rounded),
+                onPressed: _saving || _openingInvoice
+                    ? null
+                    : _editLinkedInvoice,
+              ),
+          ],
+        ),
       );
     }
 

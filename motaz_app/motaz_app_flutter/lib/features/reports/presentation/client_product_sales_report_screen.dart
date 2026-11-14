@@ -10,8 +10,6 @@ import '../../clients/application/client_providers.dart';
 import '../application/report_providers.dart';
 import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
-import '../pdf/pdf_styles.dart';
-import '../pdf/pdf_templates/client_product_sales_report_pdf.dart';
 
 enum _ReportPeriod {
   today,
@@ -58,6 +56,7 @@ class _ClientProductSalesReportScreenState
 
     if (!_didRequestClient && _selectedClient == null) {
       clientsAsync.when(
+        skipLoadingOnReload: true,
         data: (clients) {
           _didRequestClient = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -123,6 +122,7 @@ class _ClientProductSalesReportScreenState
                             trailing: TextButton.icon(
                               onPressed: () {
                                 final clients = clientsAsync.when(
+                                  skipLoadingOnReload: true,
                                   data: (value) => value,
                                   loading: () => null,
                                   error: (_, _) => null,
@@ -168,6 +168,7 @@ class _ClientProductSalesReportScreenState
                   const Divider(height: 1),
                   Expanded(
                     child: reportAsync!.when(
+                      skipLoadingOnReload: true,
                       data: (data) {
                         if (data.rows.isEmpty) {
                           return const Center(
@@ -297,6 +298,7 @@ class _ClientProductSalesReportScreenState
   Widget _buildClientEmptyState(AsyncValue<List<Client>> clientsAsync) {
     return Center(
       child: clientsAsync.when(
+        skipLoadingOnReload: true,
         data: (clients) => FilledButton.icon(
           onPressed: () => _chooseClient(clients),
           icon: const Icon(Icons.person_search_rounded),
@@ -418,6 +420,9 @@ class _ClientProductSalesReportScreenState
   }
 
   Future<void> _exportPdf() async {
+    if (_isExporting) {
+      return;
+    }
     final selectedClient = _selectedClient;
     if (selectedClient == null) return;
 
@@ -432,6 +437,7 @@ class _ClientProductSalesReportScreenState
       ),
     );
     final data = asyncData.when(
+      skipLoadingOnReload: true,
       data: (value) => value,
       loading: () => null,
       error: (_, _) => null,
@@ -440,10 +446,8 @@ class _ClientProductSalesReportScreenState
 
     setState(() => _isExporting = true);
     try {
-      final styles = await PdfStyles.load();
-      final doc = ClientProductSalesReportPdf.generate(styles, data);
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(PdfReportKind.products, data),
         PdfReportFileNames.dated(
           'تقرير مبيعات منتجات العميل',
           subject: selectedClient.displayName,
@@ -451,6 +455,10 @@ class _ClientProductSalesReportScreenState
       );
       if (!mounted) return;
       PdfGenerator.showSavedSnackBar(context, savedPath);
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

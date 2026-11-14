@@ -6,6 +6,39 @@ import 'package:motaz_app_flutter/features/reports/presentation/client_statement
 
 void main() {
   testWidgets(
+    'statement labels invoice payments without calling them paper receipts',
+    (tester) async {
+      final entry = ClientStatementEntry(
+        entityId: 'payment',
+        parentEntityType: ParentEntityType.RECEIPT,
+        type: StatementEntryType.receipt,
+        isInvoicePayment: true,
+        date: DateTime(2026, 1, 1),
+        reference: 'الفاتورة رقم 123',
+        amount: 1500000,
+        runningBalance: -500000,
+      );
+      for (final width in [360.0, 900.0]) {
+        tester.view.physicalSize = Size(width, 720);
+        tester.view.devicePixelRatio = 1;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ClientStatementEntryCard(entry: entry),
+            ),
+          ),
+        );
+        expect(find.text('دفعة على فاتورة'), findsOneWidget);
+        expect(find.text('سند قبض'), findsNothing);
+        expect(find.text('الفاتورة رقم 123'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+    },
+  );
+
+  testWidgets(
     'ClientStatementEntryCard fits narrow mobile width without overflow',
     (tester) async {
       addTearDown(

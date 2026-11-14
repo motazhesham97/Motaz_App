@@ -16,75 +16,67 @@ class SalesReportPdf {
     final doc = styles.createDocument();
 
     doc.addPage(
-      pw.MultiPage(
+      styles.multiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         build: (context) => [
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('تقرير المبيعات', style: styles.titleStyle),
-                pw.SizedBox(height: 8),
-                pw.Text(
-                  '${_formatDate(range.start)} - ${_formatDate(range.end)}',
-                  style: styles.bodyStyle,
-                ),
-                pw.SizedBox(height: 16),
-                if (data.rows.isEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      'لا توجد بيانات',
-                      style: styles.headerStyle,
-                    ),
-                  )
-                else ...[
-                  pw.TableHelper.fromTextArray(
-                    headers: [
-                      'المرجع',
-                      'العميل',
-                      'التاريخ',
-                      'الإجمالي',
-                      'الخصم',
-                    ],
-                    data: data.rows
-                        .map(
-                          (r) => [
-                            invoiceDisplayRef(r.localRef),
-                            r.clientName,
-                            _formatDate(r.invoiceDate),
-                            formatMoneyPlain(r.total),
-                            formatMoneyPlain(r.discount),
-                          ],
-                        )
-                        .toList(),
-                    headerStyle: styles.tableHeaderStyle,
-                    cellStyle: styles.tableCellStyle,
-                    headerDecoration: const pw.BoxDecoration(
-                      color: PdfStyles.primaryColor,
-                    ),
-                    columnWidths: {
-                      0: const pw.FlexColumnWidth(1.5),
-                      1: const pw.FlexColumnWidth(2.5),
-                      2: const pw.FlexColumnWidth(1.5),
-                      3: const pw.FlexColumnWidth(1.5),
-                      4: const pw.FlexColumnWidth(1.5),
-                    },
-                  ),
-                  pw.SizedBox(height: 20),
-                  pw.Divider(),
-                  pw.SizedBox(height: 8),
-                  _summaryRow(styles, 'إجمالي المبيعات', data.grossSales),
-                  _summaryRow(styles, 'الخصومات', -data.totalDiscounts),
-                  _summaryRow(styles, 'المرتجعات', -data.totalReturns),
-                  pw.Divider(),
-                  _summaryRow(styles, 'صافي المبيعات', data.netSales),
-                  ..._attachmentsSection(styles, data),
-                ],
-              ],
-            ),
+          pw.Text('تقرير المبيعات', style: styles.titleStyle),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            '${_formatDate(range.start)} - ${_formatDate(range.end)}',
+            style: styles.bodyStyle,
           ),
+          pw.SizedBox(height: 16),
+          if (data.rows.isEmpty)
+            pw.Center(
+              child: pw.Text(
+                'لا توجد بيانات',
+                style: styles.headerStyle,
+              ),
+            )
+          else ...[
+            pw.TableHelper.fromTextArray(
+              headers: [
+                'المرجع',
+                'العميل',
+                'التاريخ',
+                'الإجمالي',
+                'الخصم',
+              ],
+              data: data.rows
+                  .map(
+                    (r) => [
+                      invoiceDisplayRef(r.localRef),
+                      r.clientName,
+                      _formatDate(r.invoiceDate),
+                      formatMoneyPlain(r.total),
+                      formatMoneyPlain(r.discount),
+                    ],
+                  )
+                  .toList(),
+              headerStyle: styles.tableHeaderStyle,
+              cellStyle: styles.tableCellStyle,
+              headerDecoration: const pw.BoxDecoration(
+                color: PdfStyles.primaryColor,
+              ),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1.5),
+                1: const pw.FlexColumnWidth(2.5),
+                2: const pw.FlexColumnWidth(1.5),
+                3: const pw.FlexColumnWidth(1.5),
+                4: const pw.FlexColumnWidth(1.5),
+              },
+            ),
+            pw.SizedBox(height: 20),
+            pw.Divider(),
+            pw.SizedBox(height: 8),
+            _summaryRow(styles, 'إجمالي المبيعات', data.grossSales),
+            _summaryRow(styles, 'الخصومات', -data.totalDiscounts),
+            _summaryRow(styles, 'المرتجعات', -data.totalReturns),
+            pw.Divider(),
+            _summaryRow(styles, 'صافي المبيعات', data.netSales),
+            ..._attachmentsSection(styles, data),
+          ],
         ],
       ),
     );

@@ -8,8 +8,6 @@ import '../../free_samples/application/free_sample_providers.dart';
 import '../../free_samples/data/free_sample_repository.dart';
 import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
-import '../pdf/pdf_styles.dart';
-import '../pdf/pdf_templates/free_sample_report_pdf.dart';
 import 'widgets/date_range_picker.dart';
 
 class FreeSampleReportScreen extends ConsumerStatefulWidget {
@@ -74,17 +72,18 @@ class _FreeSampleReportScreenState
   }
 
   Future<void> _exportPdf(List<FreeSampleSummary> rows) async {
+    if (_isExporting) {
+      return;
+    }
     setState(() => _isExporting = true);
     try {
-      final styles = await PdfStyles.load();
-      final doc = FreeSampleReportPdf.generate(
-        styles,
-        rows: rows,
-        filterLabel: _filterLabel(),
-      );
       final subject = _beneficiaryQuery.trim();
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(
+          PdfReportKind.freeSamples,
+          rows,
+          filterLabel: _filterLabel(),
+        ),
         PdfReportFileNames.dated(
           'تقرير العينات المجانية',
           subject: subject.isEmpty ? null : subject,
@@ -92,6 +91,10 @@ class _FreeSampleReportScreenState
       );
       if (!mounted) return;
       PdfGenerator.showSavedSnackBar(context, savedPath);
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -138,6 +141,7 @@ class _FreeSampleReportScreenState
             const Divider(height: 1),
             Expanded(
               child: samplesAsync.when(
+                skipLoadingOnReload: true,
                 data: (rows) {
                   final filtered = _filter(rows);
                   if (filtered.isEmpty) {

@@ -7,10 +7,11 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/enums/audit_operation.dart';
 import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
-import '../../../core/database/enums/receipt_type.dart';
 import '../../../core/database/enums/sync_outbox_status.dart';
 import '../../../core/database/enums/sync_status.dart';
-import '../../receipts/data/receipt_allocator.dart';
+import '../../receipts/data/receipt_repository.dart';
+
+typedef InvoicePayment = ({Receipt receipt, int allocatedAmount});
 
 class InvoiceRepository {
   InvoiceRepository(this._db);
@@ -55,19 +56,12 @@ class InvoiceRepository {
 
     final total = subtotal - discount;
 
-    if (paidAmount > total) {
-      throw ArgumentError('Paid amount cannot exceed total');
-    }
-
     final device = await (_db.select(
       _db.devices,
     )..where((t) => t.id.equals(deviceId))).getSingle();
     final sequence = device.nextInvoiceSequence;
     final localRef =
         'INV-${device.deviceCode}-${sequence.toString().padLeft(3, '0')}';
-    final receiptSequence = device.nextReceiptSequence;
-    final receiptLocalRef =
-        'REC-${device.deviceCode}-${receiptSequence.toString().padLeft(3, '0')}';
 
     final invoiceId = _uuid.v4();
     final now = DateTime.now();
@@ -180,109 +174,17 @@ class InvoiceRepository {
           );
 
       if (paidAmount > 0) {
-        final receiptId = _uuid.v4();
-        final receiptPayload = jsonEncode({
-          'id': receiptId,
-          'localRef': receiptLocalRef,
-          'receiptType': ReceiptType.INVOICE_LINKED.index,
-          'clientId': clientId,
-          'invoiceId': invoiceId,
-          'amount': paidAmount,
-          'receiptDate': invoiceDate.toIso8601String(),
-          'note': null,
-          'status': RecordStatus.ACTIVE.index,
-          'voidReason': null,
-          'createdAt': now.toIso8601String(),
-          'updatedAt': now.toIso8601String(),
-          'deviceId': deviceId,
-          'rowVersion': 1,
-          'syncStatus': SyncStatus.PENDING.index,
-        });
-
-        await _db
-            .into(_db.receipts)
-            .insert(
-              ReceiptsCompanion(
-                id: Value(receiptId),
-                localRef: Value(receiptLocalRef),
-                receiptType: Value(ReceiptType.INVOICE_LINKED),
-                clientId: Value(clientId),
-                invoiceId: Value(invoiceId),
-                amount: Value(paidAmount),
-                receiptDate: Value(invoiceDate),
-                note: Value.absent(),
-                status: Value(RecordStatus.ACTIVE),
-                voidReason: Value.absent(),
-                createdAt: Value(now),
-                updatedAt: Value(now),
-                deviceId: Value(deviceId),
-                rowVersion: const Value(1),
-                syncStatus: Value(SyncStatus.PENDING),
-              ),
-            );
-
-        final allocationId = _uuid.v4();
-        await _db
-            .into(_db.receiptAllocations)
-            .insert(
-              ReceiptAllocationsCompanion(
-                id: Value(allocationId),
-                receiptId: Value(receiptId),
-                invoiceId: Value(invoiceId),
-                allocatedAmount: Value(paidAmount),
-                createdAt: Value(now),
-                updatedAt: Value(now),
-              ),
-            );
-
-        await _db
-            .into(_db.syncOutbox)
-            .insert(
-              SyncOutboxCompanion.insert(
-                id: _uuid.v4(),
-                entityType: ParentEntityType.RECEIPT,
-                entityId: receiptId,
-                operation: AuditOperation.CREATE,
-                payload: receiptPayload,
-                rowVersion: 1,
-                deviceId: deviceId,
-                createdAt: now,
-                status: Value(SyncOutboxStatus.PENDING),
-              ),
-            );
-
-        final allocPayload = jsonEncode({
-          'id': allocationId,
-          'receiptId': receiptId,
-          'invoiceId': invoiceId,
-          'allocatedAmount': paidAmount,
-          'createdAt': now.toIso8601String(),
-          'updatedAt': now.toIso8601String(),
-        });
-        await _db
-            .into(_db.syncOutbox)
-            .insert(
-              SyncOutboxCompanion.insert(
-                id: _uuid.v4(),
-                entityType: ParentEntityType.RECEIPT_ALLOCATION,
-                entityId: allocationId,
-                operation: AuditOperation.CREATE,
-                payload: allocPayload,
-                rowVersion: 1,
-                deviceId: deviceId,
-                createdAt: now,
-                status: Value(SyncOutboxStatus.PENDING),
-              ),
-            );
-      }
-
-      if (paidAmount > 0) {
-        await (_db.update(
-          _db.devices,
-        )..where((t) => t.id.equals(deviceId))).write(
-          DevicesCompanion(
-            nextReceiptSequence: Value(receiptSequence + 1),
-          ),
+        await ReceiptRepository(_db).createInvoiceLinked(
+          clientId: clientId,
+          invoiceId: invoiceId,
+          amount: paidAmount,
+          receiptDate: invoiceDate,
+          deviceId: deviceId,
+        );
+      } else {
+        await ReceiptRepository(_db).reconcileClientPayments(
+          clientId: clientId,
+          deviceId: deviceId,
         );
       }
     });
@@ -333,6 +235,32 @@ class InvoiceRepository {
         )
         .getSingle();
     return row.read<int>('collected');
+  }
+
+  Future<List<InvoicePayment>> getPaymentsForInvoice(String invoiceId) async {
+    final rows = await _db
+        .customSelect(
+          'SELECT r.*, COALESCE((SELECT SUM(a.allocated_amount) FROM receipt_allocations a '
+          'WHERE a.receipt_id = r.id AND a.invoice_id = ?), 0) AS allocated_to_invoice '
+          'FROM receipts r WHERE r.status = ? AND (r.invoice_id = ? OR EXISTS('
+          'SELECT 1 FROM receipt_allocations a WHERE a.receipt_id = r.id '
+          'AND a.invoice_id = ? AND a.allocated_amount > 0)) '
+          'ORDER BY r.receipt_date, r.created_at, r.id',
+          variables: [
+            Variable(invoiceId),
+            Variable(RecordStatus.ACTIVE.index),
+            Variable(invoiceId),
+            Variable(invoiceId),
+          ],
+        )
+        .get();
+    return [
+      for (final row in rows)
+        (
+          receipt: _db.receipts.map(row.data),
+          allocatedAmount: row.read<int>('allocated_to_invoice'),
+        ),
+    ];
   }
 
   Future<int> getRemainingBalance(String invoiceId) async {
@@ -393,6 +321,7 @@ class InvoiceRepository {
     required String? note,
     required List<SalesInvoiceLinesCompanion> lines,
     required String deviceId,
+    int? paidAmount,
   }) async {
     final existing = await getById(id);
 
@@ -430,64 +359,59 @@ class InvoiceRepository {
 
     final total = subtotal - discount;
 
-    if (await hasActiveReceipts(id)) {
-      final collectedAmount = await getCollectedAmount(id);
-      if (total < collectedAmount) {
-        throw ArgumentError(
-          'Total cannot be less than collected amount ($collectedAmount)',
-        );
-      }
-    }
-
     final now = DateTime.now();
-    final newVersion = existing.rowVersion + 1;
+    final baseVersion =
+        existing.syncStatus == SyncStatus.SYNCED || existing.rowVersion <= 1
+        ? existing.rowVersion
+        : existing.rowVersion - 1;
+    final newVersion = baseVersion + 1;
 
     await _db.transaction(() async {
-      await (_db.delete(
-        _db.salesInvoiceLines,
-      )..where((t) => t.invoiceId.equals(id))).go();
-
-      for (final line in preparedLines) {
-        final lineId = _uuid.v4();
-        await _db
-            .into(_db.salesInvoiceLines)
-            .insert(
-              line.copyWith(
-                id: Value(lineId),
-                invoiceId: Value(id),
-                createdAt: Value(now),
-                updatedAt: Value(now),
-              ),
-            );
-
-        final linePayload = jsonEncode({
-          'id': lineId,
-          'invoiceId': id,
-          'productId': line.productId.present ? line.productId.value : null,
-          'quantity': line.quantity.present ? line.quantity.value : null,
-          'unitPrice': line.unitPrice.present ? line.unitPrice.value : null,
-          'lineTotal': line.lineTotal.present ? line.lineTotal.value : null,
-          'productionDate': line.productionDate.present
-              ? line.productionDate.value?.toIso8601String()
-              : null,
-          'createdAt': now.toIso8601String(),
-          'updatedAt': now.toIso8601String(),
-        });
-        await _db
-            .into(_db.syncOutbox)
-            .insert(
-              SyncOutboxCompanion.insert(
-                id: _uuid.v4(),
-                entityType: ParentEntityType.SALES_INVOICE_LINE,
-                entityId: lineId,
-                operation: AuditOperation.CREATE,
-                payload: linePayload,
-                rowVersion: newVersion,
-                deviceId: deviceId,
-                createdAt: now,
-                status: Value(SyncOutboxStatus.PENDING),
-              ),
-            );
+      if (!await _hasSameLines(id, preparedLines)) {
+        await (_db.delete(
+          _db.salesInvoiceLines,
+        )..where((t) => t.invoiceId.equals(id))).go();
+        for (final line in preparedLines) {
+          final lineId = _uuid.v4();
+          await _db
+              .into(_db.salesInvoiceLines)
+              .insert(
+                line.copyWith(
+                  id: Value(lineId),
+                  invoiceId: Value(id),
+                  createdAt: Value(now),
+                  updatedAt: Value(now),
+                ),
+              );
+          final linePayload = jsonEncode({
+            'id': lineId,
+            'invoiceId': id,
+            'productId': line.productId.present ? line.productId.value : null,
+            'quantity': line.quantity.present ? line.quantity.value : null,
+            'unitPrice': line.unitPrice.present ? line.unitPrice.value : null,
+            'lineTotal': line.lineTotal.present ? line.lineTotal.value : null,
+            'productionDate': line.productionDate.present
+                ? line.productionDate.value?.toIso8601String()
+                : null,
+            'createdAt': now.toIso8601String(),
+            'updatedAt': now.toIso8601String(),
+          });
+          await _db
+              .into(_db.syncOutbox)
+              .insert(
+                SyncOutboxCompanion.insert(
+                  id: _uuid.v4(),
+                  entityType: ParentEntityType.SALES_INVOICE_LINE,
+                  entityId: lineId,
+                  operation: AuditOperation.CREATE,
+                  payload: linePayload,
+                  rowVersion: newVersion,
+                  deviceId: deviceId,
+                  createdAt: now,
+                  status: const Value(SyncOutboxStatus.PENDING),
+                ),
+              );
+        }
       }
 
       await (_db.update(
@@ -531,13 +455,49 @@ class InvoiceRepository {
               entityId: id,
               operation: AuditOperation.UPDATE,
               payload: invoicePayload,
-              rowVersion: existing.rowVersion,
+              rowVersion: baseVersion,
               deviceId: deviceId,
               createdAt: now,
               status: Value(SyncOutboxStatus.PENDING),
             ),
           );
+      await ReceiptRepository(_db).updateInvoiceLinkedPayments(
+        invoiceId: id,
+        paidAmount: paidAmount,
+        deviceId: deviceId,
+        previousClientId: existing.clientId,
+      );
     });
+  }
+
+  Future<bool> _hasSameLines(
+    String invoiceId,
+    List<SalesInvoiceLinesCompanion> lines,
+  ) async {
+    final existing = await getLinesForInvoice(invoiceId);
+    if (existing.length != lines.length) return false;
+    final unmatched = existing
+        .map(
+          (line) => (
+            line.productId,
+            line.quantity,
+            line.unitPrice,
+            line.productionDate?.millisecondsSinceEpoch,
+          ),
+        )
+        .toList();
+    for (final line in lines) {
+      final key = (
+        line.productId.present ? line.productId.value : '',
+        line.quantity.present ? line.quantity.value : 1,
+        line.unitPrice.present ? line.unitPrice.value : 0,
+        line.productionDate.present
+            ? line.productionDate.value?.millisecondsSinceEpoch
+            : null,
+      );
+      if (!unmatched.remove(key)) return false;
+    }
+    return true;
   }
 
   Future<void> updateNote(String id, String? note, String deviceId) async {
@@ -612,27 +572,6 @@ class InvoiceRepository {
     final newVersion = existing.rowVersion + 1;
 
     await _db.transaction(() async {
-      final allocRows = await _db
-          .customSelect(
-            'SELECT ra.receipt_id AS receipt_id '
-            'FROM receipt_allocations ra '
-            'INNER JOIN receipts r ON ra.receipt_id = r.id '
-            'WHERE ra.invoice_id = ? AND r.status = ?',
-            variables: [
-              Variable(id),
-              Variable(RecordStatus.ACTIVE.index),
-            ],
-          )
-          .get();
-
-      final affectedReceiptIds = allocRows
-          .map((r) => r.read<String>('receipt_id'))
-          .toSet();
-
-      await (_db.delete(
-        _db.receiptAllocations,
-      )..where((t) => t.invoiceId.equals(id))).go();
-
       await (_db.update(
         _db.salesInvoices,
       )..where((t) => t.id.equals(id))).write(
@@ -678,53 +617,10 @@ class InvoiceRepository {
             ),
           );
 
-      if (affectedReceiptIds.isNotEmpty) {
-        final allocator = ReceiptAllocator(_db);
-
-        for (final receiptId in affectedReceiptIds) {
-          final receipt = await (_db.select(
-            _db.receipts,
-          )..where((t) => t.id.equals(receiptId))).getSingle();
-
-          final newAllocations = await allocator.allocateFifo(
-            existing.clientId,
-            receipt.amount,
-            excludeInvoiceId: id,
-          );
-
-          for (final alloc in newAllocations) {
-            final allocWithReceipt = alloc.copyWith(
-              receiptId: Value(receiptId),
-            );
-            await _db.into(_db.receiptAllocations).insert(allocWithReceipt);
-
-            final allocId = allocWithReceipt.id.value;
-            final allocPayload = jsonEncode({
-              'id': allocId,
-              'receiptId': receiptId,
-              'invoiceId': allocWithReceipt.invoiceId.value,
-              'allocatedAmount': allocWithReceipt.allocatedAmount.value,
-              'createdAt': now.toIso8601String(),
-              'updatedAt': now.toIso8601String(),
-            });
-            await _db
-                .into(_db.syncOutbox)
-                .insert(
-                  SyncOutboxCompanion.insert(
-                    id: _uuid.v4(),
-                    entityType: ParentEntityType.RECEIPT_ALLOCATION,
-                    entityId: allocId,
-                    operation: AuditOperation.CREATE,
-                    payload: allocPayload,
-                    rowVersion: 1,
-                    deviceId: deviceId,
-                    createdAt: now,
-                    status: Value(SyncOutboxStatus.PENDING),
-                  ),
-                );
-          }
-        }
-      }
+      await ReceiptRepository(_db).reconcileClientPayments(
+        clientId: existing.clientId,
+        deviceId: deviceId,
+      );
     });
   }
 }

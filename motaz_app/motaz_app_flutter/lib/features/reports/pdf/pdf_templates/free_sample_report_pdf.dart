@@ -18,53 +18,45 @@ class FreeSampleReportPdf {
     );
 
     doc.addPage(
-      pw.MultiPage(
+      styles.multiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(24),
         textDirection: pw.TextDirection.rtl,
         build: (context) => [
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                pw.Text(
-                  'تقرير العينات المجانية',
-                  style: styles.titleStyle,
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 6),
-                pw.Text(
-                  filterLabel,
-                  style: styles.bodyStyle,
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 14),
-                if (rows.isEmpty)
-                  pw.Center(
-                    child: pw.Text(
-                      'لا توجد عينات مجانية',
-                      style: styles.headerStyle,
-                    ),
-                  )
-                else ...[
-                  _table(styles, rows),
-                  pw.SizedBox(height: 10),
-                  pw.Align(
-                    alignment: pw.Alignment.centerLeft,
-                    child: pw.Text(
-                      'إجمالي العدد: $totalQuantity',
-                      style: pw.TextStyle(
-                        font: styles.boldFont,
-                        fontSize: 11,
-                        color: PdfStyles.primaryColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          pw.Text(
+            'تقرير العينات المجانية',
+            style: styles.titleStyle,
+            textAlign: pw.TextAlign.center,
           ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            filterLabel,
+            style: styles.bodyStyle,
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 14),
+          if (rows.isEmpty)
+            pw.Center(
+              child: pw.Text(
+                'لا توجد عينات مجانية',
+                style: styles.headerStyle,
+              ),
+            )
+          else ...[
+            _table(styles, rows),
+            pw.SizedBox(height: 10),
+            pw.Align(
+              alignment: pw.Alignment.centerLeft,
+              child: pw.Text(
+                'إجمالي العدد: $totalQuantity',
+                style: pw.TextStyle(
+                  font: styles.boldFont,
+                  fontSize: 11,
+                  color: PdfStyles.primaryColor,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -84,6 +76,7 @@ class FreeSampleReportPdf {
       },
       children: [
         pw.TableRow(
+          repeat: true,
           decoration: const pw.BoxDecoration(color: PdfStyles.primaryColor),
           children: [
             _header(styles, 'الرقم'),

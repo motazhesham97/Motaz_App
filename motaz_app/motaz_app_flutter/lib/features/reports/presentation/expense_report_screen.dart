@@ -13,8 +13,6 @@ import '../../expenses/presentation/expense_form_screen.dart'
 import '../data/report_models.dart';
 import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
-import '../pdf/pdf_styles.dart';
-import '../pdf/pdf_templates/expense_report_pdf.dart';
 import 'widgets/date_range_picker.dart';
 
 class ExpenseReportScreen extends ConsumerStatefulWidget {
@@ -79,16 +77,21 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
   }
 
   Future<void> _exportPdf(List<Expense> expenses) async {
+    if (_isExporting) {
+      return;
+    }
     setState(() => _isExporting = true);
     try {
-      final styles = await PdfStyles.load();
-      final doc = ExpenseReportPdf.generate(styles, _buildReportData(expenses));
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(PdfReportKind.expenses, _buildReportData(expenses)),
         PdfReportFileNames.dated('كشف المصروفات'),
       );
       if (!mounted) return;
       PdfGenerator.showSavedSnackBar(context, savedPath);
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -144,6 +147,7 @@ class _ExpenseReportScreenState extends ConsumerState<ExpenseReportScreen> {
             const Divider(height: 1),
             Expanded(
               child: expensesAsync.when(
+                skipLoadingOnReload: true,
                 data: (expenses) {
                   final filteredExpenses = _filterExpenses(expenses);
                   if (filteredExpenses.isEmpty) {

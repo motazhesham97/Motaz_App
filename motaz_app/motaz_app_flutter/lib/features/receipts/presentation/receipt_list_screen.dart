@@ -197,6 +197,9 @@ class _ReceiptListScreenState extends ConsumerState<ReceiptListScreen> {
                     builder: (context, clientSnapshot) {
                       final clientMap = clientSnapshot.data ?? const {};
                       final visibleReceipts = receipts.where((receipt) {
+                        if (receipt.receiptType != ReceiptType.GENERAL) {
+                          return false;
+                        }
                         if (!_searchOpen) return true;
                         if (_searchMode == _ReceiptSearchMode.date) {
                           final date = _searchDate;

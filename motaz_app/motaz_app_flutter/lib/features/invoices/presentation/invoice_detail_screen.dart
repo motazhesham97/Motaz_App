@@ -9,9 +9,11 @@ import '../../../core/database/database_provider.dart';
 import '../../../core/database/device_service.dart';
 import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
+import '../../../core/database/enums/receipt_type.dart';
 import '../../../core/utils/document_reference_formatter.dart';
 import '../../attachments/application/document_attachment_reader.dart';
 import '../application/invoice_providers.dart';
+import '../data/invoice_repository.dart';
 import '../../clients/application/client_providers.dart';
 import '../../receipts/presentation/receipt_form_screen.dart';
 import 'invoice_form_screen.dart';
@@ -29,7 +31,7 @@ class InvoiceDetailScreen extends ConsumerStatefulWidget {
 class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
   SalesInvoice? _invoice;
   List<SalesInvoiceLine> _lines = [];
-  List<Receipt> _receipts = [];
+  List<InvoicePayment> _payments = [];
   Client? _client;
   int _collectedAmount = 0;
   int _returnAmount = 0;
@@ -52,7 +54,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
     try {
       final invoice = await repo.getById(widget.invoiceId);
       final lines = await repo.getLinesForInvoice(widget.invoiceId);
-      final receipts = await repo.getReceiptsForInvoice(widget.invoiceId);
+      final payments = await repo.getPaymentsForInvoice(widget.invoiceId);
       final collected = await repo.getCollectedAmount(widget.invoiceId);
       final returned = await repo.getActiveReturnTotal(widget.invoiceId);
       final remaining = await repo.getRemainingBalance(widget.invoiceId);
@@ -80,7 +82,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
         setState(() {
           _invoice = invoice;
           _lines = lines;
-          _receipts = receipts;
+          _payments = payments;
           _collectedAmount = collected;
           _returnAmount = returned;
           _remainingBalance = remaining;
@@ -263,8 +265,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           horizontal: 16,
                           vertical: 4,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          spacing: 12,
+                          runSpacing: 6,
                           children: [
                             const Text('الخصم:'),
                             Text(_formatMoney(invoice.discount)),
@@ -278,8 +282,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         horizontal: 16,
                         vertical: 4,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        spacing: 12,
+                        runSpacing: 6,
                         children: [
                           Text(
                             'الإجمالي:',
@@ -308,23 +314,42 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
-                    if (_receipts.isEmpty)
+                    if (_payments.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 8),
                         child: Text('لا توجد دفعات'),
                       )
                     else
-                      ..._receipts.map(
-                        (r) => ListTile(
+                      ..._payments.map(
+                        (payment) => ListTile(
                           dense: true,
+                          isThreeLine: true,
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ReceiptFormScreen(
+                                  existingReceipt: payment.receipt,
+                                ),
+                              ),
+                            );
+                            if (mounted) await _loadData();
+                          },
                           title: Text(
-                            receiptDisplayRef(
-                              r.localRef,
-                              officialNo: r.officialNo,
-                            ),
+                            payment.receipt.receiptType ==
+                                    ReceiptType.INVOICE_LINKED
+                                ? payment.receipt.invoiceId == invoice.id
+                                      ? 'دفعة على الفاتورة'
+                                      : 'تسوية من دفعة فاتورة أخرى'
+                                : receiptDisplayRef(
+                                    payment.receipt.localRef,
+                                    officialNo: payment.receipt.officialNo,
+                                  ),
                           ),
                           subtitle: Text(
-                            '${_formatMoney(r.amount)} - ${r.receiptDate.year}-${r.receiptDate.month.toString().padLeft(2, '0')}-${r.receiptDate.day.toString().padLeft(2, '0')}',
+                            '${payment.receipt.receiptDate.year}-${payment.receipt.receiptDate.month.toString().padLeft(2, '0')}-${payment.receipt.receiptDate.day.toString().padLeft(2, '0')}\n'
+                            'المدفوع: ${_formatMoney(payment.receipt.amount)}\n'
+                            'المخصص لهذه الفاتورة: ${_formatMoney(payment.allocatedAmount)}',
                           ),
                         ),
                       ),
@@ -334,10 +359,12 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         horizontal: 16,
                         vertical: 4,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        spacing: 12,
+                        runSpacing: 6,
                         children: [
-                          const Text('المحصل:'),
+                          const Text('المسدد لهذه الفاتورة:'),
                           Text(_formatMoney(_collectedAmount)),
                         ],
                       ),
@@ -348,8 +375,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           horizontal: 16,
                           vertical: 4,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          spacing: 12,
+                          runSpacing: 6,
                           children: [
                             const Text('المرتجع:'),
                             Text(
@@ -364,8 +393,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                         horizontal: 16,
                         vertical: 4,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        spacing: 12,
+                        runSpacing: 6,
                         children: [
                           const Text('المبلغ المتبقي:'),
                           Text(

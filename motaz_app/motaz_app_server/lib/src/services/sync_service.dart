@@ -521,20 +521,11 @@ class SyncService {
   ) async {
     final tableName = _entityTableName(entityType);
     if (tableName == null) return [];
-    if (!_hasRowVersion(entityType)) return [];
     await _backfillOfficialNumbers(session, entityType, tableName);
 
     final pageSize = limit.clamp(1, 100);
-    final afterClause = afterId == null
-        ? '"rowVersion" > @sinceRowVersion'
-        : '("rowVersion" > @sinceRowVersion OR '
-              '("rowVersion" = @sinceRowVersion AND "id" > CAST(@afterId AS uuid)))';
     final rows = await session.db.unsafeQuery(
-      'SELECT row_to_json(t) FROM "' +
-          tableName +
-          '" t WHERE ' +
-          afterClause +
-          ' ORDER BY "rowVersion" ASC, "id" ASC LIMIT @limit',
+      changedRowsSql(entityType, hasAfterId: afterId != null)!,
       parameters: QueryParameters.named({
         'sinceRowVersion': sinceRowVersion,
         'limit': pageSize + 1,
@@ -546,6 +537,23 @@ class SyncService {
       if (value is String) return value;
       return jsonEncode(value);
     }).toList();
+  }
+
+  static String? changedRowsSql(String entityType, {required bool hasAfterId}) {
+    final tableName = _entityTableName(entityType);
+    if (tableName == null) return null;
+    // Row versions belong to individual records, not a global change stream.
+    // Replay the boundary timestamp on each cycle; clients skip identical rows.
+    final cursor = _changeCursorSql;
+    final afterClause = !hasAfterId
+        ? '$cursor >= @sinceRowVersion'
+        : '($cursor > @sinceRowVersion OR '
+              '($cursor = @sinceRowVersion AND "id" > CAST(@afterId AS uuid)))';
+    return 'SELECT row_to_json(t) FROM "' +
+          tableName +
+          '" t WHERE ' +
+          afterClause +
+          ' ORDER BY $cursor ASC, "id" ASC LIMIT @limit';
   }
 
   static PullResponse buildPullResponse(
@@ -573,13 +581,12 @@ class SyncService {
   ) async {
     final tableName = _entityTableName(entityType);
     if (tableName == null) return 0;
-    if (!_hasRowVersion(entityType)) return 0;
 
     final rows = await session.db.unsafeQuery(
-      'SELECT COALESCE(MAX("rowVersion"), 0) FROM "' + tableName + '"',
+      'SELECT COALESCE(MAX($_changeCursorSql), 0) FROM "' + tableName + '"',
     );
     if (rows.isEmpty) return 0;
-    return rows.first.first as int;
+    return (rows.first.first as num).toInt();
   }
 
   static int latestRowVersionFromRows(
@@ -589,6 +596,17 @@ class SyncService {
     var latest = fallbackRowVersion;
     for (final rowJson in rows) {
       final row = jsonDecode(rowJson) as Map<String, dynamic>;
+      final updatedAt = row['updatedAt'];
+      if (updatedAt is String) {
+        final parsed = DateTime.parse(updatedAt);
+        final utc = parsed.isUtc ? parsed : DateTime.utc(
+          parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute,
+          parsed.second, parsed.millisecond, parsed.microsecond,
+        );
+        final cursor = utc.microsecondsSinceEpoch;
+        if (cursor > latest) latest = cursor;
+        continue;
+      }
       final value = row['rowVersion'];
       if (value is int && value > latest) {
         latest = value;
@@ -598,6 +616,9 @@ class SyncService {
     }
     return latest;
   }
+
+  static const _changeCursorSql =
+      '(FLOOR(EXTRACT(EPOCH FROM "updatedAt") * 1000000)::bigint)';
 
   static Future<List<ConflictLog>> getPendingConflicts(
     Session session,

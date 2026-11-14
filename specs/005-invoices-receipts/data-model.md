@@ -95,7 +95,7 @@ All 4 required tables already exist from Phase 2. **No schema migration needed**
 **Indexes**: `idx_receipt_client` (clientId), `idx_receipt_date` (receiptDate), `idx_receipt_status` (status)
 
 **Business rules**:
-- INVOICE_LINKED: `amount` ≤ invoice remaining balance; `invoiceId` required
+- INVOICE_LINKED: internal money recorded on an invoice, not a separate paper receipt; positive `amount` may exceed invoice capacity; `invoiceId` identifies the source invoice
 - GENERAL: `invoiceId` null; auto-allocated via FIFO
 - Void requires reason
 
@@ -108,7 +108,7 @@ All 4 required tables already exist from Phase 2. **No schema migration needed**
 | id | TEXT(36) | PK | UUID primary key |
 | receiptId | TEXT(36) | FK → Receipts.id, NOT NULL | Source receipt |
 | invoiceId | TEXT(36) | FK → SalesInvoices.id, NOT NULL | Target invoice |
-| allocatedAmount | INTEGER | NOT NULL, > 0 | Allocated portion (minor units) |
+| allocatedAmount | INTEGER | NOT NULL, >= 0 | Allocated portion; zero preserves a reversal tombstone |
 | createdAt | DATETIME | NOT NULL | Creation timestamp |
 | updatedAt | DATETIME | NOT NULL | Last update timestamp |
 
@@ -116,8 +116,11 @@ All 4 required tables already exist from Phase 2. **No schema migration needed**
 
 **Business rules**:
 - Each receipt can have multiple allocations across different invoices
-- `SUM(allocations.allocatedAmount WHERE receipt.status=ACTIVE)` ≤ invoice.total
-- Allocations are deleted when a receipt is voided
+- Per-invoice active allocations cannot exceed invoice total less active returns
+- Per-payment active allocations cannot exceed its full received amount
+- INVOICE_LINKED payments allocate to source invoice first, then oldest other client debts; GENERAL paper receipts use FIFO
+- Unallocated received money is client credit; it is not another payment
+- Voiding preserves zero allocations for synchronization rather than hard-deleting them
 
 ---
 
@@ -140,13 +143,13 @@ ACTIVE → VOIDED (requires reason)
 ```
 
 - No transition from VOIDED → ACTIVE (no un-void)
-- No editing of receipts — only create and void
+- Active payments can be corrected; linked payment ownership follows its source invoice
 
 ### Allocation Lifecycle
 
-- Created when receipt is created (INVOICE_LINKED → single allocation; GENERAL → FIFO allocations)
-- Deleted when receipt is voided
-- Deleted and re-created when invoice is voided (reallocation to other invoices)
+- Created/reconciled in the same local transaction as invoice, payment, or return changes
+- Existing allocation IDs are retained by receipt/invoice pair; repeated unchanged reconciliation creates no mutations
+- Released allocations become zero tombstones; remaining money reallocates to active debt or remains credit
 
 ---
 
@@ -154,7 +157,7 @@ ACTIVE → VOIDED (requires reason)
 
 | Value | Formula | Usage |
 |---|---|---|
-| Invoice remaining balance | `invoice.total - SUM(alloc.allocatedAmount WHERE receipt.status=ACTIVE)` | Invoice detail, receipt validation |
-| Client outstanding balance | `SUM(invoice.total WHERE status=ACTIVE) - SUM(receipt.amount WHERE status=ACTIVE)` | Client summary |
+| Invoice remaining balance | `invoice.total - active returns - SUM(active payment allocations)` | Invoice detail |
+| Client outstanding balance | `active invoice totals - active received amounts - active returns` | Client summary; negative means credit |
 | Client credit balance | Excess receipt amounts not allocated to any invoice | Client summary |
 | Invoice subtotal | `SUM(line.lineTotal)` | Invoice form, discount validation |

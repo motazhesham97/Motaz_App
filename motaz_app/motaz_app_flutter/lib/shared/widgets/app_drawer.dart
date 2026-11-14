@@ -90,9 +90,16 @@ const appDestinations = [
   ),
 ];
 
-class AppShell extends StatelessWidget {
+class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.child});
   final Widget child;
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
@@ -117,29 +124,40 @@ class AppShell extends StatelessWidget {
               ),
               Expanded(
                 child: ClipRRect(
-                  child: child,
+                  child: widget.child,
                 ),
               ),
             ],
           )
-        : child;
+        : widget.child;
 
-    return SettlementReviewNotice(
-      suppressed: currentRoute == '/distributions',
-      child: Scaffold(
-        // Each page handles its own keyboard insets, not the surrounding shell.
-        resizeToAvoidBottomInset: false,
-        drawer: isDesktop
-            ? null
-            : Drawer(
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.horizontal(
-                    left: Radius.circular(24),
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        final scaffold = _scaffoldKey.currentState;
+        if (scaffold?.isDrawerOpen ?? false) {
+          scaffold!.closeDrawer();
+          return true;
+        }
+        return false;
+      },
+      child: SettlementReviewNotice(
+        suppressed: currentRoute == '/distributions',
+        child: Scaffold(
+          key: _scaffoldKey,
+          // Each page handles its own keyboard insets, not the surrounding shell.
+          resizeToAvoidBottomInset: false,
+          drawer: isDesktop
+              ? null
+              : Drawer(
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.horizontal(
+                      left: Radius.circular(24),
+                    ),
                   ),
+                  child: drawer,
                 ),
-                child: drawer,
-              ),
-        body: content,
+          body: content,
+        ),
       ),
     );
   }
@@ -391,10 +409,8 @@ class _DrawerTileState extends State<_DrawerTile> {
       onExit: (_) => setState(() => _isHovering = false),
       child: GestureDetector(
         onTap: () {
+          Scaffold.maybeOf(context)?.closeDrawer();
           context.go(widget.destination.route);
-          if (Scaffold.maybeOf(context)?.isDrawerOpen ?? false) {
-            Navigator.of(context).pop();
-          }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),

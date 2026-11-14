@@ -16,19 +16,23 @@ class PullProcessor {
     required AppDatabase db,
     required server.Client serverClient,
     Future<server.PullResponse> Function(server.PullRequest)? pullOverride,
+    Future<bool> Function()? restoreReconcileCheck,
   }) : _db = db,
        _serverClient = serverClient,
-       _pullOverride = pullOverride;
+       _pullOverride = pullOverride,
+       _restoreReconcileCheck =
+           restoreReconcileCheck ??
+           LocalDatabaseBackupService.hasRestoreReconcileMarker;
 
   final AppDatabase _db;
   final server.Client _serverClient;
   final Future<server.PullResponse> Function(server.PullRequest)? _pullOverride;
+  final Future<bool> Function() _restoreReconcileCheck;
   static const int _defaultLimit = 100;
   static final _uuid = const Uuid();
 
   Future<void> pullAllEntityTypes({bool forceFull = false}) async {
-    final detectRestoreConflicts =
-        await LocalDatabaseBackupService.hasRestoreReconcileMarker();
+    final detectRestoreConflicts = await _restoreReconcileCheck();
     for (final entityType in _syncableEntityTypes) {
       await _pullForEntityType(
         entityType,
@@ -101,14 +105,16 @@ class PullProcessor {
         break;
       }
 
-      for (final rowJson in response.rows) {
-        final row = jsonDecode(rowJson) as Map<String, dynamic>;
-        await _upsertRow(
-          entityType,
-          row,
-          detectRestoreConflicts: detectRestoreConflicts,
-        );
-      }
+      await _db.transaction(() async {
+        for (final rowJson in response.rows) {
+          final row = jsonDecode(rowJson) as Map<String, dynamic>;
+          await _upsertRow(
+            entityType,
+            row,
+            detectRestoreConflicts: detectRestoreConflicts,
+          );
+        }
+      });
       final nextAfterId =
           (jsonDecode(response.rows.last) as Map<String, dynamic>)['id']
               ?.toString();
@@ -228,7 +234,19 @@ class PullProcessor {
     }
     _ensureLocalDocumentReference(entityType, id.toString(), sqlValues);
     await _ensureReferencedDevice(sqlValues);
-    sqlValues['sync_status'] = SyncStatus.SYNCED.index;
+    if (_nonVersionedTypes.contains(entityType)) {
+      sqlValues.remove('row_version');
+      sqlValues.remove('sync_status');
+      if (await _hasPendingChildMutation(
+        entityType,
+        id.toString(),
+        sqlValues,
+      )) {
+        return;
+      }
+    } else {
+      sqlValues['sync_status'] = SyncStatus.SYNCED.index;
+    }
     final existing = await _db
         .customSelect(
           'SELECT * FROM "$tableName" WHERE id = ?',
@@ -280,6 +298,13 @@ class PullProcessor {
         );
         if (hasPendingConflict) return;
       }
+      if (sqlValues.entries.every(
+        (entry) =>
+            _normalizeSqlValue(existing.data[entry.key]) ==
+            _normalizeSqlValue(entry.value),
+      )) {
+        return;
+      }
       final setClauses = sqlValues.entries
           .where((e) => e.key != 'id')
           .map((e) => '"${e.key}" = ?')
@@ -294,6 +319,55 @@ class PullProcessor {
       );
       _notifyTableChanged(tableName, UpdateKind.update);
     }
+  }
+
+  Future<bool> _hasPendingChildMutation(
+    ParentEntityType type,
+    String id,
+    Map<String, dynamic> values,
+  ) async {
+    final parentTypes = switch (type) {
+      ParentEntityType.SALES_INVOICE_LINE => {
+        ParentEntityType.SALES_INVOICE: values['invoice_id'],
+      },
+      ParentEntityType.RECEIPT_ALLOCATION => {
+        ParentEntityType.SALES_INVOICE: values['invoice_id'],
+        ParentEntityType.RECEIPT: values['receipt_id'],
+      },
+      ParentEntityType.SALES_RETURN_LINE => {
+        ParentEntityType.SALES_RETURN: values['return_id'],
+      },
+      _ => <ParentEntityType, dynamic>{},
+    };
+    final open =
+        await (_db.select(_db.syncOutbox)..where(
+              (t) =>
+                  t.status.isNotValue(SyncOutboxStatus.COMPLETED.index) &
+                  ((t.entityType.equals(type.index) & t.entityId.equals(id)) |
+                      parentTypes.entries.fold<Expression<bool>>(
+                        const Constant(false),
+                        (condition, entry) =>
+                            condition |
+                            (t.entityType.equals(entry.key.index) &
+                                t.entityId.equals(entry.value as String)),
+                      )),
+            ))
+            .get();
+    if (open.isNotEmpty) return true;
+    for (final entry in parentTypes.entries) {
+      final table = _entityTableName[entry.key]!;
+      final parent = await _db
+          .customSelect(
+            'SELECT sync_status FROM "$table" WHERE id = ?',
+            variables: [Variable(entry.value as String)],
+          )
+          .getSingleOrNull();
+      if (parent != null &&
+          parent.read<int>('sync_status') != SyncStatus.SYNCED.index) {
+        return true;
+      }
+    }
+    return false;
   }
 
   Future<void> _createRestorePullConflict({
@@ -640,9 +714,12 @@ class PullProcessor {
     ParentEntityType.PRODUCT,
     ParentEntityType.CLIENT,
     ParentEntityType.SALES_INVOICE,
+    ParentEntityType.SALES_INVOICE_LINE,
     ParentEntityType.RECEIPT,
+    ParentEntityType.RECEIPT_ALLOCATION,
     ParentEntityType.EXPENSE,
     ParentEntityType.SALES_RETURN,
+    ParentEntityType.SALES_RETURN_LINE,
     ParentEntityType.ATTACHMENT_METADATA,
     ParentEntityType.MONTHLY_DISTRIBUTION,
     ParentEntityType.PARTY_ADJUSTMENT,
@@ -651,13 +728,22 @@ class PullProcessor {
     ParentEntityType.FREE_SAMPLE_LINE,
   ];
 
+  static const _nonVersionedTypes = {
+    ParentEntityType.SALES_INVOICE_LINE,
+    ParentEntityType.RECEIPT_ALLOCATION,
+    ParentEntityType.SALES_RETURN_LINE,
+  };
+
   static const Map<ParentEntityType, String> _entityTableName = {
     ParentEntityType.PRODUCT: 'products',
     ParentEntityType.CLIENT: 'clients',
     ParentEntityType.SALES_INVOICE: 'sales_invoices',
+    ParentEntityType.SALES_INVOICE_LINE: 'sales_invoice_lines',
     ParentEntityType.RECEIPT: 'receipts',
+    ParentEntityType.RECEIPT_ALLOCATION: 'receipt_allocations',
     ParentEntityType.EXPENSE: 'expenses',
     ParentEntityType.SALES_RETURN: 'sales_returns',
+    ParentEntityType.SALES_RETURN_LINE: 'sales_return_lines',
     ParentEntityType.ATTACHMENT_METADATA: 'attachment_metadata',
     ParentEntityType.MONTHLY_DISTRIBUTION: 'monthly_distributions',
     ParentEntityType.PARTY_ADJUSTMENT: 'party_adjustments',

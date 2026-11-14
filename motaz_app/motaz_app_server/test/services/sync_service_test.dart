@@ -3,6 +3,32 @@ import 'package:test/test.dart';
 
 void main() {
   group('SyncService pure sync rules', () {
+    test('pull SQL supports child tables and replays timestamp boundaries safely', () {
+      for (final type in ['SALES_INVOICE_LINE', 'SALES_RETURN_LINE', 'RECEIPT_ALLOCATION', 'SALES_INVOICE']) {
+        final first = SyncService.changedRowsSql(type, hasAfterId: false)!;
+        final next = SyncService.changedRowsSql(type, hasAfterId: true)!;
+        expect(first, contains('"updatedAt"'));
+        expect(first, contains('>= @sinceRowVersion'));
+        expect(first, isNot(contains('"rowVersion"')));
+        expect(next, contains('"id" > CAST(@afterId AS uuid)'));
+        expect(next, contains('"id" ASC LIMIT @limit'));
+      }
+      expect(SyncService.changedRowsSql('not_a_table', hasAfterId: false), isNull);
+    });
+
+    test('pull cursor tracks changes rather than per-record conflict versions', () {
+      final first = SyncService.buildPullResponse('SALES_INVOICE', [
+        '{"id":"old","rowVersion":50,"updatedAt":"2026-11-14T10:00:00.000001Z"}',
+      ], 0, 100);
+      final next = SyncService.buildPullResponse('SALES_INVOICE_LINE', [
+        '{"id":"new","updatedAt":"2026-11-14T10:00:01.000001"}',
+      ], first.latestRowVersion, 100);
+
+      expect(first.latestRowVersion, DateTime.utc(2026, 11, 14, 10, 0, 0, 0, 1).microsecondsSinceEpoch);
+      expect(next.latestRowVersion, DateTime.utc(2026, 11, 14, 10, 0, 1, 0, 1).microsecondsSinceEpoch);
+      expect(next.latestRowVersion, greaterThan(first.latestRowVersion));
+    });
+
     test('supports only independently syncable entity types', () {
       expect(SyncService.supportsEntityType('CLIENT'), isTrue);
       expect(SyncService.supportsEntityType('PRODUCT'), isTrue);

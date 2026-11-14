@@ -36,13 +36,27 @@ import '../auth/auth_provider.dart';
 import '../auth/auth_state.dart';
 import '../../shared/widgets/app_drawer.dart';
 import '../database/enums/party_account.dart';
+import 'app_back_button_dispatcher.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
+final shellNavigatorKey = GlobalKey<NavigatorState>();
+
+final appBackButtonDispatcherProvider = Provider<AppBackButtonDispatcher>((
+  ref,
+) {
+  final dispatcher = AppBackButtonDispatcher(
+    router: ref.watch(appRouterProvider),
+    rootNavigatorKey: rootNavigatorKey,
+    shellNavigatorKey: shellNavigatorKey,
+  );
+  ref.onDispose(dispatcher.dispose);
+  return dispatcher;
+});
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authController = ref.watch(authControllerProvider);
+  final authController = ref.watch(authControllerProvider.notifier);
 
-  return GoRouter(
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: authController,
@@ -84,6 +98,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SignInScreen(),
       ),
       ShellRoute(
+        navigatorKey: shellNavigatorKey,
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(
@@ -233,6 +248,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(router.dispose);
+  return router;
 });
 
 class _SplashScreen extends StatelessWidget {

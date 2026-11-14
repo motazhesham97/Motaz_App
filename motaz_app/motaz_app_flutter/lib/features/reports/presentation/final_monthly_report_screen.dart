@@ -6,8 +6,6 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../application/report_providers.dart';
 import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
-import '../pdf/pdf_styles.dart';
-import '../pdf/pdf_templates/final_monthly_report_pdf.dart';
 
 class FinalMonthlyReportScreen extends ConsumerStatefulWidget {
   const FinalMonthlyReportScreen({super.key});
@@ -130,15 +128,17 @@ class _FinalMonthlyReportScreenState
   }
 
   Future<void> _exportPdf() async {
+    if (_isExporting) {
+      return;
+    }
     setState(() => _isExporting = true);
     try {
       final data = await ref
           .read(reportQueriesProvider)
-          .getFinalMonthlyReport(year: _selectedYear, month: _selectedMonth);
-      final styles = await PdfStyles.load();
-      final doc = FinalMonthlyReportPdf.generate(styles, data);
+          .getFinalMonthlyReport(year: _selectedYear, month: _selectedMonth)
+          .timeout(const Duration(seconds: 15));
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(PdfReportKind.monthly, data),
         PdfReportFileNames.monthly(
           'التقرير الشهري النهائي',
           year: _selectedYear,
@@ -147,11 +147,10 @@ class _FinalMonthlyReportScreenState
       );
       if (!mounted) return;
       PdfGenerator.showSavedSnackBar(context, savedPath);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر تصدير التقرير: $e')),
-      );
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

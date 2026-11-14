@@ -10,116 +10,108 @@ class FinalMonthlyReportPdf {
     final doc = styles.createDocument();
 
     doc.addPage(
-      pw.MultiPage(
+      styles.multiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         build: (context) => [
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                pw.Center(
-                  child: pw.Text(
-                    '${_monthName(data.month)} ${data.year}',
-                    style: pw.TextStyle(
-                      font: styles.boldFont,
-                      fontSize: 20,
-                      color: PdfStyles.primaryColor,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-                _sectionTitle(styles, 'التكلفة'),
-                _inlineFormula(
-                  styles,
-                  [
-                    'التشغيلية = ${_money(data.operationalExpenses)}',
-                    'الإنتاجية = ${_money(data.productionExpenses)}',
-                  ],
-                  data.totalCost,
-                ),
-                pw.SizedBox(height: 16),
-                _sectionTitle(styles, 'المبيعات'),
-                if (data.productSales.isEmpty)
-                  pw.Text(
-                    'لا توجد مبيعات في هذا الشهر',
-                    style: styles.bodyStyle,
-                  )
-                else
-                  ...data.productSales.map((row) {
-                    final prefix = row == data.productSales.first ? '' : '+ ';
-                    return pw.Padding(
-                      padding: const pw.EdgeInsets.only(bottom: 4),
-                      child: pw.Text(
-                        '$prefix${row.quantity} ${row.productName} = ${_money(row.totalSales)}',
-                        style: styles.bodyStyle,
-                      ),
-                    );
-                  }),
-                pw.SizedBox(height: 6),
-                pw.Text(
-                  'الخصومات = ${_money(data.discounts)}',
-                  style: styles.bodyStyle,
-                ),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [
-                    pw.Text('المجموع بعد الخصومات = ', style: _bold(styles)),
-                    _amountBox(styles, data.totalSales),
-                  ],
-                ),
-                pw.SizedBox(height: 16),
-                _sectionTitle(styles, 'الأرباح'),
-                pw.Text(
-                  data.needsReview
-                      ? 'تحتاج التسوية إعادة اعتماد'
-                      : data.isApproved
-                      ? 'تسوية معتمدة'
-                      : 'معاينة غير معتمدة',
-                  style: styles.bodyStyle,
-                ),
-                pw.Text(
-                  'المرتجعات = ${_money(data.returns)}',
-                  style: styles.bodyStyle,
-                ),
-                if (data.monthlyProfit case final profit?) ...[
-                  pw.Text(
-                    'خسارة الشهر الحالي = ${_signed(profit.currentMonthLoss)}',
-                    style: styles.bodyStyle,
-                  ),
-                  pw.Text(
-                    'الخسارة المرحلة للشهر التالي = ${_signed(profit.carriedLossOut)}',
-                    style: styles.bodyStyle,
-                  ),
-                ],
-                _inlineFormula(
-                  styles,
-                  [
-                    'صافي المبيعات = ${_money(data.totalSales - data.returns)}',
-                    'التكلفة = ${_money(data.totalCost)}',
-                    'الخسارة السابقة = ${_money(data.monthlyProfit?.carriedLossIn.abs() ?? 0)}',
-                  ],
-                  data.profit,
-                  operatorLabel: '-',
-                ),
-                pw.SizedBox(height: 18),
-                pw.Align(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Container(
-                    width: 260,
-                    height: 1,
-                    color: PdfColors.grey600,
-                  ),
-                ),
-                pw.SizedBox(height: 12),
-                _sectionTitle(styles, 'السلف والسحبيات'),
-                ...data.partyRows.map((row) => _partyLine(styles, row)),
-                pw.SizedBox(height: 10),
-                pw.Divider(thickness: 1.2, color: PdfColors.grey700),
-              ],
+          pw.Center(
+            child: pw.Text(
+              '${_monthName(data.month)} ${data.year}',
+              style: pw.TextStyle(
+                font: styles.boldFont,
+                fontSize: 20,
+                color: PdfStyles.primaryColor,
+              ),
             ),
           ),
+          pw.SizedBox(height: 20),
+          _sectionTitle(styles, 'التكلفة'),
+          _inlineFormula(
+            styles,
+            [
+              'التشغيلية = ${_money(data.operationalExpenses)}',
+              'الإنتاجية = ${_money(data.productionExpenses)}',
+            ],
+            data.totalCost,
+          ),
+          pw.SizedBox(height: 16),
+          _sectionTitle(styles, 'المبيعات'),
+          if (data.productSales.isEmpty)
+            pw.Text(
+              'لا توجد مبيعات في هذا الشهر',
+              style: styles.bodyStyle,
+            )
+          else
+            ...data.productSales.map((row) {
+              final prefix = row == data.productSales.first ? '' : '+ ';
+              return pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 4),
+                child: pw.Text(
+                  '$prefix${row.quantity} ${row.productName} = ${_money(row.totalSales)}',
+                  style: styles.bodyStyle,
+                ),
+              );
+            }),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'الخصومات = ${_money(data.discounts)}',
+            style: styles.bodyStyle,
+          ),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.end,
+            children: [
+              pw.Text('المجموع بعد الخصومات = ', style: _bold(styles)),
+              _amountBox(styles, data.totalSales),
+            ],
+          ),
+          pw.SizedBox(height: 16),
+          _sectionTitle(styles, 'الأرباح'),
+          pw.Text(
+            data.needsReview
+                ? 'تحتاج التسوية إعادة اعتماد'
+                : data.isApproved
+                ? 'تسوية معتمدة'
+                : 'معاينة غير معتمدة',
+            style: styles.bodyStyle,
+          ),
+          pw.Text(
+            'المرتجعات = ${_money(data.returns)}',
+            style: styles.bodyStyle,
+          ),
+          if (data.monthlyProfit case final profit?) ...[
+            pw.Text(
+              'خسارة الشهر الحالي = ${_signed(profit.currentMonthLoss)}',
+              style: styles.bodyStyle,
+            ),
+            pw.Text(
+              'الخسارة المرحلة للشهر التالي = ${_signed(profit.carriedLossOut)}',
+              style: styles.bodyStyle,
+            ),
+          ],
+          _inlineFormula(
+            styles,
+            [
+              'صافي المبيعات = ${_money(data.totalSales - data.returns)}',
+              'التكلفة = ${_money(data.totalCost)}',
+              'الخسارة السابقة = ${_money(data.monthlyProfit?.carriedLossIn.abs() ?? 0)}',
+            ],
+            data.profit,
+            operatorLabel: '-',
+          ),
+          pw.SizedBox(height: 18),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Container(
+              width: 260,
+              height: 1,
+              color: PdfColors.grey600,
+            ),
+          ),
+          pw.SizedBox(height: 12),
+          _sectionTitle(styles, 'السلف والسحبيات'),
+          ...data.partyRows.map((row) => _partyLine(styles, row)),
+          pw.SizedBox(height: 10),
+          pw.Divider(thickness: 1.2, color: PdfColors.grey700),
         ],
       ),
     );

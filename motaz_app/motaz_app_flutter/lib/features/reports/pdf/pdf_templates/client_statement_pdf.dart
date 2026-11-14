@@ -10,33 +10,25 @@ class ClientStatementPdf {
     final doc = styles.createDocument();
 
     doc.addPage(
-      pw.MultiPage(
+      styles.multiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         build: (context) => [
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                pw.Center(
-                  child: pw.Text(
-                    'كشف حساب العميل: ${data.clientName}',
-                    style: styles.titleStyle,
-                  ),
-                ),
-                pw.SizedBox(height: 4),
-                pw.Center(
-                  child: pw.Text(
-                    'في الفترة: ${_formatDate(data.dateRange.start)} : ${_formatDate(data.dateRange.end)}',
-                    style: styles.headerStyle,
-                  ),
-                ),
-                pw.SizedBox(height: 16),
-                _statementTable(styles, data),
-              ],
+          pw.Center(
+            child: pw.Text(
+              'كشف حساب العميل: ${data.clientName}',
+              style: styles.titleStyle,
             ),
           ),
+          pw.SizedBox(height: 4),
+          pw.Center(
+            child: pw.Text(
+              'في الفترة: ${_formatDate(data.dateRange.start)} : ${_formatDate(data.dateRange.end)}',
+              style: styles.headerStyle,
+            ),
+          ),
+          pw.SizedBox(height: 16),
+          _statementTable(styles, data),
         ],
       ),
     );
@@ -48,8 +40,8 @@ class ClientStatementPdf {
     final tableRows = <pw.TableRow>[
       _headerRow(styles),
       _openingRow(styles, data),
-      ...data.entries.asMap().entries.map((entry) {
-        return _entryRow(styles, entry.key + 1, entry.value);
+      ...data.entries.asMap().entries.expand((entry) {
+        return _entryRows(styles, entry.key + 1, entry.value);
       }),
       _totalsRow(styles, data),
       _netRow(styles, data),
@@ -72,6 +64,7 @@ class ClientStatementPdf {
 
   static pw.TableRow _headerRow(PdfStyles styles) {
     return pw.TableRow(
+      repeat: true,
       decoration: pw.BoxDecoration(color: PdfStyles.primaryColor),
       children: [
         _headerCell(styles, 'م'),
@@ -102,17 +95,46 @@ class ClientStatementPdf {
     );
   }
 
+  static Iterable<pw.TableRow> _entryRows(
+    PdfStyles styles,
+    int index,
+    ClientStatementEntry entry,
+  ) sync* {
+    final text = _statementText(entry);
+    for (var offset = 0; offset < text.length; offset += 400) {
+      final end = offset + 400 < text.length ? offset + 400 : text.length;
+      yield _entryRow(
+        styles,
+        index,
+        entry,
+        text.substring(offset, end),
+        continuation: offset > 0,
+      );
+    }
+  }
+
   static pw.TableRow _entryRow(
     PdfStyles styles,
     int index,
     ClientStatementEntry entry,
-  ) {
+    String description, {
+    bool continuation = false,
+  }) {
+    if (continuation) {
+      return pw.TableRow(
+        children: [
+          _cell(styles, ''),
+          _cell(styles, description),
+          for (var index = 0; index < 5; index++) _cell(styles, ''),
+        ],
+      );
+    }
     final debit = entry.type == StatementEntryType.invoice ? entry.amount : 0;
     final credit = entry.type == StatementEntryType.invoice ? 0 : entry.amount;
     return pw.TableRow(
       children: [
         _cell(styles, index.toString()),
-        _cell(styles, _statementText(entry)),
+        _cell(styles, description),
         _moneyCell(styles, credit, PdfColors.green700),
         _moneyCell(styles, debit, PdfColors.red700),
         _balanceCell(styles, entry.runningBalance),
@@ -267,11 +289,12 @@ class ClientStatementPdf {
     final note = entry.note == null || entry.note!.trim().isEmpty
         ? ''
         : ' - ${entry.note!.trim()}';
-    return '${_typeLabel(entry.type)}: ${entry.reference}$note';
+    return '${_typeLabel(entry)}: ${entry.reference}$note';
   }
 
-  static String _typeLabel(StatementEntryType type) => switch (type) {
+  static String _typeLabel(ClientStatementEntry entry) => switch (entry.type) {
     StatementEntryType.invoice => 'فاتورة',
+    StatementEntryType.receipt when entry.isInvoicePayment => 'دفعة على فاتورة',
     StatementEntryType.receipt => 'سند',
     StatementEntryType.returnItem => 'مرتجع',
   };

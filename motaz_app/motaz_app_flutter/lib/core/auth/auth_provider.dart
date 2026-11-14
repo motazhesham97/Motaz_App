@@ -30,126 +30,102 @@ class AuthController extends ChangeNotifier {
   AuthState _state = const AuthInitial();
   AuthState get state => _state;
 
-  bool _initialized = false;
+  Future<void>? _initialization;
+  bool _disposed = false;
+  int _authRevision = 0;
 
-  Future<void> initialize() async {
-    if (_initialized) return;
-    _initialized = true;
+  Future<void> initialize() => _initialization ??= _restoreLocalSession();
 
+  Future<void> _restoreLocalSession() async {
+    final revision = _authRevision;
     final prefs = await SharedPreferences.getInstance();
     final cachedHasAccount = prefs.getBool(_hasAccountKey) ?? false;
-    String? cachedSignedInEmail = prefs.getString(_signedInEmailKey);
+    final cachedEmail = prefs.getString(_signedInEmailKey)?.trim();
+    try {
+      // Serverpod 3.4 restore reads local storage only; initialize also uses HTTP.
+      await _sessionManager.restore();
+    } catch (error, stackTrace) {
+      AppLogger.auth.warning(
+        'Could not restore the locally saved auth session.',
+        error,
+        stackTrace,
+      );
+    }
+    if (!_isCurrentAuthRevision(revision)) return;
 
-    final initialCachedEmail = cachedSignedInEmail?.trim();
-    if (initialCachedEmail != null && initialCachedEmail.isNotEmpty) {
-      try {
-        final sessionValid = await _tryInitializeSessionManager();
-        if (sessionValid) {
-          _state = AuthAuthenticated(initialCachedEmail);
-          await prefs.setBool(_hasAccountKey, true);
-          notifyListeners();
-          return;
-        }
+    final hasSavedSession = _storedAuthSessionState() == true;
+    if (hasSavedSession && cachedEmail != null && cachedEmail.isNotEmpty) {
+      _state = AuthAuthenticated(cachedEmail);
+    } else {
+      _state = AuthUnauthenticated(
+        hasAccount: cachedHasAccount || hasSavedSession || cachedEmail != null,
+      );
+    }
+    notifyListeners();
+    unawaited(_refreshAuthStateInBackground(prefs, revision));
+  }
 
-        try {
-          final hasAccount = await _client.auth.hasOwnerAccount();
-          await prefs.setBool(_hasAccountKey, hasAccount);
-          _state = AuthUnauthenticated(
-            hasAccount: hasAccount,
+  bool _isCurrentAuthRevision(int revision) =>
+      !_disposed && revision == _authRevision;
+
+  Future<void> _refreshAuthStateInBackground(
+    SharedPreferences prefs,
+    int revision,
+  ) async {
+    try {
+      await _waitForLocalServerIfNeeded();
+      if (!_isCurrentAuthRevision(revision)) return;
+
+      if (_state is AuthAuthenticated) {
+        await _sessionManager.validateAuthentication(
+          timeout: const Duration(seconds: 8),
+        );
+        if (!_isCurrentAuthRevision(revision)) return;
+
+        // The SDK clears authInfo on confirmed rejection, not on network errors.
+        // Its bool result describes the sign-out request, not session validity.
+        if (_storedAuthSessionState() == false) {
+          await prefs.remove(_signedInEmailKey);
+          if (!_isCurrentAuthRevision(revision)) return;
+          _state = const AuthUnauthenticated(
+            hasAccount: true,
             errorMessage:
                 'انتهت جلسة الدخول. سجل الدخول مرة واحدة لتفعيل المزامنة.',
           );
           notifyListeners();
-          return;
-        } catch (_) {
-          // Server is not reachable, keep the cached local session for offline use.
         }
-
-        _state = AuthAuthenticated(initialCachedEmail);
-        await prefs.setBool(_hasAccountKey, true);
-        notifyListeners();
-        return;
-      } catch (error, stackTrace) {
-        _logSessionInitializationFailure(
-          error,
-          stackTrace,
-          hasCachedSession: true,
-        );
-
-        if (_isInvalidSessionError(error)) {
-          await _clearLocalSession();
-          cachedSignedInEmail = null;
-        } else {
-          final cachedEmail = cachedSignedInEmail?.trim();
-          if (cachedEmail == null || cachedEmail.isEmpty) {
-            await _clearLocalSession();
-            cachedSignedInEmail = null;
-          } else {
-            _state = AuthAuthenticated(cachedEmail);
-            await prefs.setBool(_hasAccountKey, true);
-            notifyListeners();
-            return;
-          }
-        }
-      }
-    } else {
-      try {
-        final sessionValid = await _tryInitializeSessionManager();
-
-        if (!sessionValid) {
-          await _clearLocalSession();
-        }
-      } catch (error, stackTrace) {
-        _logSessionInitializationFailure(
-          error,
-          stackTrace,
-          hasCachedSession: false,
-        );
-
-        if (_isInvalidSessionError(error)) {
-          await _clearLocalSession();
-        }
-      }
-    }
-
-    try {
-      final cachedEmail = cachedSignedInEmail?.trim();
-      if (cachedEmail != null && cachedEmail.isNotEmpty) {
-        _state = AuthAuthenticated(cachedEmail);
-        await prefs.setBool(_hasAccountKey, true);
-        notifyListeners();
         return;
       }
-      final hasAccount = await _client.auth.hasOwnerAccount();
 
+      final bool hasAccount = await _client.auth.hasOwnerAccount().timeout(
+        const Duration(seconds: 8),
+      );
+      if (!_isCurrentAuthRevision(revision)) return;
       await prefs.setBool(_hasAccountKey, hasAccount);
-
-      _state = AuthUnauthenticated(hasAccount: hasAccount);
-    } catch (error, stackTrace) {
-      AppLogger.auth.warning(
-        'Falling back to cached auth state: $error\n$stackTrace',
-      );
-
-      final cachedEmail = cachedSignedInEmail?.trim();
-      if (cachedEmail != null && cachedEmail.isNotEmpty) {
-        _state = AuthAuthenticated(cachedEmail);
-        await prefs.setBool(_hasAccountKey, true);
+      if (!_isCurrentAuthRevision(revision)) return;
+      final state = _state;
+      if (state is AuthUnauthenticated && state.hasAccount != hasAccount) {
+        _state = AuthUnauthenticated(hasAccount: hasAccount);
         notifyListeners();
-        return;
       }
-
-      _state = AuthUnauthenticated(
-        hasAccount: cachedHasAccount,
-        errorMessage: cachedHasAccount
-            ? 'تعذر الوصول إلى الخادم حالياً'
-            : _userFacingError(error),
+    } catch (error, stackTrace) {
+      // Connectivity, timeouts and server failures must not revoke local access.
+      AppLogger.auth.info(
+        'Background auth check unavailable; retaining local auth state.',
+        error,
+        stackTrace,
       );
     }
+  }
 
-    notifyListeners();
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   Future<bool> register(String email, String password) async {
+    _authRevision++;
     final normalizedEmail = email.trim();
 
     try {
@@ -196,6 +172,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<bool> signIn(String email, String password) async {
+    _authRevision++;
     final normalizedEmail = email.trim();
 
     try {
@@ -236,6 +213,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    _authRevision++;
     try {
       await _sessionManager.signOutDevice();
     } catch (error, stackTrace) {
@@ -254,36 +232,6 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> _tryInitializeSessionManager() async {
-    try {
-      await _waitForLocalServerIfNeeded();
-
-      final result = _sessionManager.initialize(
-        timeout: const Duration(seconds: 12),
-      );
-      bool initialized;
-      if (result is Future) {
-        final value = await result.timeout(const Duration(seconds: 14));
-        initialized = value != false;
-      } else if (result is bool) {
-        initialized = result;
-      } else {
-        initialized = true;
-      }
-
-      final hasStoredAuthSession = _storedAuthSessionState();
-      if (hasStoredAuthSession != null) {
-        if (!hasStoredAuthSession) return false;
-      }
-
-      final serverValidated = await _validateServerAuthentication();
-      return serverValidated ?? initialized;
-    } on NoSuchMethodError {
-      // Some SessionManager implementations are initialized elsewhere.
-      return true;
-    }
-  }
-
   Future<void> _waitForLocalServerIfNeeded() async {
     final launcher = _localServerLauncher;
     if (launcher == null || !launcher.shouldAutoStart) return;
@@ -296,41 +244,6 @@ class AuthController extends ChangeNotifier {
       AppLogger.auth.info(
         'Local Serverpod was not ready before auth session initialization.',
       );
-    }
-  }
-
-  void _logSessionInitializationFailure(
-    Object error,
-    StackTrace stackTrace, {
-    required bool hasCachedSession,
-  }) {
-    final message = 'Session initialization failed: $error\n$stackTrace';
-    if (hasCachedSession && error is TimeoutException) {
-      AppLogger.auth.info(message);
-      return;
-    }
-    AppLogger.auth.warning(message);
-  }
-
-  Future<bool?> _validateServerAuthentication() async {
-    try {
-      final result = _sessionManager.validateAuthentication();
-      if (result is Future) {
-        final value = await result.timeout(const Duration(seconds: 8));
-        if (value is bool) return value;
-        return true;
-      }
-      if (result is bool) return result;
-      return true;
-    } on NoSuchMethodError {
-      return null;
-    } on TimeoutException {
-      rethrow;
-    } catch (error, stackTrace) {
-      AppLogger.auth.warning(
-        'Server auth validation failed: $error\n$stackTrace',
-      );
-      return false;
     }
   }
 
@@ -389,12 +302,6 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<void> _clearLocalSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_signedInEmailKey);
-    await _removeStoredAuthKey();
-  }
-
   String? _signedInUserEmail() {
     try {
       final signedInUser = _sessionManager.signedInUser;
@@ -430,16 +337,6 @@ class AuthController extends ChangeNotifier {
     return message.contains('owner_already_exists') ||
         message.contains('owner already exists') ||
         message.contains('يوجد حساب مالك');
-  }
-
-  bool _isInvalidSessionError(Object error) {
-    final message = error.toString().toLowerCase();
-
-    return message.contains('refreshtokeninvalidsecret') ||
-        message.contains('refreshtokennotfound') ||
-        message.contains('refreshtokenexpired') ||
-        message.contains('jwt expired') ||
-        message.contains('failedunauthorized');
   }
 
   String _userFacingError(

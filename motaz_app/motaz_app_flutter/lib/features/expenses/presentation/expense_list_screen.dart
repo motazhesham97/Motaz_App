@@ -11,8 +11,6 @@ import '../../../shared/widgets/audit_trail_sheet.dart';
 import '../../reports/data/report_models.dart';
 import '../../reports/pdf/pdf_generator.dart';
 import '../../reports/pdf/pdf_file_names.dart';
-import '../../reports/pdf/pdf_styles.dart';
-import '../../reports/pdf/pdf_templates/expense_report_pdf.dart';
 import '../application/expense_providers.dart';
 import 'expense_form_screen.dart' show ExpenseFormScreen, categoryLabel;
 
@@ -246,16 +244,21 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   }
 
   Future<void> _exportPdf(List<Expense> expenses) async {
+    if (_isExporting) {
+      return;
+    }
     setState(() => _isExporting = true);
     try {
-      final styles = await PdfStyles.load();
-      final doc = ExpenseReportPdf.generate(styles, _buildReportData(expenses));
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(PdfReportKind.expenses, _buildReportData(expenses)),
         PdfReportFileNames.dated('كشف المصروفات'),
       );
       if (!mounted) return;
       PdfGenerator.showSavedSnackBar(context, savedPath);
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

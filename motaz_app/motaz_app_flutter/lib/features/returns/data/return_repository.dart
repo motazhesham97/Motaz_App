@@ -9,6 +9,7 @@ import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
 import '../../../core/database/enums/sync_outbox_status.dart';
 import '../../../core/database/enums/sync_status.dart';
+import '../../receipts/data/receipt_repository.dart';
 
 class ReturnRepository {
   ReturnRepository(this._db);
@@ -207,6 +208,10 @@ class ReturnRepository {
           nextReturnSequence: Value(ref.sequence + 1),
         ),
       );
+      await ReceiptRepository(_db).reconcileClientPayments(
+        clientId: invoice.clientId,
+        deviceId: deviceId,
+      );
     });
 
     return await getById(returnId);
@@ -269,6 +274,13 @@ class ReturnRepository {
               status: Value(SyncOutboxStatus.PENDING),
             ),
           );
+      final invoice = await (_db.select(
+        _db.salesInvoices,
+      )..where((t) => t.id.equals(existing.invoiceId))).getSingle();
+      await ReceiptRepository(_db).reconcileClientPayments(
+        clientId: invoice.clientId,
+        deviceId: deviceId,
+      );
     });
   }
 

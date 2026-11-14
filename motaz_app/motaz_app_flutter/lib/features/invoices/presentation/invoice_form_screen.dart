@@ -13,6 +13,7 @@ import '../../attachments/application/document_attachment_service.dart';
 import '../../attachments/presentation/document_photo_field.dart';
 import '../../clients/application/client_providers.dart';
 import '../../products/application/product_providers.dart';
+import '../../receipts/application/receipt_providers.dart';
 import '../application/invoice_providers.dart';
 
 class InvoiceFormScreen extends ConsumerStatefulWidget {
@@ -51,10 +52,11 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   String? _attachmentPath;
   String? _loadedAttachmentPath;
   bool _saving = false;
+  bool _loadingPaidAmount = false;
+  String? _paidAmountLoadError;
 
   bool get _isEditing => widget.existingInvoice != null;
   bool get _isReturnsConstrained => widget.hasReturns;
-  bool get _isReceiptsConstrained => widget.hasReceipts && !widget.hasReturns;
 
   int get _subtotal {
     var sum = 0;
@@ -80,7 +82,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     final text = _paidAmountController.text.trim();
     if (text.isEmpty) return 0;
     final parsed = double.tryParse(text);
-    if (parsed == null) return 0;
+    if (parsed == null || !parsed.isFinite) return 0;
     return (parsed * 100).round();
   }
 
@@ -97,9 +99,31 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     super.initState();
     if (_isEditing) {
       _populateFromExisting();
+      if (!_isReturnsConstrained) {
+        unawaited(_loadPaidAmount());
+      }
       unawaited(_loadExistingInvoicePhoto());
     }
     unawaited(_recoverLostInvoicePhoto());
+  }
+
+  Future<void> _loadPaidAmount() async {
+    setState(() {
+      _loadingPaidAmount = true;
+      _paidAmountLoadError = null;
+    });
+    try {
+      final paid = await ref
+          .read(receiptRepositoryProvider)
+          .getInvoiceLinkedPaidAmount(widget.existingInvoice!.id);
+      if (!mounted) return;
+      _paidAmountController.text = (paid / 100).toStringAsFixed(2);
+    } catch (_) {
+      if (!mounted) return;
+      _paidAmountLoadError = 'تعذر تحميل المدفوعات الحالية';
+    } finally {
+      if (mounted) setState(() => _loadingPaidAmount = false);
+    }
   }
 
   void _populateFromExisting() {
@@ -293,7 +317,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_saving) return;
+    if (_saving || _loadingPaidAmount || _paidAmountLoadError != null) return;
 
     if (_selectedClient == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -325,28 +349,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('الخصم لا يمكن أن يتجاوز الإجمالي الفرعي'),
-        ),
-      );
-      return;
-    }
-
-    if (!_isEditing && _paidAmount > _total) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('المبلغ المدفوع لا يمكن أن يتجاوز الإجمالي'),
-        ),
-      );
-      return;
-    }
-
-    if (_isEditing &&
-        _isReceiptsConstrained &&
-        _total < widget.collectedAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'الإجمالي لا يمكن أن يقل عن ${(widget.collectedAmount / 100).toStringAsFixed(2)} ر.ي.',
-          ),
         ),
       );
       return;
@@ -388,6 +390,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
               ? null
               : _noteController.text.trim(),
           lines: lines,
+          paidAmount: _paidAmount,
           deviceId: device.id,
         );
         invoiceId = widget.existingInvoice!.id;
@@ -541,19 +544,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                     style: TextStyle(color: Colors.orange),
                   ),
                 ),
-              if (_isReceiptsConstrained)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'الحد الأدنى للإجمالي: ${(widget.collectedAmount / 100).toStringAsFixed(2)} ر.ي.',
-                    style: const TextStyle(color: Colors.blue),
-                  ),
-                ),
               _buildClientSelector(),
               const SizedBox(height: 12),
               _buildDateSelector(),
@@ -567,7 +557,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                 _buildTotalsSection()
               else
                 _buildTotalsSectionReadOnly(),
-              if (!_isEditing) ...[
+              if (!_isReturnsConstrained) ...[
                 const SizedBox(height: 12),
                 _buildPaidAmountField(),
               ],
@@ -582,7 +572,12 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: _saving ? null : _save,
+                onPressed:
+                    _saving ||
+                        _loadingPaidAmount ||
+                        _paidAmountLoadError != null
+                    ? null
+                    : _save,
                 child: _saving
                     ? SizedBox(
                         height: 20,
@@ -1170,8 +1165,13 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                   : (screenSize.width - 48).clamp(280.0, 560.0);
               final maxContentHeight = screenSize.height * 0.68;
               final compactDialog = screenSize.width < 480;
-              final remaining = _total - _paidAmount;
-              final status = remaining <= 0 ? 'فاتورة مسددة' : 'فاتورة بالأجل';
+              final remaining = (_total - _paidAmount).clamp(0, _total);
+              final excess = (_paidAmount - _total).clamp(0, _paidAmount);
+              final status = switch (_paidAmount) {
+                <= 0 => 'فاتورة بالأجل',
+                final paid when paid < _total => 'فاتورة مدفوعة جزئياً',
+                _ => 'فاتورة مسددة',
+              };
               return AlertDialog(
                 insetPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -1244,9 +1244,11 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                                 final text = value?.trim() ?? '';
                                 if (text.isEmpty) return null;
                                 final parsed = double.tryParse(text);
-                                if (parsed == null) return 'أدخل رقم صحيح';
-                                if ((parsed * 100).round() > _total) {
-                                  return 'المبلغ المدفوع أكبر من الإجمالي';
+                                if (parsed == null || !parsed.isFinite) {
+                                  return 'أدخل رقم صحيح';
+                                }
+                                if (parsed < 0) {
+                                  return 'المبلغ لا يمكن أن يكون سالباً';
                                 }
                                 return null;
                               },
@@ -1255,13 +1257,37 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
                               label: 'المبلغ المتبقي',
                               value: formatMoneyPlain(remaining),
                             ),
+                            if (excess > 0)
+                              _buildReadOnlyDialogRow(
+                                label: 'فائض لتسوية الحساب',
+                                value: formatMoneyPlain(excess),
+                              ),
                             const SizedBox(height: 12),
                             _buildDialogDateField(setDialogState),
                             const Divider(height: 28),
-                            _buildDialogClientSelector(
-                              setDialogState,
-                              controller: dialogClientController,
-                              focusNode: dialogClientFocusNode,
+                            Consumer(
+                              builder: (context, dialogRef, _) {
+                                final clients =
+                                    dialogRef
+                                        .watch(activeClientListProvider)
+                                        .value ??
+                                    const <Client>[];
+                                return Column(
+                                  children: [
+                                    _buildDialogClientSelector(
+                                      setDialogState,
+                                      clients: clients,
+                                      controller: dialogClientController,
+                                      focusNode: dialogClientFocusNode,
+                                    ),
+                                    _buildMissingClientPrompt(
+                                      controller: dialogClientController,
+                                      clients: clients,
+                                      onAdded: () => setDialogState(() {}),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
                             if (_selectedClient != null) ...[
                               const SizedBox(height: 10),
@@ -1504,11 +1530,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
   Widget _buildDialogClientSelector(
     StateSetter setDialogState, {
+    required List<Client> clients,
     required TextEditingController controller,
     required FocusNode focusNode,
   }) {
-    final clients =
-        ref.read(activeClientListProvider).value ?? const <Client>[];
     return RawAutocomplete<Client>(
       textEditingController: controller,
       focusNode: focusNode,
@@ -1625,10 +1650,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     if (_discount > _subtotal) {
       throw StateError('الخصم لا يمكن أن يتجاوز إجمالي الفاتورة');
     }
-    if (_paidAmount > _total) {
-      throw StateError('المبلغ المدفوع لا يمكن أن يتجاوز إجمالي الفاتورة');
-    }
-
     setState(() => _saving = true);
     try {
       final device = await ref
@@ -1788,16 +1809,21 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     );
   }
 
-  Widget _buildMissingClientPrompt() {
-    final typedName = _clientNameController.text.trim();
+  Widget _buildMissingClientPrompt({
+    TextEditingController? controller,
+    List<Client>? clients,
+    VoidCallback? onAdded,
+  }) {
+    final typedName = (controller ?? _clientNameController).text.trim();
     final selectedName = _selectedClient?.displayName.trim();
-    final clients = ref.watch(clientListProvider).value ?? const <Client>[];
+    final availableClients =
+        clients ?? ref.watch(clientListProvider).value ?? const <Client>[];
     final normalized = typedName.toLowerCase();
-    final hasSuggestion = clients.any((client) {
+    final hasSuggestion = availableClients.any((client) {
       final name = client.displayName.toLowerCase();
       final phone = client.phone?.toLowerCase() ?? '';
       final code = client.clientCode?.toLowerCase() ?? '';
-      return name.startsWith(normalized) ||
+      return _matchesWordPrefix(name, normalized) ||
           phone.startsWith(normalized) ||
           code.startsWith(normalized);
     });
@@ -1810,16 +1836,24 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Expanded(
-            child: Text(
-              'هذا العميل غير موجود. هل تريد إضافته؟',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+          Text(
+            'هذا العميل غير موجود. هل تريد إضافته؟',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
           TextButton.icon(
-            onPressed: () => _showQuickClientDialog(typedName),
+            onPressed: () async {
+              FocusManager.instance.primaryFocus?.unfocus();
+              await _showQuickClientDialog(typedName);
+              if (!mounted) return;
+              final selected = _selectedClient;
+              if (selected != null) controller?.text = selected.displayName;
+              onAdded?.call();
+            },
             icon: const Icon(Icons.person_add_alt_1_rounded),
             label: const Text('إضافة عميل جديد'),
           ),
@@ -1844,6 +1878,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       if (saving) return;
 
       final phone = phoneController.text.trim();
+      final name = nameController.text.trim();
       final email = emailController.text.trim();
       final address = addressController.text.trim();
       final note = noteController.text.trim();
@@ -1871,7 +1906,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             .read(clientRepositoryProvider)
             .createAndReturn(
               ClientsCompanion(
-                displayName: Value(nameController.text.trim()),
+                displayName: Value(name),
                 phone: Value(phone.isEmpty ? null : phone),
                 email: Value(email.isEmpty ? null : email),
                 address: Value(address.isEmpty ? null : address),
@@ -1885,8 +1920,7 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           _selectedClient = client;
           _clientNameController.text = client.displayName;
         });
-        dialogOpen = false;
-        Navigator.of(context).pop();
+        if (dialogOpen) Navigator.of(context).pop();
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1894,14 +1928,15 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
           );
         }
       } finally {
-        if (dialogOpen) {
+        if (dialogOpen && mounted) {
           setDialogState(() => saving = false);
         }
       }
     }
 
-    await showDialog<void>(
+    final route = DialogRoute<void>(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -1989,8 +2024,9 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         );
       },
     );
-
+    await Navigator.of(context).push(route);
     dialogOpen = false;
+    await route.completed;
     nameController.dispose();
     phoneController.dispose();
     emailController.dispose();
@@ -2195,7 +2231,10 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       displayStringForOption: (p) => p.name,
       optionsBuilder: (textEditingValue) async {
         final query = textEditingValue.text.trim();
-        if (query.isEmpty) return const Iterable<Product>.empty();
+        if (query.isEmpty ||
+            (line.productId != null && query == line.productName)) {
+          return const Iterable<Product>.empty();
+        }
         final products = await ref.read(productListProvider.future);
         final normalized = query.toLowerCase();
         return products.where((product) {
@@ -2216,10 +2255,15 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       },
       fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
         if (controller.text != line.productName) {
-          controller.text = line.productName ?? '';
-          controller.selection = TextSelection.collapsed(
-            offset: controller.text.length,
-          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !context.mounted || focusNode.hasFocus) return;
+            final text = line.productName ?? '';
+            if (controller.text == text) return;
+            controller.value = TextEditingValue(
+              text: text,
+              selection: TextSelection.collapsed(offset: text.length),
+            );
+          });
         }
         return TextFormField(
           controller: controller,
@@ -2556,8 +2600,14 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('الإجمالي الفرعي:'),
-                Text('${(_subtotal / 100).toStringAsFixed(2)} ر.ي.'),
+                const Expanded(child: Text('الإجمالي الفرعي:')),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '${(_subtotal / 100).toStringAsFixed(2)} ر.ي.',
+                    textAlign: TextAlign.end,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -2586,13 +2636,19 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'الإجمالي:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                const Expanded(
+                  child: Text(
+                    'الإجمالي:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-                Text(
-                  '${(_total / 100).toStringAsFixed(2)} ر.ي.',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '${(_total / 100).toStringAsFixed(2)} ر.ي.',
+                    textAlign: TextAlign.end,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -2651,22 +2707,28 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   Widget _buildPaidAmountField() {
     return TextFormField(
       controller: _paidAmountController,
+      readOnly: _loadingPaidAmount,
       selectAllOnFocus: true,
       onTap: () => _selectAllControllerText(_paidAmountController),
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'المبلغ المدفوع',
         suffixText: 'ر.ي.',
         isDense: true,
+        errorText: _paidAmountLoadError,
+        suffixIcon: _paidAmountLoadError == null
+            ? null
+            : IconButton(
+                tooltip: 'إعادة تحميل المدفوعات',
+                icon: const Icon(Icons.refresh),
+                onPressed: _loadPaidAmount,
+              ),
       ),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       validator: (v) {
         if (v == null || v.trim().isEmpty) return null;
         final parsed = double.tryParse(v.trim());
-        if (parsed == null) return 'أدخل رقم صحيح';
+        if (parsed == null || !parsed.isFinite) return 'أدخل رقم صحيح';
         if (parsed < 0) return 'المبلغ لا يمكن أن يكون سالباً';
-        if ((parsed * 100).round() > _total) {
-          return 'المبلغ لا يمكن أن يتجاوز الإجمالي';
-        }
         return null;
       },
     );

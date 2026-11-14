@@ -3,12 +3,97 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/enums/record_status.dart';
+import '../../../core/database/enums/receipt_type.dart';
 
 class ReceiptAllocator {
   ReceiptAllocator(this._db);
 
   final AppDatabase _db;
   final _uuid = const Uuid();
+
+  Future<Map<String, List<ReceiptAllocationsCompanion>>> planForClient(
+    String clientId,
+  ) async {
+    final invoices =
+        await (_db.select(_db.salesInvoices)
+              ..where(
+                (t) =>
+                    t.clientId.equals(clientId) &
+                    t.status.equals(RecordStatus.ACTIVE.index),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.invoiceDate),
+                (t) => OrderingTerm.asc(t.createdAt),
+                (t) => OrderingTerm.asc(t.id),
+              ]))
+            .get();
+    final returns = await _db
+        .customSelect(
+          'SELECT r.invoice_id, SUM(r.total_returned_amount) AS returned '
+          'FROM sales_returns r JOIN sales_invoices i ON i.id = r.invoice_id '
+          'WHERE i.client_id = ? AND r.status = ? GROUP BY r.invoice_id',
+          variables: [Variable(clientId), Variable(RecordStatus.ACTIVE.index)],
+        )
+        .get();
+    final returned = {
+      for (final row in returns)
+        row.read<String>('invoice_id'): row.read<int>('returned'),
+    };
+    final capacity = <String, int>{};
+    for (final invoice in invoices) {
+      final balance = invoice.total - (returned[invoice.id] ?? 0);
+      capacity[invoice.id] = balance > 0 ? balance : 0;
+    }
+    final receipts =
+        await (_db.select(_db.receipts)
+              ..where(
+                (t) =>
+                    t.clientId.equals(clientId) &
+                    t.status.equals(RecordStatus.ACTIVE.index),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.receiptDate),
+                (t) => OrderingTerm.asc(t.createdAt),
+                (t) => OrderingTerm.asc(t.localRef),
+                (t) => OrderingTerm.asc(t.id),
+              ]))
+            .get();
+    final plan = <String, List<ReceiptAllocationsCompanion>>{};
+    final now = DateTime.now();
+    for (final receipt in receipts) {
+      final preferred = receipt.receiptType == ReceiptType.INVOICE_LINKED
+          ? receipt.invoiceId
+          : null;
+      final invoiceIds = [
+        if (preferred != null && capacity.containsKey(preferred)) preferred,
+        for (final invoice in invoices)
+          if (invoice.id != preferred) invoice.id,
+      ];
+      var remaining = receipt.amount;
+      final allocations = <ReceiptAllocationsCompanion>[];
+      for (final invoiceId in invoiceIds) {
+        if (remaining <= 0) break;
+        final available = capacity[invoiceId]!;
+        if (available <= 0) continue;
+        final amount = remaining < available ? remaining : available;
+        allocations.add(
+          ReceiptAllocationsCompanion(
+            id: Value(_uuid.v4()),
+            receiptId: Value(receipt.id),
+            invoiceId: Value(invoiceId),
+            allocatedAmount: Value(amount),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
+        capacity[invoiceId] = available - amount;
+        remaining -= amount;
+      }
+      // Unallocated money remains client credit; it is never a second payment.
+      plan[receipt.id] = allocations;
+    }
+    return plan;
+  }
 
   Future<List<ReceiptAllocationsCompanion>> allocateFifo(
     String clientId,

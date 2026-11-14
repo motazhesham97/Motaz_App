@@ -12,8 +12,6 @@ import '../application/report_providers.dart';
 import '../data/report_models.dart';
 import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
-import '../pdf/pdf_styles.dart';
-import '../pdf/pdf_templates/client_statement_pdf.dart';
 import '../presentation/widgets/date_range_picker.dart';
 
 class ClientStatementScreen extends ConsumerStatefulWidget {
@@ -94,6 +92,7 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
               child: Column(
                 children: [
                   clientsAsync.when(
+                    skipLoadingOnReload: true,
                     data: (clients) => _buildClientSearch(clients),
                     loading: () => const CircularProgressIndicator(),
                     error: (e, _) => Text('خطأ: $e'),
@@ -218,6 +217,7 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
     );
 
     return statementAsync.when(
+      skipLoadingOnReload: true,
       data: (data) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -308,6 +308,9 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
       ClientStatementEntryCard(entry: entry);
 
   Future<void> _exportPdf() async {
+    if (_isExporting) {
+      return;
+    }
     if (_selectedClient == null) return;
     final statementAsync = ref.read(
       clientStatementProvider(
@@ -315,6 +318,7 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
       ),
     );
     final data = statementAsync.when(
+      skipLoadingOnReload: true,
       data: (d) => d,
       loading: () => null,
       error: (_, _) => null,
@@ -323,15 +327,28 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
 
     setState(() => _isExporting = true);
     try {
-      final exportData = await _attachStatementImages(data);
-      final styles = await PdfStyles.load();
-      final doc = ClientStatementPdf.generate(styles, exportData);
+      final loader = ReportAttachmentLoader(
+        ref.read(documentAttachmentReaderProvider),
+      );
+      final exportData = await _attachStatementImages(data, loader);
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(
+          PdfReportKind.statement,
+          exportData,
+          warning: loader.warning,
+        ),
         PdfReportFileNames.dated('كشف حساب', subject: data.clientName),
       );
       if (!mounted) return;
-      PdfGenerator.showSavedSnackBar(context, savedPath);
+      PdfGenerator.showSavedSnackBar(
+        context,
+        savedPath,
+        warning: loader.warning,
+      );
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -339,16 +356,19 @@ class _ClientStatementScreenState extends ConsumerState<ClientStatementScreen> {
 
   Future<ClientStatementData> _attachStatementImages(
     ClientStatementData data,
+    ReportAttachmentLoader reader,
   ) async {
-    final reader = ref.read(documentAttachmentReaderProvider);
     final entries = <ClientStatementEntry>[];
     for (final entry in data.entries) {
       entries.add(
         entry.copyWith(
-          attachmentImages: await reader.loadImages(
-            parentEntityType: entry.parentEntityType,
-            parentEntityId: entry.entityId,
-          ),
+          attachmentImages: entry.isInvoicePayment
+              ? const []
+              : await reader.loadImages(
+                  parentEntityType: entry.parentEntityType,
+                  parentEntityId: entry.entityId,
+                  maxDimension: 256,
+                ),
         ),
       );
     }
@@ -395,7 +415,7 @@ class ClientStatementEntryCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          _statementTypeLabel(entry.type),
+                          _statementTypeLabel(entry),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -465,7 +485,7 @@ class ClientStatementEntryCard extends StatelessWidget {
                 SizedBox(
                   width: 78,
                   child: Text(
-                    _statementTypeLabel(entry.type),
+                    _statementTypeLabel(entry),
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -511,8 +531,9 @@ class ClientStatementEntryCard extends StatelessWidget {
   }
 }
 
-String _statementTypeLabel(StatementEntryType type) => switch (type) {
+String _statementTypeLabel(ClientStatementEntry entry) => switch (entry.type) {
   StatementEntryType.invoice => 'فاتورة',
+  StatementEntryType.receipt when entry.isInvoicePayment => 'دفعة على فاتورة',
   StatementEntryType.receipt => 'سند قبض',
   StatementEntryType.returnItem => 'مرتجع',
 };

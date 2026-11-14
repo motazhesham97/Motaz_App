@@ -13,102 +13,94 @@ class ClientProductSalesReportPdf {
     final doc = styles.createDocument();
 
     doc.addPage(
-      pw.MultiPage(
+      styles.multiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         build: (context) => [
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'تقرير المنتجات المباعة لعميل',
-                  style: styles.titleStyle,
-                ),
-                pw.SizedBox(height: 8),
-                pw.Text('العميل: ${data.clientName}', style: styles.bodyStyle),
-                pw.Text(data.filterLabel, style: styles.bodyStyle),
-                pw.SizedBox(height: 16),
-                if (data.rows.isEmpty)
-                  pw.Center(
-                    child: pw.Text('لا توجد نتائج', style: styles.headerStyle),
-                  )
-                else ...[
-                  pw.TableHelper.fromTextArray(
-                    headers: [
-                      'المنتج',
-                      'الكمية',
-                      'إجمالي المبيعات',
-                      'المرتجع',
-                      'صافي الكمية',
-                      'قيمة المرتجع',
-                      'صافي المبيعات',
-                    ],
-                    data: data.rows
-                        .map(
-                          (row) => [
-                            row.productName,
-                            row.totalQuantitySold.toString(),
-                            formatMoneyPlain(row.totalSales),
-                            row.totalQuantityReturned.toString(),
-                            row.netQuantity.toString(),
-                            formatMoneyPlain(row.totalReturns),
-                            formatMoneyPlain(row.netSales),
-                          ],
-                        )
-                        .toList(),
-                    headerStyle: styles.tableHeaderStyle,
-                    cellStyle: styles.tableCellStyle,
-                    headerDecoration: const pw.BoxDecoration(
-                      color: PdfStyles.primaryColor,
-                    ),
-                    columnWidths: {
-                      0: const pw.FlexColumnWidth(3),
-                      1: const pw.FlexColumnWidth(1),
-                      2: const pw.FlexColumnWidth(1),
-                      3: const pw.FlexColumnWidth(1),
-                      4: const pw.FlexColumnWidth(1.4),
-                      5: const pw.FlexColumnWidth(1.4),
-                      6: const pw.FlexColumnWidth(1.4),
-                    },
-                  ),
-                  pw.SizedBox(height: 20),
-                  pw.Divider(),
-                  _summaryRow(
-                    styles,
-                    'إجمالي الكمية',
-                    data.totalQuantitySold.toString(),
-                  ),
-                  _summaryRow(
-                    styles,
-                    'إجمالي الكمية المرتجعة',
-                    data.totalQuantityReturned.toString(),
-                  ),
-                  _summaryRow(
-                    styles,
-                    'صافي الكمية',
-                    data.netQuantity.toString(),
-                  ),
-                  _summaryRow(
-                    styles,
-                    'إجمالي المبيعات',
-                    formatMoneyPlain(data.totalSales),
-                  ),
-                  _summaryRow(
-                    styles,
-                    'إجمالي المرتجع',
-                    formatMoneyPlain(data.totalReturns),
-                  ),
-                  _summaryRow(
-                    styles,
-                    'صافي المبيعات',
-                    formatMoneyPlain(data.netSales),
-                  ),
-                ],
-              ],
-            ),
+          pw.Text(
+            'تقرير المنتجات المباعة لعميل',
+            style: styles.titleStyle,
           ),
+          pw.SizedBox(height: 8),
+          pw.Text('العميل: ${data.clientName}', style: styles.bodyStyle),
+          pw.Text(data.filterLabel, style: styles.bodyStyle),
+          pw.SizedBox(height: 16),
+          if (data.rows.isEmpty)
+            pw.Center(
+              child: pw.Text('لا توجد نتائج', style: styles.headerStyle),
+            )
+          else ...[
+            pw.TableHelper.fromTextArray(
+              headers: [
+                'المنتج',
+                'الكمية',
+                'إجمالي المبيعات',
+                'المرتجع',
+                'صافي الكمية',
+                'قيمة المرتجع',
+                'صافي المبيعات',
+              ],
+              data: data.rows
+                  .map(
+                    (row) => [
+                      row.productName,
+                      row.totalQuantitySold.toString(),
+                      formatMoneyPlain(row.totalSales),
+                      row.totalQuantityReturned.toString(),
+                      row.netQuantity.toString(),
+                      formatMoneyPlain(row.totalReturns),
+                      formatMoneyPlain(row.netSales),
+                    ],
+                  )
+                  .toList(),
+              headerStyle: styles.tableHeaderStyle,
+              cellStyle: styles.tableCellStyle,
+              headerDecoration: const pw.BoxDecoration(
+                color: PdfStyles.primaryColor,
+              ),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(3),
+                1: const pw.FlexColumnWidth(1),
+                2: const pw.FlexColumnWidth(1),
+                3: const pw.FlexColumnWidth(1),
+                4: const pw.FlexColumnWidth(1.4),
+                5: const pw.FlexColumnWidth(1.4),
+                6: const pw.FlexColumnWidth(1.4),
+              },
+            ),
+            pw.SizedBox(height: 20),
+            pw.Divider(),
+            _summaryRow(
+              styles,
+              'إجمالي الكمية',
+              data.totalQuantitySold.toString(),
+            ),
+            _summaryRow(
+              styles,
+              'إجمالي الكمية المرتجعة',
+              data.totalQuantityReturned.toString(),
+            ),
+            _summaryRow(
+              styles,
+              'صافي الكمية',
+              data.netQuantity.toString(),
+            ),
+            _summaryRow(
+              styles,
+              'إجمالي المبيعات',
+              formatMoneyPlain(data.totalSales),
+            ),
+            _summaryRow(
+              styles,
+              'إجمالي المرتجع',
+              formatMoneyPlain(data.totalReturns),
+            ),
+            _summaryRow(
+              styles,
+              'صافي المبيعات',
+              formatMoneyPlain(data.netSales),
+            ),
+          ],
         ],
       ),
     );

@@ -11,8 +11,6 @@ import '../application/report_providers.dart';
 import '../data/report_models.dart';
 import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
-import '../pdf/pdf_styles.dart';
-import '../pdf/pdf_templates/client_receivables_report_pdf.dart';
 
 enum _ReportPeriod {
   today,
@@ -97,6 +95,7 @@ class _ClientReceivablesReportScreenState
               child: Column(
                 children: [
                   clientsAsync.when(
+                    skipLoadingOnReload: true,
                     data: _buildClientSearch,
                     loading: () => const LinearProgressIndicator(),
                     error: (error, _) => Text('خطأ: $error'),
@@ -109,6 +108,7 @@ class _ClientReceivablesReportScreenState
             const Divider(height: 1),
             Expanded(
               child: reportAsync.when(
+                skipLoadingOnReload: true,
                 data: _buildReport,
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(child: Text('خطأ: $error')),
@@ -408,6 +408,9 @@ class _ClientReceivablesReportScreenState
   }
 
   Future<void> _exportPdf() async {
+    if (_isExporting) {
+      return;
+    }
     final asyncData = ref.read(
       clientReceivablesReportProvider(
         (
@@ -418,6 +421,7 @@ class _ClientReceivablesReportScreenState
       ),
     );
     final data = asyncData.when(
+      skipLoadingOnReload: true,
       data: (value) => value,
       loading: () => null,
       error: (_, _) => null,
@@ -437,11 +441,9 @@ class _ClientReceivablesReportScreenState
 
     setState(() => _isExporting = true);
     try {
-      final styles = await PdfStyles.load();
-      final doc = ClientReceivablesReportPdf.generate(styles, exportData);
       final subject = _selectedClient?.displayName ?? _clientQuery.trim();
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(PdfReportKind.receivables, exportData),
         PdfReportFileNames.dated(
           'كشف مستحقات العملاء',
           subject: subject.isEmpty ? null : subject,
@@ -449,6 +451,10 @@ class _ClientReceivablesReportScreenState
       );
       if (!mounted) return;
       PdfGenerator.showSavedSnackBar(context, savedPath);
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }

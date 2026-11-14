@@ -8,6 +8,7 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/auth/app_auth_session_manager.dart';
 import 'core/auth/shared_preferences_auth_storage.dart';
 import 'core/database/app_database.dart';
 import 'core/database/database_provider.dart';
@@ -59,7 +60,7 @@ void main() async {
         );
       },
     );
-    final sessionManager = auth_core.ClientAuthSessionManager(
+    final sessionManager = AppAuthSessionManager(
       caller: auth_core.Caller(client),
       storage: auth_core.CachedClientAuthSuccessStorage(
         delegate: auth_core.KeyValueClientAuthSuccessStorage(
@@ -71,6 +72,7 @@ void main() async {
     );
     client.authKeyProvider = sessionManager;
     try {
+      // Local storage only. Remote validation runs after local auth entry.
       await sessionManager.restore();
     } catch (error, stackTrace) {
       AppLogger.server.warning(

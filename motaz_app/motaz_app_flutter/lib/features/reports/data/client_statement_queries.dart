@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/enums/parent_entity_type.dart';
 import '../../../core/database/enums/record_status.dart';
+import '../../../core/database/enums/receipt_type.dart';
 import '../../../core/utils/date_range.dart';
 import '../../../core/utils/document_reference_formatter.dart';
 import 'report_models.dart';
@@ -51,8 +52,10 @@ class ClientStatementQueries {
           "SELECT id AS entity_id, 'INVOICE' AS type, invoice_date AS txn_date, total AS amount, COALESCE(official_no, local_ref) AS ref, COALESCE(note, '') AS note "
           "FROM sales_invoices WHERE client_id = ? AND status = ? AND invoice_date >= ? AND invoice_date < ? "
           "UNION ALL "
-          "SELECT id, 'RECEIPT', receipt_date, amount, COALESCE(official_no, local_ref), COALESCE(note, '') "
-          "FROM receipts WHERE client_id = ? AND status = ? AND receipt_date >= ? AND receipt_date < ? "
+          "SELECT r.id, CASE WHEN r.receipt_type = ${ReceiptType.INVOICE_LINKED.index} THEN 'INVOICE_PAYMENT' ELSE 'RECEIPT' END, "
+          "r.receipt_date, r.amount, CASE WHEN r.receipt_type = ${ReceiptType.INVOICE_LINKED.index} THEN COALESCE(i.official_no, i.local_ref, '') ELSE COALESCE(r.official_no, r.local_ref) END, COALESCE(r.note, '') "
+          "FROM receipts r LEFT JOIN sales_invoices i ON i.id = r.invoice_id "
+          "WHERE r.client_id = ? AND r.status = ? AND r.receipt_date >= ? AND r.receipt_date < ? "
           "UNION ALL "
           "SELECT sr.id, 'RETURN', sr.return_date, sr.total_returned_amount, COALESCE(sr.official_no, sr.local_ref), COALESCE(sr.note, '') "
           "FROM sales_returns sr JOIN sales_invoices si ON si.id = sr.invoice_id "
@@ -80,7 +83,7 @@ class ClientStatementQueries {
       final typeStr = row.read<String>('type');
       final entryType = switch (typeStr) {
         'INVOICE' => StatementEntryType.invoice,
-        'RECEIPT' => StatementEntryType.receipt,
+        'RECEIPT' || 'INVOICE_PAYMENT' => StatementEntryType.receipt,
         'RETURN' => StatementEntryType.returnItem,
         _ => StatementEntryType.invoice,
       };
@@ -102,11 +105,14 @@ class ClientStatementQueries {
       final ref = row.read<String>('ref');
       final displayRef = switch (entryType) {
         StatementEntryType.invoice => invoiceDisplayRef(ref),
+        StatementEntryType.receipt when typeStr == 'INVOICE_PAYMENT' =>
+          invoiceDisplayRef(ref),
         StatementEntryType.receipt => receiptDisplayRef(ref),
         StatementEntryType.returnItem => returnDisplayRef(ref),
       };
 
       return ClientStatementEntry(
+        isInvoicePayment: typeStr == 'INVOICE_PAYMENT',
         entityId: row.read<String>('entity_id'),
         parentEntityType: parentEntityType,
         type: entryType,

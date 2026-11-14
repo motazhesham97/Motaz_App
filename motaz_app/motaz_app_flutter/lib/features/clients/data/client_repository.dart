@@ -380,19 +380,29 @@ class ClientRepository {
       }
 
       final receipts =
-          await (_db.select(_db.receipts)
+          await (_db.select(_db.receipts).join([
+                  leftOuterJoin(
+                    _db.salesInvoices,
+                    _db.salesInvoices.id.equalsExp(_db.receipts.invoiceId),
+                  ),
+                ])
                 ..where(
-                  (t) =>
-                      t.clientId.equals(clientId) &
-                      t.status.equals(RecordStatus.ACTIVE.index),
+                  _db.receipts.clientId.equals(clientId) &
+                      _db.receipts.status.equals(RecordStatus.ACTIVE.index),
                 )
-                ..orderBy([(t) => OrderingTerm.desc(t.receiptDate)])
+                ..orderBy([OrderingTerm.desc(_db.receipts.receiptDate)])
                 ..limit(limit))
               .get();
 
-      for (final receipt in receipts) {
+      for (final row in receipts) {
+        final receipt = row.readTable(_db.receipts);
+        final sourceInvoice = row.readTableOrNull(_db.salesInvoices);
         transactions.add({
           'type': 'RECEIPT',
+          'receiptType': receipt.receiptType,
+          'invoiceId': receipt.invoiceId,
+          'invoiceRef': sourceInvoice?.localRef,
+          'invoiceOfficialNo': sourceInvoice?.officialNo,
           'id': receipt.id,
           'localRef': receipt.localRef,
           'officialNo': receipt.officialNo,

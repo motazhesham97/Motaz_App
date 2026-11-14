@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,13 +16,19 @@ import 'package:motaz_app_flutter/features/profit_distribution/domain/monthly_pr
 void main() {
   testWidgets('net profit starts obscured with five stars', (tester) async {
     const netProfit = 1250000;
+    var revision = 0;
+    final refresh = Provider<int>((ref) => revision);
+    Completer<int>? pending;
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dashboardTodayNetSalesProvider.overrideWith((ref) async => 0),
           dashboardThisMonthNetSalesProvider.overrideWith((ref) async => 0),
-          dashboardNetProfitProvider.overrideWith((ref) async => netProfit),
+          dashboardNetProfitProvider.overrideWith((ref) {
+            ref.watch(refresh);
+            return pending?.future ?? Future.value(netProfit);
+          }),
           dashboardMonthlySettlementProvider.overrideWith(
             (ref) async => (
               profit: MonthlyProfit(
@@ -81,6 +89,21 @@ void main() {
 
     expect(find.text(dashboardObscuredMoneyText), findsNothing);
     expect(find.text(formatMoney(netProfit)), findsOneWidget);
+    final rect = tester.getRect(find.text(formatMoney(netProfit)));
+    final update = Completer<int>();
+    pending = update;
+    revision++;
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DashboardScreen)),
+    );
+    container.invalidate(refresh);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text(formatMoney(netProfit)), findsOneWidget);
+    expect(tester.getRect(find.text(formatMoney(netProfit))), rect);
+    update.complete(netProfit + 100000);
+    await tester.pumpAndSettle();
+    expect(find.text(formatMoney(netProfit + 100000)), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -220,6 +220,7 @@ class FinalMonthlyReportData {
 }
 
 class ClientStatementEntry {
+  final bool isInvoicePayment;
   final String entityId;
   final ParentEntityType parentEntityType;
   final StatementEntryType type;
@@ -231,6 +232,7 @@ class ClientStatementEntry {
   final List<Uint8List> attachmentImages;
 
   ClientStatementEntry({
+    this.isInvoicePayment = false,
     required this.entityId,
     required this.parentEntityType,
     required this.type,
@@ -246,6 +248,7 @@ class ClientStatementEntry {
     List<Uint8List>? attachmentImages,
   }) {
     return ClientStatementEntry(
+      isInvoicePayment: isInvoicePayment,
       entityId: entityId,
       parentEntityType: parentEntityType,
       type: type,

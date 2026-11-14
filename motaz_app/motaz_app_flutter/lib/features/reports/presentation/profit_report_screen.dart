@@ -50,6 +50,7 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen> {
             const Divider(height: 1),
             Expanded(
               child: reportAsync.when(
+                skipLoadingOnReload: true,
                 data: (data) {
                   if (data.grossSales == 0 &&
                       data.netProfit == 0 &&

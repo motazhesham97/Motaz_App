@@ -12,8 +12,6 @@ import '../application/report_providers.dart';
 import '../data/report_models.dart';
 import '../pdf/pdf_file_names.dart';
 import '../pdf/pdf_generator.dart';
-import '../pdf/pdf_styles.dart';
-import '../pdf/pdf_templates/sales_report_pdf.dart';
 import '../presentation/widgets/date_range_picker.dart';
 import '../presentation/widgets/report_summary_row.dart';
 
@@ -48,6 +46,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       ),
       child: Scaffold(
         floatingActionButton: reportAsync.maybeWhen(
+          skipLoadingOnReload: true,
           data: (summary) => summary.rows.isNotEmpty
               ? FloatingActionButton.extended(
                   onPressed: _isExporting ? null : () => _exportPdf(summary),
@@ -79,6 +78,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             const Divider(height: 1),
             Expanded(
               child: reportAsync.when(
+                skipLoadingOnReload: true,
                 data: (summary) {
                   if (summary.rows.isEmpty) {
                     return const Center(
@@ -209,21 +209,35 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   }
 
   Future<void> _exportPdf(SalesReportSummary summary) async {
+    if (_isExporting) {
+      return;
+    }
     setState(() => _isExporting = true);
     try {
-      final exportSummary = await _attachInvoiceImages(summary);
-      final styles = await PdfStyles.load();
-      final doc = SalesReportPdf.generate(
-        styles,
-        exportSummary,
-        _selectedRange,
+      final range = _selectedRange;
+      final loader = ReportAttachmentLoader(
+        ref.read(documentAttachmentReaderProvider),
       );
+      final exportSummary = await _attachInvoiceImages(summary, loader);
       final savedPath = await PdfGenerator.shareOrPrint(
-        doc,
+        PdfReportRequest(
+          PdfReportKind.sales,
+          exportSummary,
+          range: range,
+          warning: loader.warning,
+        ),
         PdfReportFileNames.dated('تقرير المبيعات'),
       );
       if (!mounted) return;
-      PdfGenerator.showSavedSnackBar(context, savedPath);
+      PdfGenerator.showSavedSnackBar(
+        context,
+        savedPath,
+        warning: loader.warning,
+      );
+    } catch (error) {
+      if (mounted) {
+        PdfGenerator.showExportError(context, error);
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -231,8 +245,8 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
 
   Future<SalesReportSummary> _attachInvoiceImages(
     SalesReportSummary summary,
+    ReportAttachmentLoader reader,
   ) async {
-    final reader = ref.read(documentAttachmentReaderProvider);
     final rows = <SalesReportRow>[];
     for (final row in summary.rows) {
       rows.add(
@@ -240,6 +254,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           attachmentImages: await reader.loadImages(
             parentEntityType: ParentEntityType.SALES_INVOICE,
             parentEntityId: row.invoiceId,
+            limit: 3,
           ),
         ),
       );

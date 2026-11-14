@@ -19,6 +19,7 @@ class FastikaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final backButtonDispatcher = ref.watch(appBackButtonDispatcherProvider);
     ref.listen(followUpTasksProvider, (_, next) {
       final tasks = next.asData?.value;
       if (tasks == null || tasks.isEmpty) return;
@@ -40,7 +41,11 @@ class FastikaApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      routerConfig: router,
+      routeInformationProvider: router.routeInformationProvider,
+      routeInformationParser: router.routeInformationParser,
+      routerDelegate: router.routerDelegate,
+      backButtonDispatcher: backButtonDispatcher,
+      onNavigationNotification: backButtonDispatcher.onNavigationNotification,
       builder: (context, child) {
         return Directionality(
           textDirection: AppTheme.textDirection,
